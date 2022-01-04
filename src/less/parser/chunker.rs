@@ -1,18 +1,4 @@
-#[allow(non_snake_case)]
-trait StringExtend {
-  fn charCodeAt(&self, index: usize) -> Option<u32>;
-}
-
-#[allow(non_snake_case)]
-impl StringExtend for String {
-  fn charCodeAt(&self, index: usize) -> Option<u32> {
-    let charlist: Vec<char> = self.chars().collect::<Vec<char>>();
-    match charlist.get(index) {
-      Some(val) => Some(*val as u32),
-      None => None
-    }
-  }
-}
+use crate::extend::string::StringExtend;
 
 #[allow(non_snake_case)]
 pub fn chunker(input: String) -> Result<Vec<String>, String> {
