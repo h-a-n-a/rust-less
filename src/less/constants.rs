@@ -1,6 +1,6 @@
 pub enum Math {
   ALWAYS = 0,
-  PARENS_DIVISION = 1,
+  PARENSDIVISION = 1,
   PARENS = 2,
 }
 
