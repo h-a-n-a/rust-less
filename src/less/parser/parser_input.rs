@@ -1,4 +1,5 @@
 use regex::Regex;
+use crate::extend::js_arg::StrOrRegex;
 use crate::extend::string::StringExtend;
 use crate::less::parser::chunker::chunker;
 
@@ -18,6 +19,7 @@ const CHARCODE_COMMA: u32 = 44;
 const CHARCODE_FORWARD_SLASH: u32 = 47;
 #[allow(dead_code)]
 const CHARCODE_9: u32 = 57;
+
 
 #[allow(dead_code)]
 #[allow(non_snake_case)]
@@ -60,7 +62,7 @@ pub struct ParserInput {
   chunks: Vec<String>,
   current: String,
   currentPos: usize,
-
+  
 }
 
 impl ParserInput {
@@ -119,10 +121,10 @@ impl ParserInput {
       }
       parserInput.i += 1;
     }
-
+    
     parserInput.current = parserInput.current.slice((length + parserInput.i - mem + curr) as i32);
     parserInput.currentPos = parserInput.i;
-
+    
     if parserInput.current.is_empty() {
       if parserInput.j < parserInput.chunks.len() - 1 {
         parserInput.j += 1;
@@ -132,10 +134,10 @@ impl ParserInput {
       }
       parserInput.finished = true;
     }
-
+    
     oldi != parserInput.i || oldj != parserInput.j
   }
-
+  
   fn save(&mut self) {
     self.currentPos = self.i;
     self.saveStack.push(SaveStack {
@@ -144,7 +146,7 @@ impl ParserInput {
       j: self.j,
     });
   }
-
+  
   #[allow(non_snake_case)]
   fn restore(&mut self, possibleErrorMessage: String) {
     if self.i > self.furthest || (self.i == self.furthest && !possibleErrorMessage.is_empty() && self.furthestPossibleErrorMessage.is_empty()) {
@@ -160,21 +162,21 @@ impl ParserInput {
       self.saveStack.remove(self.saveStack.len() - 1);
     }
   }
-
+  
   #[allow(non_snake_case)]
   fn forget(&mut self) {
     if !self.saveStack.is_empty() {
       self.saveStack.remove(self.saveStack.len() - 1);
     }
   }
-
+  
   #[allow(non_snake_case)]
   fn isWhitespace(&mut self, offset: Option<usize>) -> bool {
     let pos = self.i + offset.unwrap_or(0);
     let code = self.input.charCodeAt(pos).unwrap();
     code == CHARCODE_SPACE || code == CHARCODE_CR || code == CHARCODE_TAB || code == CHARCODE_LF
   }
-
+  
   #[allow(non_snake_case)]
   fn _re(&mut self, tok: Regex) -> Option<String> {
     if self.i > self.currentPos {
@@ -193,7 +195,7 @@ impl ParserInput {
       }
     }
   }
-
+  
   #[allow(non_snake_case)]
   fn _char(&mut self, tok: String) -> Option<String> {
     if self.input.charAt(self.i) != Some(tok.clone()) {
@@ -202,7 +204,7 @@ impl ParserInput {
     self.skipWhitespace(1);
     Some(tok)
   }
-
+  
   #[allow(non_snake_case)]
   fn _str(&mut self, tok: String) -> Option<String> {
     let tokLength = tok.len();
@@ -220,7 +222,7 @@ impl ParserInput {
     self.skipWhitespace(tokLength);
     Some(tok)
   }
-
+  
   #[allow(non_snake_case)]
   fn _quoted(&mut self, loc: Option<usize>) -> Option<Vec<String>> {
     let pos = loc.unwrap_or(self.i);
@@ -259,36 +261,157 @@ impl ParserInput {
     };
     None
   }
-
-  ///todo!  parserInput.$parseUntil
-
-
+  
+  #[allow(non_snake_case)]
+  fn _parseUntil(&mut self, tok: StrOrRegex) -> Option<String> {
+    let mut quote: Vec<String>;
+    let mut returnVal: Option<String> = None;
+    let mut inComment = false;
+    let mut blockDepth = 0;
+    let mut blockStack: Vec<String> = vec![];
+    let mut parseGroups: Vec<String> = vec![];
+    let length = self.input.len();
+    let startPos = self.i;
+    let mut lastPos = self.i;
+    let mut i = self.i;
+    let mut loops = true;
+    let testChar: Box<dyn Fn(String) -> bool>;
+    
+    match tok {
+      StrOrRegex::Regex(regex) => {
+        testChar = Box::new(move |char: String| { regex.is_match(char.as_str()) });
+      }
+      StrOrRegex::Str(txt) => {
+        testChar = Box::new(move |char: String| { char == txt });
+      }
+    }
+    
+    loop {
+      let mut nextChar = self.input.charAt(i).unwrap();
+      if blockDepth == 0 && testChar(nextChar.clone()) {
+        returnVal = Some(self.input.substr(lastPos as i32, Some((i - lastPos) as i32)));
+        if returnVal.is_some() {
+          parseGroups.push(returnVal.unwrap().clone());
+        } else {
+          parseGroups.push(" ".to_string());
+        }
+        returnVal = Some(parseGroups.join(""));
+        self.skipWhitespace(i - startPos);
+        loops = false;
+      } else {
+        if inComment {
+          if nextChar == "*".to_string() && self.input.charAt(i + 1).unwrap_or("".to_string()) == "/".to_string() {
+            i += 1;
+            blockDepth -= 1;
+            inComment = false;
+          }
+          i += 1;
+          continue;
+        }
+        match nextChar.as_str() {
+          r#"\\"# => {
+            i += 1;
+            nextChar = self.input.charAt(i).unwrap();
+            parseGroups.push(
+              self.input.substr(
+                lastPos as i32,
+                Some((i - lastPos + 1) as i32),
+              )
+            );
+            lastPos = i + 1;
+          }
+          "/" => {
+            if self.input.charAt(i + 1) == Some("*".to_string()) {
+              i += 1;
+              inComment = true;
+              blockDepth += 1
+            }
+          }
+          r#"\"# | r#"""# => {
+            quote = self._quoted(Some(i)).unwrap_or(vec![]);
+            if !quote.is_empty() {
+              parseGroups.push(
+                self.input.substr(
+                  lastPos as i32,
+                  Some((i - lastPos) as i32),
+                )
+              );
+              parseGroups.push(quote.join(""));
+              i += quote[1].len() - 1;
+              lastPos = i + 1;
+            } else {
+              self.skipWhitespace(i - startPos);
+              returnVal = Some(nextChar.clone());
+              loops = false;
+            }
+          }
+          r#"{"# => {
+            blockStack.push("}".to_string());
+            blockDepth += 1;
+          }
+          r#"("# => {
+            blockStack.push(")".to_string());
+            blockDepth += 1;
+          }
+          r#"["# => {
+            blockStack.push("]".to_string());
+            blockDepth += 1;
+          }
+          r#"}"# | r#")"# | r#"]"# => {
+            let expected: Option<String> = match blockStack.last() {
+              None => { None }
+              Some(val) => { Some(val.clone().to_string()) }
+            };
+            blockStack.remove(blockStack.len() - 1);
+            if expected == Some(nextChar.clone()) {
+              blockDepth -= 1;
+            } else {
+              self.skipWhitespace(i - startPos);
+              returnVal = expected;
+              loops = false;
+            }
+          }
+          _ => {}
+        }
+        i += 1;
+        if i > length {
+          loops = false;
+        }
+      }
+      let _prevChar = nextChar.clone();
+      if !loops {
+        break;
+      }
+    }
+    returnVal
+  }
+  
   #[allow(non_snake_case)]
   fn peekChar(&mut self, tok: String) -> bool {
     self.input.charAt(self.i) == Some(tok)
   }
-
+  
   #[allow(non_snake_case)]
   fn currentChar(&mut self) -> String {
     self.input.charAt(self.i).unwrap_or("".to_string())
   }
-
+  
   #[allow(non_snake_case)]
   fn prevChar(&mut self) -> String {
     self.input.charAt(self.i - 1).unwrap_or("".to_string())
   }
-
+  
   #[allow(non_snake_case)]
   fn getInput(&mut self) -> String {
     self.input.clone()
   }
-
+  
   #[allow(non_snake_case)]
   fn peekNotNumeric(&mut self) -> bool {
     let cc = self.input.charCodeAt(self.i).unwrap();
     (cc > CHARCODE_9 || cc < CHARCODE_PLUS) || cc == CHARCODE_FORWARD_SLASH || cc == CHARCODE_COMMA
   }
-
+  
   #[allow(non_snake_case)]
   fn start(&mut self, str: String, chunkInput: bool) -> Result<(), String> {
     self.input = str.clone();
@@ -316,7 +439,7 @@ impl ParserInput {
     self.skipWhitespace(0);
     Ok(())
   }
-
+  
   #[allow(non_snake_case)]
   fn end(&mut self) -> ParserInputEndResult {
     let mut msg = "".to_string();
@@ -333,7 +456,7 @@ impl ParserInput {
       furthestChar: self.input.charAt(self.i).unwrap_or("".to_string()),
     }
   }
-
+  
   fn new() -> ParserInput {
     ParserInput {
       finished: false,
