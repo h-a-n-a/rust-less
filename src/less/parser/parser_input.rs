@@ -1,27 +1,51 @@
 use regex::Regex;
 use crate::extend::string::StringExtend;
+use crate::less::parser::chunker::chunker;
 
+#[allow(dead_code)]
 const CHARCODE_SPACE: u32 = 32;
+#[allow(dead_code)]
 const CHARCODE_TAB: u32 = 9;
+#[allow(dead_code)]
 const CHARCODE_LF: u32 = 10;
+#[allow(dead_code)]
 const CHARCODE_CR: u32 = 13;
+#[allow(dead_code)]
 const CHARCODE_PLUS: u32 = 43;
+#[allow(dead_code)]
 const CHARCODE_COMMA: u32 = 44;
+#[allow(dead_code)]
 const CHARCODE_FORWARD_SLASH: u32 = 47;
+#[allow(dead_code)]
 const CHARCODE_9: u32 = 57;
 
-struct SaveStack {
+#[allow(dead_code)]
+#[allow(non_snake_case)]
+pub struct ParserInputEndResult {
+  isFinished: bool,
+  furthest: usize,
+  furthestPossibleErrorMessage: String,
+  furthestReachedEnd: bool,
+  furthestChar: String,
+}
+
+#[allow(dead_code)]
+pub struct SaveStack {
   current: String,
   i: usize,
   j: usize,
 }
 
+#[allow(dead_code)]
+#[allow(non_snake_case)]
 pub struct Comment {
   index: usize,
   isLineComment: bool,
   text: String,
 }
 
+#[allow(dead_code)]
+#[allow(non_snake_case)]
 pub struct ParserInput {
   finished: bool,
   autoCommentAbsorb: bool,
@@ -36,10 +60,11 @@ pub struct ParserInput {
   chunks: Vec<String>,
   current: String,
   currentPos: usize,
-  
+
 }
 
 impl ParserInput {
+  #[allow(non_snake_case)]
   fn skipWhitespace(&mut self, length: usize) -> bool {
     let mut parserInput = self;
     let oldi = parserInput.i;
@@ -86,7 +111,6 @@ impl ParserInput {
           }
           break;
         }
-        
         if c != CHARCODE_SPACE && c != CHARCODE_LF && c != CHARCODE_TAB && c != CHARCODE_CR {
           break;
         }
@@ -95,10 +119,10 @@ impl ParserInput {
       }
       parserInput.i += 1;
     }
-    
+
     parserInput.current = parserInput.current.slice((length + parserInput.i - mem + curr) as i32);
     parserInput.currentPos = parserInput.i;
-    
+
     if parserInput.current.is_empty() {
       if parserInput.j < parserInput.chunks.len() - 1 {
         parserInput.j += 1;
@@ -108,10 +132,10 @@ impl ParserInput {
       }
       parserInput.finished = true;
     }
-    
+
     oldi != parserInput.i || oldj != parserInput.j
   }
-  
+
   fn save(&mut self) {
     self.currentPos = self.i;
     self.saveStack.push(SaveStack {
@@ -120,35 +144,38 @@ impl ParserInput {
       j: self.j,
     });
   }
-  
+
+  #[allow(non_snake_case)]
   fn restore(&mut self, possibleErrorMessage: String) {
     if self.i > self.furthest || (self.i == self.furthest && !possibleErrorMessage.is_empty() && self.furthestPossibleErrorMessage.is_empty()) {
       self.furthest = self.i;
       self.furthestPossibleErrorMessage = possibleErrorMessage;
     }
-    let mut state = self.saveStack.last().unwrap();
-    let rm_index = self.saveStack.len() - 1;
+    let state = self.saveStack.last().unwrap();
     self.current = (*state).current.clone();
     self.currentPos = state.i;
     self.i = state.i;
     self.j = state.j;
-    if rm_index >= 0 {
-      self.saveStack.remove(rm_index);
+    if !self.saveStack.is_empty() {
+      self.saveStack.remove(self.saveStack.len() - 1);
     }
   }
-  
+
+  #[allow(non_snake_case)]
   fn forget(&mut self) {
     if !self.saveStack.is_empty() {
       self.saveStack.remove(self.saveStack.len() - 1);
     }
   }
-  
+
+  #[allow(non_snake_case)]
   fn isWhitespace(&mut self, offset: Option<usize>) -> bool {
     let pos = self.i + offset.unwrap_or(0);
     let code = self.input.charCodeAt(pos).unwrap();
     code == CHARCODE_SPACE || code == CHARCODE_CR || code == CHARCODE_TAB || code == CHARCODE_LF
   }
-  
+
+  #[allow(non_snake_case)]
   fn _re(&mut self, tok: Regex) -> Option<String> {
     if self.i > self.currentPos {
       self.current = self.current.slice((self.i - self.currentPos) as i32);
@@ -166,7 +193,8 @@ impl ParserInput {
       }
     }
   }
-  
+
+  #[allow(non_snake_case)]
   fn _char(&mut self, tok: String) -> Option<String> {
     if self.input.charAt(self.i) != Some(tok.clone()) {
       return None;
@@ -174,7 +202,8 @@ impl ParserInput {
     self.skipWhitespace(1);
     Some(tok)
   }
-  
+
+  #[allow(non_snake_case)]
   fn _str(&mut self, tok: String) -> Option<String> {
     let tokLength = tok.len();
     let mut i = 0;
@@ -191,7 +220,8 @@ impl ParserInput {
     self.skipWhitespace(tokLength);
     Some(tok)
   }
-  
+
+  #[allow(non_snake_case)]
   fn _quoted(&mut self, loc: Option<usize>) -> Option<Vec<String>> {
     let pos = loc.unwrap_or(self.i);
     let startChar = self.input.charAt(pos).unwrap_or("".to_string());
@@ -200,7 +230,6 @@ impl ParserInput {
     }
     let length = self.input.len();
     let currentPosition = pos;
-    
     let mut i = 1;
     loop {
       if i + currentPosition < length {
@@ -228,28 +257,104 @@ impl ParserInput {
       }
       i += 1;
     };
-    
-    None;
+    None
+  }
+
+  ///todo!  parserInput.$parseUntil
+
+
+  #[allow(non_snake_case)]
+  fn peekChar(&mut self, tok: String) -> bool {
+    self.input.charAt(self.i) == Some(tok)
+  }
+
+  #[allow(non_snake_case)]
+  fn currentChar(&mut self) -> String {
+    self.input.charAt(self.i).unwrap_or("".to_string())
+  }
+
+  #[allow(non_snake_case)]
+  fn prevChar(&mut self) -> String {
+    self.input.charAt(self.i - 1).unwrap_or("".to_string())
+  }
+
+  #[allow(non_snake_case)]
+  fn getInput(&mut self) -> String {
+    self.input.clone()
+  }
+
+  #[allow(non_snake_case)]
+  fn peekNotNumeric(&mut self) -> bool {
+    let cc = self.input.charCodeAt(self.i).unwrap();
+    (cc > CHARCODE_9 || cc < CHARCODE_PLUS) || cc == CHARCODE_FORWARD_SLASH || cc == CHARCODE_COMMA
+  }
+
+  #[allow(non_snake_case)]
+  fn start(&mut self, str: String, chunkInput: bool) -> Result<(), String> {
+    self.input = str.clone();
+    self.i = 0;
+    self.j = 0;
+    self.furthest = 0;
+    if chunkInput {
+      match chunker(str.clone()) {
+        Ok(value) => {
+          self.chunks = value;
+        }
+        Err(msg) => {
+          return Err(msg);
+        }
+      };
+    } else {
+      self.chunks = vec![str.clone()]
+    }
+    match self.chunks.get(0) {
+      None => { return Err("parserInput.chunks is empty!..".to_string()); }
+      Some(value) => {
+        self.current = value.clone();
+      }
+    };
+    self.skipWhitespace(0);
+    Ok(())
+  }
+
+  #[allow(non_snake_case)]
+  fn end(&mut self) -> ParserInputEndResult {
+    let mut msg = "".to_string();
+    let isFinished = self.i >= self.input.len();
+    if self.i < self.furthest {
+      msg = self.furthestPossibleErrorMessage.clone();
+      self.i = self.furthest;
+    }
+    ParserInputEndResult {
+      isFinished,
+      furthest: self.i.clone(),
+      furthestPossibleErrorMessage: msg,
+      furthestReachedEnd: self.i >= self.input.len() - 1,
+      furthestChar: self.input.charAt(self.i).unwrap_or("".to_string()),
+    }
+  }
+
+  fn new() -> ParserInput {
+    ParserInput {
+      finished: false,
+      autoCommentAbsorb: true,
+      commentStore: vec![],
+      i: 0,
+      //无意义计算引用
+      input: "".to_string(),
+      j: 0,
+      saveStack: vec![],
+      furthest: 0,
+      furthestPossibleErrorMessage: "".to_string(),
+      chunks: vec![],
+      current: "".to_string(),
+      currentPos: 0,
+    }
   }
 }
 
+#[allow(non_snake_case)]
 pub fn parser_input() -> ParserInput {
-  let mut parserInput = ParserInput {
-    finished: false,
-    autoCommentAbsorb: true,
-    commentStore: vec![],
-    i: 0,
-    //无意义计算引用
-    input: "".to_string(),
-    j: 0,
-    saveStack: vec![],
-    furthest: 0,
-    furthestPossibleErrorMessage: "".to_string(),
-    chunks: vec![],
-    current: "".to_string(),
-    currentPos: 0,
-    
-  };
-  
+  let parserInput = ParserInput::new();
   parserInput
 }
