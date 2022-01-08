@@ -3,7 +3,7 @@ use crate::new_less::loc::Loc;
 #[derive(Debug, Clone)]
 pub enum OriginBlockType {
   Comment,
-  Style_Rule,
+  StyleRule,
   Var,
   Import,
 }

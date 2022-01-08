@@ -30,13 +30,7 @@ pub fn parse_origin_block(content: String) -> Result<Vec<OriginBlock>, String> {
   while index < charlist.len() {
     
     // 处理字符
-    let prev_char;
-    if index != 0 {
-      prev_char = charlist.get(index - 1).unwrap().clone();
-    } else {
-      prev_char = "".to_string();
-    }
-    let mut char = charlist.get(index).unwrap().clone();
+    let char = charlist.get(index).unwrap().clone();
     let next_char;
     if index != charlist.len() - 1 {
       next_char = charlist.get(index + 1).unwrap().clone();
@@ -98,7 +92,7 @@ pub fn parse_origin_block(content: String) -> Result<Vec<OriginBlock>, String> {
       braces_level -= 1;
       if braces_level == 0 {
         blocklist.push(OriginBlock {
-          block_type: OriginBlockType::Style_Rule,
+          block_type: OriginBlockType::StyleRule,
           content: templist.join(""),
           loc: record_loc.unwrap(),
         });
