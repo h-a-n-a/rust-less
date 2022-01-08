@@ -5,6 +5,7 @@ pub trait StringExtend {
   fn indexOf(&self, findchar: &str, fromindex: Option<usize>) -> i32;
   fn slice(&self, fromindex: i32) -> String;
   fn substr(&self, fromindex: i32, length: Option<i32>) -> String;
+  fn tocharlist(&self) -> Vec<String>;
 }
 
 #[allow(non_snake_case)]
@@ -93,5 +94,9 @@ impl StringExtend for String {
       }
       self.clone().as_str()[start..end].to_string()
     };
+  }
+  
+  fn tocharlist(&self) -> Vec<String> {
+    self.chars().map(|x| x.to_string()).collect::<Vec<String>>()
   }
 }

@@ -1,8 +1,9 @@
+use crate::extend::string::StringExtend;
 use crate::new_less::block::{OriginBlock, OriginBlockType};
-use crate::new_less::loc::Loc;
+use crate::new_less::loc::{Loc, LocMap};
 
 pub fn parse_origin_block(content: String) -> Result<Vec<OriginBlock>, String> {
-  let charlist = content.chars().map(|x| x.to_string()).collect::<Vec<String>>();
+  let charlist = content.tocharlist();
   let mut blocklist: Vec<OriginBlock> = vec![];
   let mut templist: Vec<String> = vec![];
   let mut commentlist: Vec<String> = vec![];
@@ -23,14 +24,8 @@ pub fn parse_origin_block(content: String) -> Result<Vec<OriginBlock>, String> {
   let comment_flag = "//".to_string();
   let comment_mark_strat = "/*".to_string();
   let comment_mark_end = "*/".to_string();
-  
-  let mut record_loc = false;
-  let mut col = 0;
-  let mut column: Vec<usize> = vec![];
-  let mut loc: Loc = Loc {
-    line: 0,
-    col: 0,
-  };
+  let locmap = LocMap::new(content);
+  let mut record_loc: Option<Loc> = None;
   
   while index < charlist.len() {
     
@@ -48,21 +43,11 @@ pub fn parse_origin_block(content: String) -> Result<Vec<OriginBlock>, String> {
     } else {
       next_char = "".to_string()
     }
-    // 处理坐标
-    if char != '\n'.to_string() && char != '\r'.to_string() && !record_loc {
-      loc = Loc {
-        line: column.len(),
-        col: col.clone(),
-      };
-      record_loc = true;
+    
+    if char != "\r" && char != "\n" && record_loc.is_none() {
+      record_loc = Some(locmap.get(index).unwrap());
     }
     
-    if char == '\n'.to_string() || char == '\r'.to_string() {
-      column.push(col);
-      col = 0;
-    } else {
-      col += 1;
-    }
     
     // 优先检测注释 与当前块 等级 相同 为 0
     let word = char.clone() + &next_char;
@@ -92,10 +77,10 @@ pub fn parse_origin_block(content: String) -> Result<Vec<OriginBlock>, String> {
       blocklist.push(OriginBlock {
         block_type: OriginBlockType::Comment,
         content: commentlist.join(""),
-        loc: loc.clone(),
+        loc: record_loc.unwrap(),
       });
-      record_loc = false;
       commentlist.clear();
+      record_loc = None;
       continue;
     }
     if !wirte_comment {
@@ -115,10 +100,10 @@ pub fn parse_origin_block(content: String) -> Result<Vec<OriginBlock>, String> {
         blocklist.push(OriginBlock {
           block_type: OriginBlockType::Style_Rule,
           content: templist.join(""),
-          loc: loc.clone(),
+          loc: record_loc.unwrap(),
         });
         templist.clear();
-        record_loc = false;
+        record_loc = None;
       }
     }
     // style_list 外部的内容 进行 变量 | 引用 | 注释 的标准计算
@@ -126,10 +111,10 @@ pub fn parse_origin_block(content: String) -> Result<Vec<OriginBlock>, String> {
       blocklist.push(OriginBlock {
         block_type: OriginBlockType::Var,
         content: templist.join(""),
-        loc: loc.clone(),
+        loc: record_loc.unwrap(),
       });
       templist.clear();
-      record_loc = false;
+      record_loc = None;
     }
     index += 1;
   }
