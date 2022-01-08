@@ -1,21 +1,18 @@
 #[cfg(test)]
 mod tests {
-  use std::time::Instant;
+  use crate::extend::time::wastetime;
   use crate::new_less::file::*;
-  use crate::new_less::fileinfo::FileManger;
+  use crate::new_less::fileinfo::*;
   use crate::new_less::loc::LocMap;
-  use crate::new_less::origin_parse::*;
 
   #[test]
   fn test_less() {
-    let now = Instant::now();
-    let content = readfile(path_resolve("assets/demo.less")).unwrap();
-    /// 转化 Less 文件中 最原始的 Block 片段
-    let blocks = parse_origin_block(content).unwrap();
-    let end = now.elapsed();
-    println!("{:#?}", blocks);
-    let a = end.as_micros() as f32;
-    println!("Running slow_function() took {} ms", a * 0.001);
+    let start_record = wastetime("test_less");
+    // 处理过程
+    let filepath = path_resolve("assets/demo.less");
+    let info = FileInfo::create_disklocation(filepath, None).unwrap();
+    start_record();
+    // println!("{:#?}", info);
     println!("........");
   }
 
@@ -37,7 +34,7 @@ mod tests {
     let a = "../test/a.txt".to_string();
     let b = "./test/a.txt".to_string();
     let c = "/test/a.txt".to_string();
-    assert_eq!(FileManger::is_relative_path(&a) , true);
+    assert_eq!(FileManger::is_relative_path(&a), true);
     assert_eq!(FileManger::is_relative_path(&b), true);
     assert_eq!(FileManger::is_relative_path(&c), true);
   }
