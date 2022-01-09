@@ -1,28 +1,65 @@
-use std::path::Path;
 use std::rc::Rc;
+use crate::extend::string::StringExtend;
 use crate::new_less::block::OriginBlock;
-use crate::new_less::file::{cmd_path, cmd_path_resolve, path_join, readfile};
+use crate::new_less::file_manger::FileManger;
+use crate::new_less::loc::LocMap;
+use crate::new_less::option::ParseOption;
 use crate::new_less::origin_parse::parse_origin_block;
 
 #[derive(Debug, Clone)]
 pub struct FileInfo {
+  // 文件的磁盘位置
   pub disk_location: Option<std::string::String>,
+  // 文件的原始内容
+  pub origin_txt_content: String,
+  // 根据 原始内容 -> 转化的 字符数组
+  pub origin_charlist: Vec<String>,
+  // 文件的 原始AST节点
   pub block_node: Vec<OriginBlock>,
+  // 当前所有 索引 对应的 坐标行列 -> 用于执行 sourcemap
+  pub locmap: Option<LocMap>,
+  // 内部调用方式时 需要拿到对应的 转化配置
+  option: ParseOption,
+  // 当前引用链
   pub import_file: Vec<Rc<FileInfo>>,
+  // 所有引用链
   pub recur_import_file: Vec<Rc<FileInfo>>,
 }
 
 
 impl FileInfo {
+  pub fn get_options(&self) -> &ParseOption {
+    &self.option
+  }
+
+  pub fn get_loc_by_content(content: &str) -> LocMap {
+    let locmap = LocMap::new(content.to_string());
+    locmap
+  }
+
+  pub fn get_charlist(content: &str) -> Vec<String> {
+    content.to_string().tocharlist()
+  }
+
   ///
   /// 根据文件路径 解析 文件
   ///
-  pub fn create_disklocation(filepath: String, include_path: Option<Vec<String>>) -> Result<FileInfo, String> {
+  pub fn create_disklocation(filepath: String, option: ParseOption) -> Result<FileInfo, String> {
     let abs_path: String;
+    let text_content: String;
+    let charlist: Vec<String>;
+    let mut locmap: Option<LocMap> = None;
     let block_node;
-    match FileManger::resolve(filepath.clone(), include_path) {
+    match FileManger::resolve(
+      filepath.clone(),
+      option.include_path.clone()) {
       Ok((calc_path, content)) => {
         abs_path = calc_path;
+        text_content = content.clone();
+        if option.sourcemap {
+          locmap = Some(FileInfo::get_loc_by_content(content.as_str()));
+        }
+        charlist = FileInfo::get_charlist(content.as_str());
         match parse_origin_block(content) {
           Ok(blocks) => {
             block_node = blocks;
@@ -39,6 +76,10 @@ impl FileInfo {
     let obj = FileInfo {
       disk_location: Some(abs_path),
       block_node,
+      origin_txt_content: text_content,
+      origin_charlist: charlist,
+      locmap,
+      option,
       import_file: vec![],
       recur_import_file: vec![],
     };
@@ -46,86 +87,7 @@ impl FileInfo {
   }
 }
 
-pub struct FileManger {}
 
-impl FileManger {
-  ///
-  /// 文件查找对应解析路径
-  ///
-  pub fn resolve(filepath: String, include_path: Option<Vec<String>>) -> Result<(String, String), String> {
-    let checkpath = |path_target: &Path| -> Result<(), String>{
-      if !path_target.exists() {
-        return Err(format!("file is not exists filepath is {}", filepath));
-      }
-      if !path_target.is_file() {
-        return Err(format!("file is not file maybe is dir ?! filepath is{}", filepath));
-      }
-      Ok(())
-    };
-
-    return if FileManger::is_relative_path(&filepath) {
-      // 相对路径的情况
-      if include_path.is_none() {
-        let abs_path = cmd_path_resolve(filepath.as_str());
-        let path_target = Path::new(abs_path.as_str());
-        match checkpath(path_target) {
-          Ok(_) => {}
-          Err(msg) => {
-            return Err(msg);
-          }
-        }
-        Ok((abs_path.clone(), readfile(abs_path).unwrap()))
-      } else {
-        let mut paths = include_path.unwrap().clone();
-        paths.insert(0, cmd_path());
-        let mut abs_path: Option<String> = None;
-        let mut failpath = vec![];
-        for basepath in paths {
-          let temp_path = path_join(basepath.as_str(), filepath.as_str());
-          let path_target = Path::new(temp_path.as_str());
-          match checkpath(path_target) {
-            Ok(_) => {
-              abs_path = Some(temp_path.clone());
-              break;
-            }
-            Err(_) => {
-              failpath.push(temp_path.clone())
-            }
-          }
-        }
-        return if let Some(match_path) = abs_path {
-          Ok((match_path.clone(), readfile(match_path).unwrap()))
-        } else {
-          Err(format!("Nothings File is find in cmdpath and inculdepath,{}", failpath.join(";")))
-        };
-      }
-    } else {
-      // 绝对路径的情况
-      let path_target = Path::new(filepath.as_str());
-      match checkpath(path_target) {
-        Ok(_) => {}
-        Err(msg) => {
-          return Err(msg);
-        }
-      }
-      let res = readfile(filepath.clone()).unwrap();
-      Ok((filepath.clone(), res))
-    };
-  }
-
-
-  pub fn is_relative_path(txt: &str) -> bool {
-    let mut matched = false;
-    if txt.len() >= 3 && &txt[0..3] == "../" {
-      matched = true
-    } else if txt.len() >= 2 && &txt[0..2] == "./" {
-      matched = true
-    } else if txt.len() >= 1 && &txt[0..1] == "/" {
-      matched = true
-    }
-    matched
-  }
-}
 
 
 

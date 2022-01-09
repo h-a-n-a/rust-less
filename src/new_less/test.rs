@@ -10,7 +10,7 @@ mod tests {
     let start_record = wastetime("test_less");
     // 处理过程
     let filepath = path_resolve("assets/demo.less");
-    let info = FileInfo::create_disklocation(filepath, None).unwrap();
+    let info = FileInfo::create_disklocation(filepath, Default::default()).unwrap();
     start_record();
     // println!("{:#?}", info);
     println!("........");
