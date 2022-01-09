@@ -2,6 +2,7 @@
 mod tests {
   use crate::extend::time::wastetime;
   use crate::new_less::file::*;
+  use crate::new_less::file_manger::FileManger;
   use crate::new_less::fileinfo::*;
   use crate::new_less::loc::LocMap;
 

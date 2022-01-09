@@ -5,6 +5,8 @@ use crate::new_less::file_manger::FileManger;
 use crate::new_less::loc::LocMap;
 use crate::new_less::option::ParseOption;
 use crate::new_less::origin_parse::parse_origin_block;
+use crate::new_less::comment;
+use crate::new_less::comment::Comment;
 
 #[derive(Debug, Clone)]
 pub struct FileInfo {
@@ -49,7 +51,7 @@ impl FileInfo {
     let text_content: String;
     let charlist: Vec<String>;
     let mut locmap: Option<LocMap> = None;
-    let block_node;
+    let mut obj: FileInfo;
     match FileManger::resolve(
       filepath.clone(),
       option.include_path.clone()) {
@@ -60,9 +62,27 @@ impl FileInfo {
           locmap = Some(FileInfo::get_loc_by_content(content.as_str()));
         }
         charlist = FileInfo::get_charlist(content.as_str());
+        obj = FileInfo {
+          disk_location: Some(abs_path),
+          block_node: vec![],
+          origin_txt_content: text_content,
+          origin_charlist: charlist,
+          locmap,
+          option,
+          import_file: vec![],
+          recur_import_file: vec![],
+        };
+        match obj.get_comment() {
+          Ok(mut blocks) => {
+            obj.block_node.append(&mut blocks);
+          }
+          Err(msg) => {
+            return Err(msg);
+          }
+        }
         match parse_origin_block(content) {
-          Ok(blocks) => {
-            block_node = blocks;
+          Ok(mut blocks) => {
+            obj.block_node.append(&mut blocks);
           }
           Err(msg) => {
             return Err(msg);
@@ -73,16 +93,6 @@ impl FileInfo {
         return Err(msg);
       }
     }
-    let obj = FileInfo {
-      disk_location: Some(abs_path),
-      block_node,
-      origin_txt_content: text_content,
-      origin_charlist: charlist,
-      locmap,
-      option,
-      import_file: vec![],
-      recur_import_file: vec![],
-    };
     Ok(obj)
   }
 }
