@@ -158,6 +158,7 @@ fn get_comment_blocknode(block_node: &Vec<OriginBlock>) -> Vec<OriginBlock> {
 
 ///
 /// 移除注释
+/// 必须依赖开启 sourcemap
 ///
 fn rm_comment(commentlist: &Vec<OriginBlock>, origin_charlist: &Vec<String>) -> String {
   return if commentlist.is_empty() {
