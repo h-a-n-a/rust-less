@@ -1,6 +1,6 @@
 use crate::new_less::loc::Loc;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum OriginBlockType {
   Comment,
   StyleRule,

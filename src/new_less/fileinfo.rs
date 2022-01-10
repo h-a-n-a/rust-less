@@ -5,7 +5,6 @@ use crate::new_less::file_manger::FileManger;
 use crate::new_less::loc::LocMap;
 use crate::new_less::option::ParseOption;
 use crate::new_less::origin_parse::parse_origin_block;
-use crate::new_less::comment;
 use crate::new_less::comment::Comment;
 
 #[derive(Debug, Clone)]

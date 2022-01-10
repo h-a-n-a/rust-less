@@ -6,6 +6,7 @@ pub trait StringExtend {
   fn slice(&self, fromindex: i32) -> String;
   fn substr(&self, fromindex: i32, length: Option<i32>) -> String;
   fn tocharlist(&self) -> Vec<String>;
+  fn simple_compare(&self) -> std::string::String;
 }
 
 #[allow(non_snake_case)]
@@ -98,5 +99,13 @@ impl StringExtend for String {
   
   fn tocharlist(&self) -> Vec<String> {
     self.chars().map(|x| x.to_string()).collect::<Vec<String>>()
+  }
+  
+  fn simple_compare(&self) -> String {
+    let mut new_str = self.replace(" ", "");
+    new_str = new_str.trim()
+      .replace("\n", "")
+      .replace("\r", "");
+    new_str
   }
 }
