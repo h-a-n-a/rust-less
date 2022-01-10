@@ -33,17 +33,6 @@ pub fn parse_origin_block(content: String) -> Result<Vec<OriginBlock>, String> {
     if char == end_braces {
       braces_level -= 1;
       if braces_level == 0 {
-        blocklist.push(OriginBlock {
-          block_type: OriginBlockType::StyleRule,
-          content: templist.join(""),
-          origin_charlist: vec![],
-          loc: record_loc.unwrap(),
-          level: 0,
-          locmap: None,
-          option: Default::default(),
-          parent: None,
-          block_node: None
-        });
         templist.clear();
         record_loc = None;
       }

@@ -1,4 +1,4 @@
-use crate::extend::string::StringExtend;
+use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::block::{OriginBlock, OriginBlockType};
 use crate::new_less::fileinfo::FileInfo;
 use crate::new_less::loc::{Loc, LocMap};
@@ -8,17 +8,18 @@ pub trait Comment {
   fn parse_comment(&self) -> Result<Vec<OriginBlock>, String>;
   fn get_comment_blocknode(&self) -> Vec<OriginBlock>;
   fn rm_comment(&self) -> String;
+  fn skip_comment() -> Box<dyn FnMut(String, String, &mut usize) -> bool>;
 }
 
 impl Comment for FileInfo {
   fn parse_comment(&self) -> Result<Vec<OriginBlock>, String> {
     parse_comment(self.get_options(), &self.origin_charlist, &self.locmap)
   }
-  
+
   fn get_comment_blocknode(&self) -> Vec<OriginBlock> {
     get_comment_blocknode(&self.block_node)
   }
-  
+
   fn rm_comment(&self) -> String {
     let list = &self.get_comment_blocknode();
     return if !list.is_empty() {
@@ -27,13 +28,17 @@ impl Comment for FileInfo {
       self.origin_txt_content.clone()
     };
   }
+
+  fn skip_comment() -> Box<dyn FnMut(String, String, &mut usize) -> bool> {
+    skip_comment()
+  }
 }
 
 impl Comment for OriginBlock {
   fn parse_comment(&self) -> Result<Vec<OriginBlock>, String> {
     parse_comment(self.get_options(), &self.origin_charlist, &self.locmap)
   }
-  
+
   fn get_comment_blocknode(&self) -> Vec<OriginBlock> {
     return if self.block_node.is_some() {
       get_comment_blocknode(&self.block_node.as_ref().unwrap())
@@ -41,7 +46,7 @@ impl Comment for OriginBlock {
       vec![]
     };
   }
-  
+
   fn rm_comment(&self) -> String {
     let node_list = &self.get_comment_blocknode();
     return if !node_list.is_empty() {
@@ -49,6 +54,10 @@ impl Comment for OriginBlock {
     } else {
       self.content.clone()
     };
+  }
+
+  fn skip_comment() -> Box<dyn FnMut(String, String, &mut usize) -> bool> {
+    skip_comment()
   }
 }
 
@@ -58,15 +67,15 @@ impl Comment for OriginBlock {
 fn parse_comment(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &Option<LocMap>) -> Result<Vec<OriginBlock>, String> {
   let mut blocklist: Vec<OriginBlock> = vec![];
   let mut commentlist: Vec<String> = vec![];
-  
+
   // 是否在 注释 存入中
   let mut wirte_comment = false;
   let mut wirte_line_comment = false;
   let mut wirte_closure_comment = false;
-  
+
   // 块等级
   let mut braces_level = 0;
-  
+
   // 结束标记 & 开始标记
   let start_braces = "{".to_string();
   let end_braces = "}".to_string();
@@ -74,23 +83,16 @@ fn parse_comment(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &
   let comment_flag = "//".to_string();
   let comment_mark_strat = "/*".to_string();
   let comment_mark_end = "*/".to_string();
-  
+
   // 如果启用 sourcemap 则用来记录坐标
   let mut record_loc: Option<Loc> = None;
-  
+
   let mut index = 0;
   while index < origin_charlist.len() {
     // 处理字符
     let char = origin_charlist.get(index).unwrap().clone();
-    let next_char;
-    if index != origin_charlist.len() - 1 {
-      next_char = origin_charlist.get(index + 1).unwrap().clone();
-    } else {
-      next_char = "".to_string()
-    }
-    
     // 优先检测注释 与当前块 等级 相同 为 0
-    let word = char.clone() + &next_char;
+    let word = origin_charlist.try_getword(index, 2).unwrap();
     if word == comment_flag && braces_level == 0 && !wirte_comment {
       wirte_comment = true;
       wirte_line_comment = true;
@@ -136,7 +138,7 @@ fn parse_comment(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &
     }
     index += 1;
   }
-  
+
   if braces_level != 0 {
     return Err("the content contains braces that are not closed!".to_string());
   }
@@ -182,13 +184,31 @@ fn rm_comment(commentlist: &Vec<OriginBlock>, origin_charlist: &Vec<String>) -> 
 }
 
 ///
-/// 移除注释
+/// 是否跳过 返回结果 [0]
+/// 跳过索引 返回结果 [1]
 ///
-fn pure_context(content: String) {
-
-  let list = content.tocharlist();
-  
-  
+pub fn skip_comment() -> Box<dyn FnMut(String, String, &mut usize) -> bool> {
+  let comment_flag = "//".to_string();
+  let comment_mark_strat = "/*".to_string();
+  let comment_mark_end = "*/".to_string();
+  let mut comment_inline = false;
+  let mut comment_mark = false;
+  return Box::new(move |word, char, index| {
+    if word == comment_flag && !comment_inline {
+      comment_inline = true;
+    }
+    if word == comment_mark_strat && !comment_mark {
+      comment_mark = true;
+    }
+    if (char == "\n" || char == "\r") && comment_inline {
+      comment_inline = false;
+    }
+    if word == comment_mark_end && comment_mark {
+      comment_mark = false;
+      *index += 1;
+    }
+    comment_inline || comment_mark
+  });
 }
 
 

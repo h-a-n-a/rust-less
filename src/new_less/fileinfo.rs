@@ -6,6 +6,7 @@ use crate::new_less::loc::LocMap;
 use crate::new_less::option::ParseOption;
 use crate::new_less::origin_parse::parse_origin_block;
 use crate::new_less::comment::Comment;
+use crate::new_less::rule::Rule;
 
 #[derive(Debug, Clone)]
 pub struct FileInfo {
@@ -13,8 +14,6 @@ pub struct FileInfo {
   pub disk_location: Option<std::string::String>,
   // 文件的原始内容
   pub origin_txt_content: String,
-  // 移除注释的内容
-  pub pure_content: Option<String>,
   // 根据 原始内容 -> 转化的 字符数组
   pub origin_charlist: Vec<String>,
   // 文件的 原始AST节点
@@ -35,11 +34,11 @@ impl FileInfo {
     let locmap = LocMap::new(content.to_string());
     locmap
   }
-  
+
   pub fn get_charlist(content: &str) -> Vec<String> {
     content.to_string().tocharlist()
   }
-  
+
   ///
   /// 根据文件路径 解析 文件
   ///
@@ -70,6 +69,14 @@ impl FileInfo {
           recur_import_file: vec![],
         };
         match obj.parse_comment() {
+          Ok(mut blocks) => {
+            obj.block_node.append(&mut blocks);
+          }
+          Err(msg) => {
+            return Err(msg);
+          }
+        }
+        match obj.parse_rule() {
           Ok(mut blocks) => {
             obj.block_node.append(&mut blocks);
           }

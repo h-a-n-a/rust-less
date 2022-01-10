@@ -2,12 +2,14 @@
 mod tests {
   use crate::extend::string::StringExtend;
   use crate::extend::time::wastetime;
-  use crate::new_less::comment::Comment;
+  use crate::extend::vec_str::VecStrExtend;
+  use crate::new_less::block::OriginBlock;
+  use crate::new_less::comment::{Comment, skip_comment};
   use crate::new_less::file::*;
   use crate::new_less::file_manger::FileManger;
   use crate::new_less::fileinfo::*;
   use crate::new_less::loc::LocMap;
-  
+
   #[test]
   fn test_less() {
     let start_record = wastetime("test_less");
@@ -18,7 +20,7 @@ mod tests {
     // println!("{:#?}", info);
     println!("........");
   }
-  
+
   ///
   /// 测试字典方法
   ///
@@ -31,7 +33,7 @@ mod tests {
     assert_eq!(c.char, "@".to_string());
     assert_eq!(x.char, ";".to_string());
   }
-  
+
   #[test]
   fn test_rel_path() {
     let a = "../test/a.txt".to_string();
@@ -41,7 +43,7 @@ mod tests {
     assert_eq!(FileManger::is_relative_path(&b), true);
     assert_eq!(FileManger::is_relative_path(&c), true);
   }
-  
+
   #[test]
   fn test_comment_remove() {
     let start_record = wastetime("test_less");
@@ -78,5 +80,27 @@ a{
 }
     "#;
     assert_eq!(content.simple_compare(), target.to_string().simple_compare());
+  }
+
+  #[test]
+  fn test_skip_comment() {
+    let start_record = wastetime("test_less");
+    // 处理过程
+    let filepath = path_resolve("assets/demo.less");
+    let conetnt = readfile(filepath).unwrap().tocharlist();
+    let mut i = 0;
+    let mut skipcall = skip_comment();
+    while i < conetnt.len() {
+      let word = conetnt.try_getword(i, 2).unwrap();
+      let char_val = conetnt.get(i).unwrap().to_string();
+      let old_i = i;
+      let skip_res = skipcall(word, char_val.clone(), &mut i);
+      if !skip_res && old_i == i {
+        print!("{}", char_val);
+      }
+      i += 1;
+    }
+    start_record();
+    println!("........");
   }
 }
