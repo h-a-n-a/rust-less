@@ -13,6 +13,8 @@ pub struct FileInfo {
   pub disk_location: Option<std::string::String>,
   // 文件的原始内容
   pub origin_txt_content: String,
+  // 移除注释的内容
+  pub pure_content: Option<String>,
   // 根据 原始内容 -> 转化的 字符数组
   pub origin_charlist: Vec<String>,
   // 文件的 原始AST节点

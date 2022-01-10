@@ -1,3 +1,4 @@
+use crate::extend::string::StringExtend;
 use crate::new_less::block::{OriginBlock, OriginBlockType};
 use crate::new_less::fileinfo::FileInfo;
 use crate::new_less::loc::{Loc, LocMap};
@@ -179,6 +180,18 @@ fn rm_comment(commentlist: &Vec<OriginBlock>, origin_charlist: &Vec<String>) -> 
     charlist.join("")
   };
 }
+
+///
+/// 移除注释
+///
+fn pure_context(content: String) {
+
+  let list = content.tocharlist();
+  
+  
+}
+
+
 
 
 

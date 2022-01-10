@@ -1,5 +1,6 @@
 use std::rc::Rc;
 use crate::extend::string::StringExtend;
+use crate::new_less::comment::Comment;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::option::ParseOption;
 
@@ -17,6 +18,8 @@ pub struct OriginBlock {
   pub block_type: OriginBlockType,
   // 节点内容
   pub content: String,
+  // 移除注释的内容
+  pub pure_content: Option<String>,
   // 根据 原始内容 -> 转化的 字符数组
   pub origin_charlist: Vec<String>,
   // 节点坐标
@@ -47,6 +50,7 @@ impl OriginBlock {
     let obj = OriginBlock {
       block_type,
       content,
+      pure_content: None,
       origin_charlist,
       loc,
       level: level.unwrap_or(0),
@@ -55,14 +59,21 @@ impl OriginBlock {
       parent,
       block_node: None,
     };
+    
     obj
   }
   
   ///
   /// 创建评论
   ///
-  pub fn create_comment(
-    content: String, loc: Loc, level: Option<usize>, option: ParseOption, parent: Option<Rc<OriginBlock>>) -> OriginBlock {
+  pub fn create_comment(content: String, loc: Loc, level: Option<usize>, option: ParseOption, parent: Option<Rc<OriginBlock>>) -> OriginBlock {
     OriginBlock::new(OriginBlockType::Comment, content, loc, level, option, parent)
+  }
+  
+  ///
+  /// 创建子模块
+  ///
+  pub fn create_rule(content: String, loc: Loc, level: Option<usize>, option: ParseOption, parent: Option<Rc<OriginBlock>>) -> OriginBlock {
+    OriginBlock::new(OriginBlockType::StyleRule, content, loc, level, option, parent)
   }
 }
