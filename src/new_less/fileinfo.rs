@@ -20,7 +20,7 @@ pub struct FileInfo {
   // 当前所有 索引 对应的 坐标行列 -> 用于执行 sourcemap
   pub locmap: Option<LocMap>,
   // 内部调用方式时 需要拿到对应的 转化配置
-  option: ParseOption,
+  pub option: ParseOption,
   // 当前引用链
   pub import_file: Vec<Rc<FileInfo>>,
   // 所有引用链
@@ -29,19 +29,15 @@ pub struct FileInfo {
 
 
 impl FileInfo {
-  pub fn get_options(&self) -> &ParseOption {
-    &self.option
-  }
-
   pub fn get_loc_by_content(content: &str) -> LocMap {
     let locmap = LocMap::new(content.to_string());
     locmap
   }
-
+  
   pub fn get_charlist(content: &str) -> Vec<String> {
     content.to_string().tocharlist()
   }
-
+  
   ///
   /// 根据文件路径 解析 文件
   ///
@@ -71,7 +67,7 @@ impl FileInfo {
           import_file: vec![],
           recur_import_file: vec![],
         };
-        match obj.get_comment() {
+        match obj.parse_comment() {
           Ok(mut blocks) => {
             obj.block_node.append(&mut blocks);
           }

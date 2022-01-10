@@ -1,3 +1,6 @@
+use crate::new_less::block::OriginBlock;
+use crate::new_less::fileinfo::FileInfo;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct ParseOption {
   pub include_path: Option<Vec<String>>,
@@ -10,5 +13,21 @@ impl Default for ParseOption {
       include_path: None,
       sourcemap: true,
     }
+  }
+}
+
+pub trait OptionExtend {
+  fn get_options(&self) -> &ParseOption;
+}
+
+impl OptionExtend for FileInfo {
+  fn get_options(&self) -> &ParseOption {
+    &self.option
+  }
+}
+
+impl OptionExtend for OriginBlock {
+  fn get_options(&self) -> &ParseOption {
+    &self.option
   }
 }

@@ -1,7 +1,5 @@
 #[cfg(test)]
 mod tests {
-  use std::ffi::OsString;
-  use std::path::Path;
   use crate::extend::string::StringExtend;
   
   #[test]
@@ -14,8 +12,8 @@ mod tests {
   #[test]
   fn test_str() {
     let strore = "123456";
-    let a = &strore[0..2];
-    let b = &strore[1..3];
+    let _a = &strore[0..2];
+    let _b = &strore[1..3];
     let index_1 = strore.to_string().indexOf("23", Some(2));
     let index_2 = strore.to_string().indexOf("23", Some(1));
     let index_3 = strore.to_string().indexOf("23", None);

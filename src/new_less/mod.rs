@@ -7,6 +7,7 @@ pub mod comment;
 pub mod fileinfo;
 pub mod file_manger;
 pub mod option;
+pub mod rule;
 
 
 
