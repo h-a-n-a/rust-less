@@ -8,22 +8,28 @@ use crate::new_less::comment::Comment;
 use crate::new_less::file::{cmd_path_resolve};
 use crate::new_less::rule::Rule;
 use crate::new_less::var::Var;
+use serde::{Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct FileInfo {
   // 文件的磁盘位置
   pub disk_location: Option<std::string::String>,
   // 文件的原始内容
+  #[serde(skip_serializing)]
   pub origin_txt_content: String,
   // 根据 原始内容 -> 转化的 字符数组
+  #[serde(skip_serializing)]
   pub origin_charlist: Vec<String>,
   // 文件的 原始AST节点
   pub block_node: Vec<OriginBlock>,
   // 当前所有 索引 对应的 坐标行列 -> 用于执行 sourcemap
+  #[serde(skip_serializing)]
   pub locmap: Option<LocMap>,
   // 内部调用方式时 需要拿到对应的 转化配置
+  #[serde(skip_serializing)]
   pub option: ParseOption,
   // 当前引用链
+  #[serde(skip_serializing)]
   pub import_file: Vec<Rc<FileInfo>>,
 }
 
