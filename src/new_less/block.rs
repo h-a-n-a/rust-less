@@ -71,4 +71,11 @@ impl OriginBlock {
   pub fn create_rule(content: String, loc: Loc, level: Option<usize>, option: ParseOption, parent: Option<Rc<OriginBlock>>) -> OriginBlock {
     OriginBlock::new(OriginBlockType::StyleRule, content, loc, level, option, parent)
   }
+  
+  ///
+  /// 创建变量
+  ///
+  pub fn create_var(content: String, loc: Loc, level: Option<usize>, option: ParseOption, parent: Option<Rc<OriginBlock>>) -> OriginBlock {
+    OriginBlock::new(OriginBlockType::Var, content, loc, level, option, parent)
+  }
 }

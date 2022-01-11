@@ -5,7 +5,7 @@ use crate::new_less::file_manger::FileManger;
 use crate::new_less::loc::LocMap;
 use crate::new_less::option::ParseOption;
 use crate::new_less::comment::Comment;
-use crate::new_less::file::{cmd_path, cmd_path_resolve};
+use crate::new_less::file::{cmd_path_resolve};
 use crate::new_less::rule::Rule;
 use crate::new_less::var::Var;
 
@@ -66,34 +66,8 @@ impl FileInfo {
           option,
           import_file: vec![],
         };
-        match obj.parse_comment() {
-          Ok(mut blocks) => {
-            obj.block_node.append(&mut blocks);
-          }
-          Err(msg) => {
-            return Err(msg);
-          }
-        }
-        match obj.parse_rule() {
-          Ok(mut blocks) => {
-            obj.block_node.append(&mut blocks);
-          }
-          Err(msg) => {
-            return Err(msg);
-          }
-        }
-        match obj.parse_var() {
-          Ok(mut blocks) => {
-            obj.block_node.append(&mut blocks);
-          }
-          Err(msg) => {
-            return Err(msg);
-          }
-        }
-        match obj.parse_import() {
-          Ok(mut blocks) => {
-            obj.block_node.append(&mut blocks);
-          }
+        match obj.parse() {
+          Ok(_) => {}
           Err(msg) => {
             return Err(msg);
           }
@@ -135,39 +109,49 @@ impl FileInfo {
       option,
       import_file: vec![],
     };
-    match obj.parse_comment() {
-      Ok(mut blocks) => {
-        obj.block_node.append(&mut blocks);
-      }
-      Err(msg) => {
-        return Err(msg);
-      }
-    }
-    match obj.parse_rule() {
-      Ok(mut blocks) => {
-        obj.block_node.append(&mut blocks);
-      }
-      Err(msg) => {
-        return Err(msg);
-      }
-    }
-    match obj.parse_var() {
-      Ok(mut blocks) => {
-        obj.block_node.append(&mut blocks);
-      }
-      Err(msg) => {
-        return Err(msg);
-      }
-    }
-    match obj.parse_import() {
-      Ok(mut blocks) => {
-        obj.block_node.append(&mut blocks);
-      }
+    match obj.parse() {
+      Ok(_) => {}
       Err(msg) => {
         return Err(msg);
       }
     }
     Ok(obj)
+  }
+  
+  fn parse(&mut self) -> Result<(), String> {
+    match self.parse_comment() {
+      Ok(mut blocks) => {
+        self.block_node.append(&mut blocks);
+      }
+      Err(msg) => {
+        return Err(msg);
+      }
+    }
+    match self.parse_import() {
+      Ok(mut blocks) => {
+        self.block_node.append(&mut blocks);
+      }
+      Err(msg) => {
+        return Err(msg);
+      }
+    }
+    match self.parse_var() {
+      Ok(mut blocks) => {
+        self.block_node.append(&mut blocks);
+      }
+      Err(msg) => {
+        return Err(msg);
+      }
+    }
+    match self.parse_rule() {
+      Ok(mut blocks) => {
+        self.block_node.append(&mut blocks);
+      }
+      Err(msg) => {
+        return Err(msg);
+      }
+    }
+    Ok(())
   }
 }
 

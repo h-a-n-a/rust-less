@@ -1,3 +1,4 @@
+use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::block::OriginBlock;
 use crate::new_less::comment::skip_comment;
@@ -16,7 +17,7 @@ impl Var for FileInfo {
   }
   
   fn parse_import(&self) -> Result<Vec<OriginBlock>, String> {
-    parse_var(&self.option, &self.origin_charlist, &self.locmap, false)
+    parse_import(&self.option, &self.origin_charlist, &self.locmap)
   }
 }
 
@@ -28,6 +29,39 @@ impl Var for OriginBlock {
   fn parse_import(&self) -> Result<Vec<OriginBlock>, String> {
     Ok(vec![])
   }
+}
+
+///
+/// 检查是否 合规
+/// 检查是否 变量
+///
+fn is_var(charlist: &Vec<String>, istop: bool, locationmsg: String) -> Result<bool, String> {
+  // 变量片段中 含有换行
+  if charlist.is_empty() {
+    return Err(format!("var token word is empty,{}", locationmsg));
+  }
+  if charlist.into_iter().filter(|&x| x.as_str() == "\n" || x.as_str() == "\r").collect::<Vec<&String>>().len() > 0 {
+    return Err(format!(r#"token word has contains "\n","\r",{} "#, locationmsg));
+  }
+  // 变量片段中首位必须是 @
+  if charlist[0].as_str() != "@" {
+    return Err(format!(r#"token word is not with @ begin,{} "#, locationmsg));
+  }
+  // 变量类似 ;; || @a:10px;;
+  if charlist[0].as_str() == ";" {
+    return Err(format!(r#"token word is only semicolon,{} "#, locationmsg));
+  }
+  if istop {
+    // 先判断 是否含有 @import
+    if charlist.join("").indexOf("@import", None) > -1 {
+      return Ok(false);
+    }
+    // 判断是否复合基本格式
+    if charlist.join("").split(":").collect::<Vec<&str>>().len() != 2 {
+      return Err(format!(r#"var token is not liek '@var: 10px',{} ,{}"#, charlist.join(""), locationmsg));
+    }
+  }
+  Ok(true)
 }
 
 ///
@@ -48,6 +82,16 @@ fn parse_var(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &Opti
   let mut record_loc: Option<Loc> = None;
   let mut skipcall = skip_comment();
   
+  let getmsg = |index: usize| -> String {
+    let location_msg: String;
+    if options.sourcemap {
+      location_msg = format!("loc at {:#?}", locmap.as_ref().unwrap().get(index).unwrap())
+    } else {
+      location_msg = format!("word order is {}", index)
+    };
+    location_msg
+  };
+  
   while index < origin_charlist.len() {
     let char = origin_charlist.get(index).unwrap().clone();
     let word = origin_charlist.try_getword(index, 2).unwrap();
@@ -64,13 +108,25 @@ fn parse_var(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &Opti
     if options.sourcemap && char != " " && char != "\r" && char != "\n" && record_loc.is_none() {
       record_loc = Some(locmap.as_ref().unwrap().get(index).unwrap());
     }
+    
     templist.push(char.clone());
     if char == endqueto && braces_level == 0 {
-      if templist.join("").trim().to_string() == "" {
-        return if options.sourcemap {
-          Err(format!("multiple semicolons appear in the current scope,loc at {:#?}", locmap.as_ref().unwrap().get(index).unwrap()))
-        } else {
-          Err(format!("multiple semicolons appear in the current scope,word order is {}", index, ))
+      let pure_text = templist.join("").trim().to_string().tocharlist();
+      match is_var(&pure_text, istop, getmsg(index)) {
+        Ok(val) => {
+          if val {
+            let style_var = OriginBlock::create_var(
+              templist.join(""),
+              record_loc.unwrap(),
+              None,
+              options.clone(),
+              None,
+            );
+            blocklist.push(style_var);
+          }
+        }
+        Err(msg) => {
+          return Err(msg);
         }
       }
       templist.clear();
@@ -110,6 +166,7 @@ fn parse_var(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &Opti
 ///
 /// 转化当前层 引用变量
 /// 只有基础层 会调用
+/// todo!
 ///
 fn parse_import(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &Option<LocMap>) -> Result<Vec<OriginBlock>, String> {
   let mut blocklist: Vec<OriginBlock> = vec![];
