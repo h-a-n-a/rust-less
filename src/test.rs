@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+  use std::rc::Rc;
   use crate::extend::string::StringExtend;
   use crate::extend::vec_str::VecStrExtend;
 
@@ -37,5 +38,27 @@ mod tests {
       i += 1;
     }
     assert_eq!(copy.as_str(), target);
+  }
+
+  #[derive(Clone)]
+  struct Student {
+    pub name: String,
+    pub classmate: Option<Rc<Student>>,
+  }
+
+  #[test]
+  fn test_ref() {
+    let mut student1 = Student {
+      name: "red".to_string(),
+      classmate: None,
+    };
+    let mut student2 = Student {
+      name: "green".to_string(),
+      classmate: None,
+    };
+    let mut p = Some(Rc::new(student2));
+    student1.classmate = p.clone();
+    p.unwrap().classmate = p.clone();
+    println!(".......")
   }
 }

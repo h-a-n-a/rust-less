@@ -15,15 +15,15 @@ mod tests {
     let start_record = wastetime("test_less");
     // 处理过程
     let filepath = path_resolve("assets/demo.less");
-    // let info = FileInfo::create_disklocation(filepath, Default::default()).unwrap();
-    let mut index = 0;
-    while index < 100 {
-      FileInfo::create_disklocation(filepath.clone(), Default::default()).unwrap();
-      index += 1;
-    }
+    let info = FileInfo::create_disklocation(filepath, Default::default()).unwrap();
+    // let mut index = 0;
+    // while index < 100 {
+    //   FileInfo::create_disklocation(filepath.clone(), Default::default()).unwrap();
+    //   index += 1;
+    // }
     start_record();
-    // let json = serde_json::to_string_pretty(&info).unwrap();
-    // println!("{}", json);
+    let json = serde_json::to_string_pretty(&info).unwrap();
+    println!("{}", json);
     println!("........");
   }
   

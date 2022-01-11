@@ -40,8 +40,8 @@ impl Comment for OriginBlock {
   }
 
   fn get_comment_blocknode(&self) -> Vec<OriginBlock> {
-    return if self.block_node.is_some() {
-      get_comment_blocknode(&self.block_node.as_ref().unwrap())
+    return if self.block_node.is_empty() {
+      get_comment_blocknode(&self.block_node)
     } else {
       vec![]
     };
@@ -116,7 +116,7 @@ fn parse_comment(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &
         commentlist.push(word.clone());
         wirte_closure_comment = false;
       }
-      let comment = OriginBlock::create_comment(commentlist.join(""), record_loc.unwrap(), None, options.clone(), None);
+      let comment = OriginBlock::create_comment(commentlist.join(""), record_loc.unwrap(), options.clone());
       blocklist.push(comment);
       commentlist.clear();
       record_loc = None;
