@@ -9,7 +9,7 @@ mod tests {
   use crate::new_less::file_manger::FileManger;
   use crate::new_less::fileinfo::*;
   use crate::new_less::loc::LocMap;
-
+  
   #[test]
   fn test_less() {
     let start_record = wastetime("test_less");
@@ -20,7 +20,7 @@ mod tests {
     // println!("{:#?}", info);
     println!("........");
   }
-
+  
   ///
   /// 测试字典方法
   ///
@@ -33,7 +33,7 @@ mod tests {
     assert_eq!(c.char, "@".to_string());
     assert_eq!(x.char, ";".to_string());
   }
-
+  
   #[test]
   fn test_rel_path() {
     let a = "../test/a.txt".to_string();
@@ -43,7 +43,7 @@ mod tests {
     assert_eq!(FileManger::is_relative_path(&b), true);
     assert_eq!(FileManger::is_relative_path(&c), true);
   }
-
+  
   #[test]
   fn test_comment_remove() {
     let start_record = wastetime("test_less");
@@ -81,7 +81,7 @@ a{
     "#;
     assert_eq!(content.simple_compare(), target.to_string().simple_compare());
   }
-
+  
   #[test]
   fn test_skip_comment() {
     let start_record = wastetime("test_less");
@@ -101,6 +101,28 @@ a{
       i += 1;
     }
     start_record();
+    println!("........");
+  }
+  
+  
+  #[test]
+  fn test_error_var_check() {
+    let code = r#"
+@width:400px;
+a{
+  font-size:10px;
+
+  .c{
+    font-size:20px;
+  }
+}
+
+dfkljaskdlfjadfjadlskfj
+
+asldkfjak
+    "#;
+    let msg = FileInfo::create_txt_content(code.to_string(), Default::default(), None).err().unwrap();
+    assert_eq!(msg.simple_compare(), "the word is not with endqueto -> dfkljaskdlfjadfjadlskfjasldkfjak".to_string().simple_compare());
     println!("........");
   }
 }

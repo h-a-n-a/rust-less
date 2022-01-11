@@ -4,9 +4,10 @@ use crate::new_less::block::OriginBlock;
 use crate::new_less::file_manger::FileManger;
 use crate::new_less::loc::LocMap;
 use crate::new_less::option::ParseOption;
-use crate::new_less::origin_parse::parse_origin_block;
 use crate::new_less::comment::Comment;
+use crate::new_less::file::{cmd_path, cmd_path_resolve};
 use crate::new_less::rule::Rule;
+use crate::new_less::var::Var;
 
 #[derive(Debug, Clone)]
 pub struct FileInfo {
@@ -24,8 +25,6 @@ pub struct FileInfo {
   pub option: ParseOption,
   // 当前引用链
   pub import_file: Vec<Rc<FileInfo>>,
-  // 所有引用链
-  pub recur_import_file: Vec<Rc<FileInfo>>,
 }
 
 
@@ -34,11 +33,11 @@ impl FileInfo {
     let locmap = LocMap::new(content.to_string());
     locmap
   }
-
+  
   pub fn get_charlist(content: &str) -> Vec<String> {
     content.to_string().tocharlist()
   }
-
+  
   ///
   /// 根据文件路径 解析 文件
   ///
@@ -66,7 +65,6 @@ impl FileInfo {
           locmap,
           option,
           import_file: vec![],
-          recur_import_file: vec![],
         };
         match obj.parse_comment() {
           Ok(mut blocks) => {
@@ -84,7 +82,7 @@ impl FileInfo {
             return Err(msg);
           }
         }
-        match parse_origin_block(content) {
+        match obj.parse_var() {
           Ok(mut blocks) => {
             obj.block_node.append(&mut blocks);
           }
@@ -92,6 +90,78 @@ impl FileInfo {
             return Err(msg);
           }
         }
+        match obj.parse_import() {
+          Ok(mut blocks) => {
+            obj.block_node.append(&mut blocks);
+          }
+          Err(msg) => {
+            return Err(msg);
+          }
+        }
+      }
+      Err(msg) => {
+        return Err(msg);
+      }
+    }
+    Ok(obj)
+  }
+  
+  
+  ///
+  /// 根据文件内容 解析文件
+  ///
+  pub fn create_txt_content(content: String, option: ParseOption, filename: Option<String>) -> Result<FileInfo, String> {
+    let text_content: String = content.clone();
+    let charlist: Vec<String> = text_content.tocharlist();
+    let mut locmap: Option<LocMap> = None;
+    let mut obj: FileInfo;
+    if option.sourcemap {
+      locmap = Some(FileInfo::get_loc_by_content(content.as_str()));
+    }
+    let abs_path = match filename {
+      None => {
+        cmd_path_resolve("_virtual.less")
+      }
+      Some(path_val) => {
+        path_val
+      }
+    };
+    obj = FileInfo {
+      disk_location: Some(abs_path),
+      block_node: vec![],
+      origin_txt_content: text_content,
+      origin_charlist: charlist,
+      locmap,
+      option,
+      import_file: vec![],
+    };
+    match obj.parse_comment() {
+      Ok(mut blocks) => {
+        obj.block_node.append(&mut blocks);
+      }
+      Err(msg) => {
+        return Err(msg);
+      }
+    }
+    match obj.parse_rule() {
+      Ok(mut blocks) => {
+        obj.block_node.append(&mut blocks);
+      }
+      Err(msg) => {
+        return Err(msg);
+      }
+    }
+    match obj.parse_var() {
+      Ok(mut blocks) => {
+        obj.block_node.append(&mut blocks);
+      }
+      Err(msg) => {
+        return Err(msg);
+      }
+    }
+    match obj.parse_import() {
+      Ok(mut blocks) => {
+        obj.block_node.append(&mut blocks);
       }
       Err(msg) => {
         return Err(msg);
