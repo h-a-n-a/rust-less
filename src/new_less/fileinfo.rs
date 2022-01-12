@@ -1,40 +1,66 @@
+use std::cell::RefCell;
+use std::ops::Deref;
 use std::rc::Rc;
 use crate::extend::string::StringExtend;
-use crate::new_less::block::OriginBlock;
+use crate::new_less::block::{OriginBlock, OriginBlockJson};
 use crate::new_less::file_manger::FileManger;
 use crate::new_less::loc::LocMap;
-use crate::new_less::option::ParseOption;
+use crate::new_less::option::{ParseOption};
 use crate::new_less::comment::Comment;
 use crate::new_less::file::{cmd_path_resolve};
-use crate::new_less::rule::Rule;
+use crate::new_less::rule::{Rule};
 use crate::new_less::var::Var;
 use serde::{Serialize};
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone)]
 pub struct FileInfo {
   // 文件的磁盘位置
   pub disk_location: Option<std::string::String>,
   // 文件的原始内容
-  #[serde(skip_serializing)]
   pub origin_txt_content: String,
   // 根据 原始内容 -> 转化的 字符数组
-  #[serde(skip_serializing)]
   pub origin_charlist: Vec<String>,
   // 文件的 原始AST节点
-  pub block_node: Vec<OriginBlock>,
+  pub block_node: Vec<Rc<RefCell<OriginBlock>>>,
   // 当前所有 索引 对应的 坐标行列 -> 用于执行 sourcemap
-  #[serde(skip_serializing)]
   pub locmap: Option<LocMap>,
   // 内部调用方式时 需要拿到对应的 转化配置
-  #[serde(skip_serializing)]
   pub option: ParseOption,
   // 当前引用链
-  #[serde(skip_serializing)]
-  pub import_file: Vec<Rc<FileInfo>>,
+  pub import_file: Vec<Rc<RefCell<FileInfo>>>,
+}
+
+#[derive(Serialize)]
+pub struct FileInfoJson {
+  pub disk_location: Option<std::string::String>,
+  pub block_node: Vec<OriginBlockJson>,
+  pub import_file: Vec<FileInfoJson>,
 }
 
 
 impl FileInfo {
+  ///
+  /// 转 json 标准化
+  ///
+  pub fn tojson(&self) -> FileInfoJson {
+    let block_node = self.block_node.clone().into_iter().map(|x| x.borrow().deref().deref().clone().tojson()).collect();
+    let import_file = self.import_file.clone().into_iter().map(|x| {
+      x.borrow().deref().deref().clone().tojson()
+    }).collect::<Vec<FileInfoJson>>();
+    FileInfoJson {
+      disk_location: self.disk_location.clone(),
+      block_node,
+      import_file,
+    }
+  }
+  
+  ///
+  /// 转 heap 堆上对象
+  ///
+  pub fn toheap(self) -> Rc<RefCell<FileInfo>> {
+    Rc::new(RefCell::new(self))
+  }
+  
   pub fn get_loc_by_content(content: &str) -> LocMap {
     let locmap = LocMap::new(content.to_string());
     locmap
@@ -72,12 +98,12 @@ impl FileInfo {
           option,
           import_file: vec![],
         };
-        match obj.parse() {
-          Ok(_) => {}
-          Err(msg) => {
-            return Err(msg);
-          }
-        }
+        // match obj.parse() {
+        //   Ok(_) => {}
+        //   Err(msg) => {
+        //     return Err(msg);
+        //   }
+        // }
       }
       Err(msg) => {
         return Err(msg);
@@ -127,7 +153,11 @@ impl FileInfo {
   fn parse(&mut self) -> Result<(), String> {
     match self.parse_comment() {
       Ok(mut blocks) => {
-        self.block_node.append(&mut blocks);
+        self.block_node.append(
+          &mut blocks.into_iter().map(|x| {
+            x.toheap()
+          })
+            .collect::<Vec<Rc<RefCell<OriginBlock>>>>());
       }
       Err(msg) => {
         return Err(msg);
@@ -135,7 +165,11 @@ impl FileInfo {
     }
     match self.parse_import() {
       Ok(mut blocks) => {
-        self.block_node.append(&mut blocks);
+        self.block_node.append(
+          &mut blocks.into_iter().map(|x| {
+            x.toheap()
+          })
+            .collect::<Vec<Rc<RefCell<OriginBlock>>>>());
       }
       Err(msg) => {
         return Err(msg);
@@ -143,12 +177,17 @@ impl FileInfo {
     }
     match self.parse_var() {
       Ok(mut blocks) => {
-        self.block_node.append(&mut blocks);
+        self.block_node.append(
+          &mut blocks.into_iter().map(|x| {
+            x.toheap()
+          })
+            .collect::<Vec<Rc<RefCell<OriginBlock>>>>());
       }
       Err(msg) => {
         return Err(msg);
       }
     }
+    
     match self.parse_rule() {
       Ok(mut blocks) => {
         self.block_node.append(&mut blocks);
@@ -160,6 +199,8 @@ impl FileInfo {
     Ok(())
   }
 }
+
+
 
 
 

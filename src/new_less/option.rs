@@ -17,17 +17,17 @@ impl Default for ParseOption {
 }
 
 pub trait OptionExtend {
-  fn get_options(&self) -> &ParseOption;
+  fn get_options(&self) -> ParseOption;
 }
 
 impl OptionExtend for FileInfo {
-  fn get_options(&self) -> &ParseOption {
-    &self.option
+  fn get_options(&self) -> ParseOption {
+    self.option.clone()
   }
 }
 
 impl OptionExtend for OriginBlock {
-  fn get_options(&self) -> &ParseOption {
-    &self.option
+  fn get_options(&self) -> ParseOption {
+    self.option.clone()
   }
 }

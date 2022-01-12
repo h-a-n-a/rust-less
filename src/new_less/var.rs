@@ -15,7 +15,7 @@ impl Var for FileInfo {
   fn parse_var(&self) -> Result<Vec<OriginBlock>, String> {
     parse_var(&self.option, &self.origin_charlist, &self.locmap, true)
   }
-
+  
   fn parse_import(&self) -> Result<Vec<OriginBlock>, String> {
     parse_import(&self.option, &self.origin_charlist, &self.locmap)
   }
@@ -25,7 +25,7 @@ impl Var for OriginBlock {
   fn parse_var(&self) -> Result<Vec<OriginBlock>, String> {
     parse_var(&self.option, &self.origin_charlist, &self.locmap, false)
   }
-
+  
   fn parse_import(&self) -> Result<Vec<OriginBlock>, String> {
     Ok(vec![])
   }
@@ -71,17 +71,17 @@ fn parse_var(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &Opti
   let mut blocklist: Vec<OriginBlock> = vec![];
   let mut templist: Vec<String> = vec![];
   let mut index = 0;
-
+  
   // 块等级
   let mut braces_level = 0;
   // 结束标记 & 开始标记
   let endqueto = ";".to_string();
   let start_braces = "{".to_string();
   let end_braces = "}".to_string();
-
+  
   let mut record_loc: Option<Loc> = None;
   let mut skipcall = skip_comment();
-
+  
   let getmsg = |index: usize| -> String {
     let location_msg: String;
     if options.sourcemap {
@@ -91,11 +91,11 @@ fn parse_var(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &Opti
     };
     location_msg
   };
-
+  
   while index < origin_charlist.len() {
     let char = origin_charlist.get(index).unwrap().clone();
     let word = origin_charlist.try_getword(index, 2).unwrap();
-
+    
     let prev_index = index;
     let skip_res = skipcall(word, char.clone(), &mut index);
     if skip_res || prev_index != index {
@@ -103,12 +103,12 @@ fn parse_var(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &Opti
       index += 1;
       continue;
     }
-
+    
     // 记录第一个非空字符 起始位置
     if options.sourcemap && char != " " && char != "\r" && char != "\n" && record_loc.is_none() {
       record_loc = Some(locmap.as_ref().unwrap().get(index).unwrap());
     }
-
+    
     templist.push(char.clone());
     if char == endqueto && braces_level == 0 {
       let pure_text = templist.join("").trim().to_string().tocharlist();
@@ -130,7 +130,7 @@ fn parse_var(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &Opti
       templist.clear();
       record_loc = None;
     }
-
+    
     // ignore 忽略 大括号区域
     if char == start_braces {
       braces_level += 1;
@@ -142,7 +142,7 @@ fn parse_var(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &Opti
         record_loc = None;
       }
     }
-
+    
     // 最后检查 分号闭合情况
     if index == origin_charlist.len() - 1 {
       let checkstr = templist.join("").trim().to_string();
@@ -150,14 +150,14 @@ fn parse_var(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &Opti
         return Err(format!("the word is not with endqueto -> {}", checkstr));
       }
     }
-
+    
     index += 1;
   }
-
+  
   if braces_level != 0 {
     return Err("the content contains braces that are not closed!".to_string());
   }
-
+  
   Ok(blocklist)
 }
 

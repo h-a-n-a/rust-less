@@ -1,9 +1,12 @@
 #[cfg(test)]
 mod tests {
+  use std::borrow::Borrow;
+  use std::cell::RefCell;
+  use std::ops::Deref;
   use std::rc::Rc;
   use crate::extend::string::StringExtend;
   use crate::extend::vec_str::VecStrExtend;
-
+  
   #[test]
   fn test_str() {
     let strore = "123456";
@@ -18,7 +21,7 @@ mod tests {
     let t = &strore[1..1];
     // println!("......");
   }
-
+  
   #[test]
   fn test_slice() {
     let a = "1233284920348aljdfalkdfjalkfdj023180";
@@ -39,26 +42,36 @@ mod tests {
     }
     assert_eq!(copy.as_str(), target);
   }
-
+  
   #[derive(Clone)]
   struct Student {
     pub name: String,
-    pub classmate: Option<Rc<Student>>,
+    pub classmate: Option<Rc<RefCell<Student>>>,
   }
-
+  
+  impl Student {
+    fn new() -> Student {
+      Student {
+        name: "1".to_string(),
+        classmate: None,
+      }
+    }
+    
+    fn new_classmate(mut self) -> Student {
+      self.name = "abc".to_string();
+      let classmate = Rc::new(RefCell::new(self));
+      Student {
+        name: "2".to_string(),
+        classmate: Some(classmate),
+      }
+    }
+  }
+  
   #[test]
-  fn test_ref() {
-    let mut student1 = Student {
-      name: "red".to_string(),
-      classmate: None,
-    };
-    let mut student2 = Student {
-      name: "green".to_string(),
-      classmate: None,
-    };
-    let mut p = Some(Rc::new(student2));
-    student1.classmate = p.clone();
-    p.unwrap().classmate = p.clone();
-    println!(".......")
+  fn test_context_fn() {
+    let a = Student::new();
+    let b = a.new_classmate();
+    println!(".......{}", b.classmate.unwrap().deref().borrow().name);
+    println!(".......");
   }
 }

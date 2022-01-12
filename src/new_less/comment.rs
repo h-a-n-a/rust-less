@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::block::{OriginBlock, OriginBlockType};
 use crate::new_less::fileinfo::FileInfo;
@@ -13,13 +14,16 @@ pub trait Comment {
 
 impl Comment for FileInfo {
   fn parse_comment(&self) -> Result<Vec<OriginBlock>, String> {
-    parse_comment(self.get_options(), &self.origin_charlist, &self.locmap)
+    parse_comment(&self.get_options(), &self.origin_charlist, &self.locmap)
   }
-
+  
   fn get_comment_blocknode(&self) -> Vec<OriginBlock> {
-    get_comment_blocknode(&self.block_node)
+    let list = self.block_node.clone().into_iter().map(|x| {
+      x.borrow().deref().deref().clone()
+    }).collect::<Vec<OriginBlock>>();
+    get_comment_blocknode(list)
   }
-
+  
   fn rm_comment(&self) -> String {
     let list = &self.get_comment_blocknode();
     return if !list.is_empty() {
@@ -28,7 +32,7 @@ impl Comment for FileInfo {
       self.origin_txt_content.clone()
     };
   }
-
+  
   fn skip_comment() -> Box<dyn FnMut(String, String, &mut usize) -> bool> {
     skip_comment()
   }
@@ -36,17 +40,16 @@ impl Comment for FileInfo {
 
 impl Comment for OriginBlock {
   fn parse_comment(&self) -> Result<Vec<OriginBlock>, String> {
-    parse_comment(self.get_options(), &self.origin_charlist, &self.locmap)
+    parse_comment(&self.get_options(), &self.origin_charlist, &self.locmap)
   }
-
+  
   fn get_comment_blocknode(&self) -> Vec<OriginBlock> {
-    return if self.block_node.is_empty() {
-      get_comment_blocknode(&self.block_node)
-    } else {
-      vec![]
-    };
+    let list = self.block_node.clone().into_iter().map(|x| {
+      x.borrow().deref().deref().clone()
+    }).collect::<Vec<OriginBlock>>();
+    get_comment_blocknode(list)
   }
-
+  
   fn rm_comment(&self) -> String {
     let node_list = &self.get_comment_blocknode();
     return if !node_list.is_empty() {
@@ -55,7 +58,7 @@ impl Comment for OriginBlock {
       self.content.clone()
     };
   }
-
+  
   fn skip_comment() -> Box<dyn FnMut(String, String, &mut usize) -> bool> {
     skip_comment()
   }
@@ -67,15 +70,15 @@ impl Comment for OriginBlock {
 fn parse_comment(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &Option<LocMap>) -> Result<Vec<OriginBlock>, String> {
   let mut blocklist: Vec<OriginBlock> = vec![];
   let mut commentlist: Vec<String> = vec![];
-
+  
   // 是否在 注释 存入中
   let mut wirte_comment = false;
   let mut wirte_line_comment = false;
   let mut wirte_closure_comment = false;
-
+  
   // 块等级
   let mut braces_level = 0;
-
+  
   // 结束标记 & 开始标记
   let start_braces = "{".to_string();
   let end_braces = "}".to_string();
@@ -83,10 +86,10 @@ fn parse_comment(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &
   let comment_flag = "//".to_string();
   let comment_mark_strat = "/*".to_string();
   let comment_mark_end = "*/".to_string();
-
+  
   // 如果启用 sourcemap 则用来记录坐标
   let mut record_loc: Option<Loc> = None;
-
+  
   let mut index = 0;
   while index < origin_charlist.len() {
     // 处理字符
@@ -138,7 +141,7 @@ fn parse_comment(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &
     }
     index += 1;
   }
-
+  
   if braces_level != 0 {
     return Err("the content contains braces that are not closed!".to_string());
   }
@@ -148,10 +151,10 @@ fn parse_comment(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &
 ///
 /// 从当中的 成熟 AST 中获取 注释节点
 ///
-fn get_comment_blocknode(block_node: &Vec<OriginBlock>) -> Vec<OriginBlock> {
+fn get_comment_blocknode(block_node: Vec<OriginBlock>) -> Vec<OriginBlock> {
   block_node
     .into_iter()
-    .filter(|&node| node.block_type == OriginBlockType::Comment)
+    .filter(|node| node.block_type == OriginBlockType::Comment)
     .map(|c| c.clone())
     .collect::<Vec<OriginBlock>>()
 }
