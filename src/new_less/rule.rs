@@ -74,6 +74,7 @@ fn parse_rule(
       if braces_level == 0 {
         match RuleNode::new(
           templist.join(""),
+          "".to_string(),
           record_loc.unwrap(),
           options.clone(),
           None,

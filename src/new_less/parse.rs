@@ -14,6 +14,8 @@ use serde::{Serialize};
 pub struct RuleNode {
   // 节点内容
   pub content: String,
+  // 选择器 文字
+  pub selector_txt: String,
   // 根据 原始内容 -> 转化的 字符数组
   pub origin_charlist: Vec<String>,
   // 节点坐标
@@ -32,6 +34,8 @@ pub struct RuleNode {
 pub struct RuleNodeJson {
   // 节点内容
   pub content: String,
+  // 选择器 文字
+  pub selector_txt: String,
   // 节点坐标
   pub loc: Loc,
   // 节点 子节点
@@ -59,6 +63,7 @@ impl RuleNode {
       }
     });
     RuleNodeJson {
+      selector_txt: self.selector_txt.clone(),
       content: self.content.clone(),
       loc: self.loc.clone(),
       block_node,
@@ -68,7 +73,7 @@ impl RuleNode {
   ///
   /// 构造方法
   ///
-  pub fn new(content: String, loc: Loc, option: ParseOption, parent: Option<Rc<RefCell<RuleNode>>>) -> Result<Rc<RefCell<RuleNode>>, String> {
+  pub fn new(content: String, selector_txt: String, loc: Loc, option: ParseOption, parent: Option<Rc<RefCell<RuleNode>>>) -> Result<Rc<RefCell<RuleNode>>, String> {
     let origin_charlist = content.tocharlist();
     let mut locmap: Option<LocMap> = None;
     if option.sourcemap {
@@ -76,6 +81,7 @@ impl RuleNode {
     }
     let obj = RuleNode {
       content,
+      selector_txt,
       origin_charlist,
       loc,
       locmap,
