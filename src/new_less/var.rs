@@ -35,12 +35,12 @@ impl Var for RuleNode {
 /// 检查是否 合规
 /// 检查是否 变量
 ///
-fn is_var(charlist: &Vec<String>, istop: bool, locationmsg: String) -> Result<bool, String> {
+fn is_var(charlist: &[String], istop: bool, locationmsg: String) -> Result<bool, String> {
   // 变量片段中 含有换行
   if charlist.is_empty() {
     return Err(format!("var token word is empty,{}", locationmsg));
   }
-  if charlist.into_iter().filter(|&x| x.as_str() == "\n" || x.as_str() == "\r").collect::<Vec<&String>>().len() > 0 {
+  if charlist.iter().filter(|&x| x.as_str() == "\n" || x.as_str() == "\r").count() > 0 {
     return Err(format!(r#"token word has contains "\n","\r",{} "#, locationmsg));
   }
   // 变量片段中首位必须是 @
@@ -57,7 +57,7 @@ fn is_var(charlist: &Vec<String>, istop: bool, locationmsg: String) -> Result<bo
       return Ok(false);
     }
     // 判断是否复合基本格式
-    if charlist.join("").split(":").collect::<Vec<&str>>().len() != 2 {
+    if charlist.join("").split(':').count() != 2 {
       return Err(format!(r#"var token is not liek '@var: 10px',{} ,{}"#, charlist.join(""), locationmsg));
     }
   }
@@ -67,7 +67,7 @@ fn is_var(charlist: &Vec<String>, istop: bool, locationmsg: String) -> Result<bo
 ///
 /// 转化当前层变量
 ///
-fn parse_var(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &Option<LocMap>, istop: bool) -> Result<Vec<VarNode>, String> {
+fn parse_var(options: &ParseOption, origin_charlist: &[String], locmap: &Option<LocMap>, istop: bool) -> Result<Vec<VarNode>, String> {
   let mut blocklist: Vec<VarNode> = vec![];
   let mut templist: Vec<String> = vec![];
   let mut index = 0;
@@ -83,11 +83,10 @@ fn parse_var(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &Opti
   let mut skipcall = skip_comment();
 
   let getmsg = |index: usize| -> String {
-    let location_msg: String;
-    if options.sourcemap {
-      location_msg = format!("loc at {:#?}", locmap.as_ref().unwrap().get(index).unwrap())
+    let location_msg = if options.sourcemap {
+      format!("loc at {:#?}", locmap.as_ref().unwrap().get(index).unwrap())
     } else {
-      location_msg = format!("word order is {}", index)
+      format!("word order is {}", index)
     };
     location_msg
   };

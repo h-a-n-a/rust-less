@@ -13,19 +13,13 @@ pub trait StringExtend {
 impl StringExtend for String {
   fn charCodeAt(&self, index: usize) -> Option<u32> {
     let charlist: Vec<char> = self.chars().collect::<Vec<char>>();
-    match charlist.get(index) {
-      Some(val) => Some(*val as u32),
-      None => None
-    }
+    charlist.get(index).map(|val| *val as u32)
   }
   fn charAt(&self, index: usize) -> Option<String> {
     let charlist: Vec<char> = self.chars().collect::<Vec<char>>();
-    match charlist.get(index) {
-      Some(val) => Some(val.to_string()),
-      None => None
-    }
+    charlist.get(index).map(|val| val.to_string())
   }
-  
+
   fn indexOf(&self, findchar: &str, fromindex: Option<usize>) -> i32 {
     let list = self.chars().into_iter().map(|x| x.to_string()).collect::<Vec<String>>();
     let len = list.len();
@@ -58,7 +52,7 @@ impl StringExtend for String {
     }
     res
   }
-  
+
   fn slice(&self, fromindex: i32) -> String {
     let len = self.len() as i32;
     if fromindex > len {
@@ -74,7 +68,7 @@ impl StringExtend for String {
       self.clone().as_str()[rev_start as usize..].to_string()
     };
   }
-  
+
   fn substr(&self, fromindex: i32, length: Option<i32>) -> String {
     let len = self.len() as i32;
     if length.is_some() && length.unwrap() <= 0 {
@@ -87,25 +81,24 @@ impl StringExtend for String {
       self.slice(fromindex)
     } else {
       let start = fromindex as usize;
-      let end: usize;
-      if length.is_none() {
-        end = len as usize;
+      let end = if let Some(length_val) = length {
+        (fromindex + length_val) as usize
       } else {
-        end = (fromindex + length.unwrap()) as usize;
-      }
+        len as usize
+      };
       self.clone().as_str()[start..end].to_string()
     };
   }
-  
+
   fn tocharlist(&self) -> Vec<String> {
     self.chars().map(|x| x.to_string()).collect::<Vec<String>>()
   }
-  
+
   fn simple_compare(&self) -> String {
-    let mut new_str = self.replace(" ", "");
+    let mut new_str = self.replace(' ', "");
     new_str = new_str.trim()
-      .replace("\n", "")
-      .replace("\r", "");
+      .replace('\n', "")
+      .replace('\r', "");
     new_str
   }
 }

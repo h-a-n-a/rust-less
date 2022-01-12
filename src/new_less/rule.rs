@@ -26,7 +26,7 @@ impl Rule for RuleNode {
 
 fn parse_rule(
   options: &ParseOption,
-  origin_charlist: &Vec<String>,
+  origin_charlist: &[String],
   locmap: &Option<LocMap>,
 ) -> Result<Vec<Rc<RefCell<RuleNode>>>, String> {
   let mut blocklist: Vec<Rc<RefCell<RuleNode>>> = vec![];

@@ -59,7 +59,7 @@ impl FileInfo {
       }
     });
     let import_file = self.import_file.clone().into_iter().map(|x| {
-      x.borrow().deref().deref().clone().tojson()
+      x.borrow().tojson()
     }).collect::<Vec<FileInfoJson>>();
     FileInfoJson {
       disk_location: self.disk_location.clone(),
@@ -76,8 +76,7 @@ impl FileInfo {
   }
 
   pub fn get_loc_by_content(content: &str) -> LocMap {
-    let locmap = LocMap::new(content.to_string());
-    locmap
+    LocMap::new(content.to_string())
   }
 
 
@@ -91,7 +90,7 @@ impl FileInfo {
     let mut locmap: Option<LocMap> = None;
     let mut obj: FileInfo;
     match FileManger::resolve(
-      filepath.clone(),
+      filepath,
       option.include_path.clone()) {
       Ok((calc_path, content)) => {
         abs_path = calc_path;
@@ -131,7 +130,6 @@ impl FileInfo {
     let text_content: String = content.clone();
     let charlist: Vec<String> = text_content.tocharlist();
     let mut locmap: Option<LocMap> = None;
-    let mut obj: FileInfo;
     if option.sourcemap {
       locmap = Some(FileInfo::get_loc_by_content(content.as_str()));
     }
@@ -143,7 +141,7 @@ impl FileInfo {
         path_val
       }
     };
-    obj = FileInfo {
+    let mut obj = FileInfo {
       disk_location: Some(abs_path),
       block_node: vec![],
       origin_txt_content: text_content,

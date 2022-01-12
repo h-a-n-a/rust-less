@@ -55,10 +55,7 @@ impl LocMap {
   }
 
   pub fn get(&self, index: usize) -> Option<Loc> {
-    match self.data.get(&index) {
-      None => { None }
-      Some(val) => { Some(val.clone()) }
-    }
+    self.data.get(&index).cloned()
   }
 
   pub fn getloc(&self, line: usize, col: usize) -> Option<Loc> {

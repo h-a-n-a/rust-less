@@ -33,11 +33,11 @@ impl Comment for FileInfo {
 
   fn rm_comment(&self) -> String {
     let list = &self.get_comment_blocknode();
-    return if !list.is_empty() {
+    if !list.is_empty() {
       rm_comment(list, &self.origin_charlist)
     } else {
       self.origin_txt_content.clone()
-    };
+    }
   }
 
   fn skip_comment() -> Box<dyn FnMut(String, String, &mut usize) -> bool> {
@@ -56,11 +56,11 @@ impl Comment for RuleNode {
 
   fn rm_comment(&self) -> String {
     let node_list = &self.get_comment_blocknode();
-    return if !node_list.is_empty() {
+    if !node_list.is_empty() {
       rm_comment(node_list, &self.origin_charlist)
     } else {
       self.content.clone()
-    };
+    }
   }
 
   fn skip_comment() -> Box<dyn FnMut(String, String, &mut usize) -> bool> {
@@ -71,7 +71,7 @@ impl Comment for RuleNode {
 ///
 /// 获取一段 文件中 注释
 ///
-fn parse_comment(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &Option<LocMap>) -> Result<Vec<CommentNode>, String> {
+fn parse_comment(options: &ParseOption, origin_charlist: &[String], locmap: &Option<LocMap>) -> Result<Vec<CommentNode>, String> {
   let mut blocklist: Vec<CommentNode> = vec![];
   let mut commentlist: Vec<String> = vec![];
 
@@ -158,12 +158,12 @@ fn parse_comment(options: &ParseOption, origin_charlist: &Vec<String>, locmap: &
 ///
 /// 从当中的 成熟 AST 中获取 注释节点
 ///
-fn get_comment_blocknode(block_node: &Vec<StyleNode>) -> Vec<CommentNode> {
+fn get_comment_blocknode(block_node: &[StyleNode]) -> Vec<CommentNode> {
   let mut list = vec![];
   block_node
-    .into_iter().for_each(|x| {
+    .iter().for_each(|x| {
     if let StyleNode::Comment(cc) = x.deref().clone() {
-      list.push(cc.clone());
+      list.push(cc);
     }
   });
   list
@@ -173,11 +173,11 @@ fn get_comment_blocknode(block_node: &Vec<StyleNode>) -> Vec<CommentNode> {
 /// 移除注释
 /// 必须依赖开启 sourcemap
 ///
-fn rm_comment(commentlist: &Vec<CommentNode>, origin_charlist: &Vec<String>) -> String {
+fn rm_comment(commentlist: &[CommentNode], origin_charlist: &[String]) -> String {
   return if commentlist.is_empty() {
     origin_charlist.join("")
   } else {
-    let mut charlist = origin_charlist.clone();
+    let mut charlist = origin_charlist.to_owned();
     for cc in commentlist {
       let length = cc.content.len();
       let start = cc.loc.index;
@@ -207,7 +207,7 @@ pub fn skip_comment() -> Box<dyn FnMut(String, String, &mut usize) -> bool> {
   let comment_mark_end = "*/".to_string();
   let mut comment_inline = false;
   let mut comment_mark = false;
-  return Box::new(move |word, char, index| {
+  Box::new(move |word, char, index| {
     if word == comment_flag && !comment_inline {
       comment_inline = true;
     }
@@ -222,7 +222,7 @@ pub fn skip_comment() -> Box<dyn FnMut(String, String, &mut usize) -> bool> {
       *index += 1;
     }
     comment_inline || comment_mark
-  });
+  })
 }
 
 

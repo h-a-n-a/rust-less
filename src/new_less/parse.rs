@@ -74,7 +74,7 @@ impl RuleNode {
     if option.sourcemap {
       locmap = Some(LocMap::new(content.to_string()));
     }
-    let mut obj = RuleNode {
+    let obj = RuleNode {
       content,
       origin_charlist,
       loc,
@@ -131,6 +131,6 @@ impl RuleNode {
         return Err(msg);
       }
     }
-    Ok(parent.clone())
+    Ok(parent)
   }
 }

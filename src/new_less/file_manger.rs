@@ -20,18 +20,7 @@ impl FileManger {
 
     return if FileManger::is_relative_path(&filepath) {
       // 相对路径的情况
-      if include_path.is_none() {
-        let abs_path = cmd_path_resolve(filepath.as_str());
-        let path_target = Path::new(abs_path.as_str());
-        match checkpath(path_target) {
-          Ok(_) => {}
-          Err(msg) => {
-            return Err(msg);
-          }
-        }
-        Ok((abs_path.clone(), readfile(abs_path).unwrap()))
-      } else {
-        let mut paths = include_path.unwrap().clone();
+      if let Some(mut paths) = include_path {
         paths.insert(0, cmd_path());
         let mut abs_path: Option<String> = None;
         let mut failpath = vec![];
@@ -53,6 +42,16 @@ impl FileManger {
         } else {
           Err(format!("Nothings File is find in cmdpath and inculdepath,{}", failpath.join(";")))
         };
+      } else {
+        let abs_path = cmd_path_resolve(filepath.as_str());
+        let path_target = Path::new(abs_path.as_str());
+        match checkpath(path_target) {
+          Ok(_) => {}
+          Err(msg) => {
+            return Err(msg);
+          }
+        }
+        Ok((abs_path.clone(), readfile(abs_path).unwrap()))
       }
     } else {
       // 绝对路径的情况
@@ -71,11 +70,7 @@ impl FileManger {
 
   pub fn is_relative_path(txt: &str) -> bool {
     let mut matched = false;
-    if txt.len() >= 3 && &txt[0..3] == "../" {
-      matched = true
-    } else if txt.len() >= 2 && &txt[0..2] == "./" {
-      matched = true
-    } else if txt.len() >= 1 && &txt[0..1] == "/" {
+    if (!txt.is_empty() && &txt[0..1] == "/") || (txt.len() >= 2 && &txt[0..2] == "./") || (txt.len() >= 3 && &txt[0..3] == "../") {
       matched = true
     }
     matched
