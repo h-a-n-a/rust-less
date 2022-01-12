@@ -3,7 +3,6 @@ mod tests {
   use crate::extend::string::StringExtend;
   use crate::extend::time::wastetime;
   use crate::extend::vec_str::VecStrExtend;
-  use crate::new_less::block::OriginBlock;
   use crate::new_less::comment::{Comment, skip_comment};
   use crate::new_less::file::*;
   use crate::new_less::file_manger::FileManger;
@@ -12,7 +11,7 @@ mod tests {
   
   #[test]
   fn test_less() {
-    let start_record = wastetime("test_less");
+    let record = wastetime("test_less");
     // 处理过程
     let filepath = path_resolve("assets/demo.less");
     let info = FileInfo::create_disklocation(filepath, Default::default()).unwrap();
@@ -21,7 +20,7 @@ mod tests {
     //   FileInfo::create_disklocation(filepath.clone(), Default::default()).unwrap();
     //   index += 1;
     // }
-    start_record();
+    record();
     // println!("{:#?}", info);
     let json = serde_json::to_string_pretty(&info.tojson()).unwrap();
     println!("{}", json);

@@ -1,5 +1,5 @@
-use crate::new_less::block::OriginBlock;
 use crate::new_less::fileinfo::FileInfo;
+use crate::new_less::parse::RuleNode;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ParseOption {
@@ -26,7 +26,7 @@ impl OptionExtend for FileInfo {
   }
 }
 
-impl OptionExtend for OriginBlock {
+impl OptionExtend for RuleNode {
   fn get_options(&self) -> ParseOption {
     self.option.clone()
   }
