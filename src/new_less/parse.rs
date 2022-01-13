@@ -69,7 +69,7 @@ impl RuleNode {
       block_node,
     }
   }
-
+  
   ///
   /// 构造方法
   ///
@@ -89,6 +89,7 @@ impl RuleNode {
       parent,
       block_node: vec![],
     };
+    // Ok(Rc::new(RefCell::new(obj)))
     match obj.parse() {
       Ok(obj) => {
         Ok(obj)
@@ -98,7 +99,7 @@ impl RuleNode {
       }
     }
   }
-
+  
   pub fn parse(mut self) -> Result<Rc<RefCell<RuleNode>>, String> {
     match self.parse_comment() {
       Ok(blocks) => {
@@ -123,20 +124,22 @@ impl RuleNode {
       }
     }
     let parent = Rc::new(RefCell::new(self));
-    match parent.borrow().parse_rule() {
+    let mut enum_rule = match parent.borrow_mut().parse_rule() {
       Ok(blocks) => {
         for node in blocks.clone() {
           node.borrow_mut().parent = Some(parent.clone());
         }
-        let mut enum_rule = blocks.into_iter().map(|x| {
-          StyleNode::Rule(x)
-        }).collect::<Vec<StyleNode>>();
-        parent.borrow_mut().block_node.append(&mut enum_rule);
+        blocks.into_iter().map(
+          |x| {
+            StyleNode::Rule(x)
+          })
+          .collect::<Vec<StyleNode>>()
       }
       Err(msg) => {
         return Err(msg);
       }
-    }
+    };
+    parent.borrow_mut().block_node.append(&mut enum_rule);
     Ok(parent)
   }
 }

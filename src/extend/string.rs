@@ -7,6 +7,7 @@ pub trait StringExtend {
   fn substr(&self, fromindex: i32, length: Option<i32>) -> String;
   fn tocharlist(&self) -> Vec<String>;
   fn simple_compare(&self) -> std::string::String;
+  fn removelast(&self) -> std::string::String;
 }
 
 #[allow(non_snake_case)]
@@ -19,7 +20,7 @@ impl StringExtend for String {
     let charlist: Vec<char> = self.chars().collect::<Vec<char>>();
     charlist.get(index).map(|val| val.to_string())
   }
-
+  
   fn indexOf(&self, findchar: &str, fromindex: Option<usize>) -> i32 {
     let list = self.chars().into_iter().map(|x| x.to_string()).collect::<Vec<String>>();
     let len = list.len();
@@ -52,7 +53,7 @@ impl StringExtend for String {
     }
     res
   }
-
+  
   fn slice(&self, fromindex: i32) -> String {
     let len = self.len() as i32;
     if fromindex > len {
@@ -68,7 +69,7 @@ impl StringExtend for String {
       self.clone().as_str()[rev_start as usize..].to_string()
     };
   }
-
+  
   fn substr(&self, fromindex: i32, length: Option<i32>) -> String {
     let len = self.len() as i32;
     if length.is_some() && length.unwrap() <= 0 {
@@ -89,16 +90,22 @@ impl StringExtend for String {
       self.clone().as_str()[start..end].to_string()
     };
   }
-
+  
   fn tocharlist(&self) -> Vec<String> {
     self.chars().map(|x| x.to_string()).collect::<Vec<String>>()
   }
-
+  
   fn simple_compare(&self) -> String {
     let mut new_str = self.replace(' ', "");
     new_str = new_str.trim()
       .replace('\n', "")
       .replace('\r', "");
     new_str
+  }
+  
+  fn removelast(&self) -> String {
+    let start = 0;
+    let end = self.len() - 1;
+    self.as_str()[start..end].to_string().trim().to_string()
   }
 }
