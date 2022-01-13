@@ -21,7 +21,7 @@ mod tests {
     //   index += 1;
     // }
     record();
-    // println!("{:#?}", info);
+    println!("{:#?}", info);
     let json = serde_json::to_string_pretty(&info.tojson()).unwrap();
     println!("{}", json);
     println!("........");

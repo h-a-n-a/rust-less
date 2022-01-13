@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-  use std::borrow::Borrow;
   use std::cell::RefCell;
   use std::ops::Deref;
   use std::rc::Rc;
@@ -18,7 +17,7 @@ mod tests {
     assert_eq!(index_1, -1);
     assert_eq!(index_2, 1);
     assert_eq!(index_3, 1);
-    let t = &strore[1..1];
+    // let _t = &strore[1..1];
     // println!("......");
   }
   
@@ -26,7 +25,7 @@ mod tests {
   fn test_slice() {
     let a = "1233284920348aljdfalkdfjalkfdj023180";
     let mut i = 0;
-    let mut target = "332";
+    let target = "332";
     let mut copy: String = "".to_string();
     loop {
       if i < a.len() {
