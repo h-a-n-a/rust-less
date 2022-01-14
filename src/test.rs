@@ -104,9 +104,6 @@ mod tests {
         index += 1;
       }
       futures::future::join_all(task_list).await;
-      // let task1 = add(num.clone(), "a".to_string());
-      // let task2 = add(num.clone(), "b".to_string());
-      // futures::future::join(task2, task1).await;
       num
     });
     let c = *d.deref().borrow().deref();
@@ -122,4 +119,6 @@ mod tests {
       println!("100 ms have elapsed");
     });
   }
+  
+  
 }
