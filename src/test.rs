@@ -79,7 +79,7 @@ mod tests {
   
   async fn add(num: Rc<RefCell<i32>>, flag: String) {
     let p = flag.parse::<i32>().unwrap();
-    if p > 0 && p % 2 == 0 {
+    if p % 2 == 0 {
       sleep(Duration::from_secs(2)).await;
     }
     let mut i = 0;
