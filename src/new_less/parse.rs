@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use std::ops::Deref;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use crate::extend::string::StringExtend;
 use crate::new_less::comment::Comment;
 use crate::new_less::loc::{Loc, LocMap};
@@ -25,7 +25,7 @@ pub struct RuleNode {
   // 内部调用方式时 需要拿到对应的 转化配置
   pub option: ParseOption,
   // 节点 父节点
-  pub parent: Option<Rc<RefCell<RuleNode>>>,
+  pub parent: Option<Weak<RefCell<RuleNode>>>,
   // 节点 子节点
   pub block_node: Vec<StyleNode>,
 }
@@ -73,7 +73,7 @@ impl RuleNode {
   ///
   /// 构造方法
   ///
-  pub fn new(content: String, selector_txt: String, loc: Loc, option: ParseOption, parent: Option<Rc<RefCell<RuleNode>>>) -> Result<Rc<RefCell<RuleNode>>, String> {
+  pub fn new(content: String, selector_txt: String, loc: Loc, option: ParseOption, parent: Option<Weak<RefCell<RuleNode>>>) -> Result<Rc<RefCell<RuleNode>>, String> {
     let origin_charlist = content.tocharlist();
     let mut locmap: Option<LocMap> = None;
     if option.sourcemap {
@@ -127,7 +127,7 @@ impl RuleNode {
     let mut enum_rule = match parent.borrow_mut().parse_rule() {
       Ok(blocks) => {
         for node in blocks.clone() {
-          node.borrow_mut().parent = Some(parent.clone());
+          node.borrow_mut().parent = Some(Rc::downgrade(&parent));
         }
         blocks.into_iter().map(
           |x| {
