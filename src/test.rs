@@ -68,7 +68,6 @@ mod tests {
     }
   }
   
-  
   #[test]
   fn test_context_fn() {
     let a = Student::new();
@@ -91,46 +90,36 @@ mod tests {
     }
   }
   
-  async fn exec_async(num: Rc<RefCell<i32>>) -> Rc<RefCell<i32>> {
-    let exec_times: i32 = 20;
-    let mut task_list = vec![];
-    let mut index = 0;
-    while index < exec_times {
-      let task = add(num.clone(), index.to_string());
-      task_list.push(task);
-      index += 1;
-    }
-    futures::future::join_all(task_list).await;
-    // let task1 = add(num.clone(), "a".to_string());
-    // let task2 = add(num.clone(), "b".to_string());
-    // futures::future::join(task2, task1).await;
-    num
-  }
-  
-  async fn main() {
-    sleep(Duration::from_secs(2)).await;
-    println!("100 ms have elapsed");
+  #[test]
+  fn test_future() {
+    let num = Rc::new(RefCell::new(1));
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let d = rt.block_on(async{
+      let exec_times: i32 = 20;
+      let mut task_list = vec![];
+      let mut index = 0;
+      while index < exec_times {
+        let task = add(num.clone(), index.to_string());
+        task_list.push(task);
+        index += 1;
+      }
+      futures::future::join_all(task_list).await;
+      // let task1 = add(num.clone(), "a".to_string());
+      // let task2 = add(num.clone(), "b".to_string());
+      // futures::future::join(task2, task1).await;
+      num
+    });
+    let c = *d.deref().borrow().deref();
+    println!("{}", c);
+    println!("........");
   }
   
   #[test]
   fn test_tokio() {
     let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(main());
-  }
-  
-  #[test]
-  fn test_future() {
-    let num = Rc::new(RefCell::new(1));
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    let d = rt.block_on(exec_async(num));
-    let c = *d.deref().borrow().deref();
-    println!("{}", c);
-    println!("........");
-    
-    // let mut a = 5;
-    // let mut value = Rc::new(RefCell::new(a));
-    // *value.deref().borrow_mut().deref_mut() += 10;
-    // let c = *value.deref().borrow().deref();
-    // println!(".......{}", c.clone().to_string());
+    rt.block_on(async{
+      sleep(Duration::from_secs(2)).await;
+      println!("100 ms have elapsed");
+    });
   }
 }
