@@ -83,7 +83,7 @@ mod tests {
       sleep(Duration::from_secs(2)).await;
     }
     let mut i = 0;
-    while i < 10 {
+    while i < 3 {
       *num.deref().borrow_mut().deref_mut() += 1;
       i += 1;
       let c = *num.deref().borrow().deref();
