@@ -3,8 +3,10 @@ mod tests {
   use std::cell::RefCell;
   use std::ops::{Deref, DerefMut};
   use std::rc::Rc;
+  use std::sync::Arc;
   use std::time::Duration;
   use tokio::time::sleep;
+  use tokio::sync::Mutex;
   use crate::extend::string::StringExtend;
   use crate::extend::vec_str::VecStrExtend;
   
@@ -94,7 +96,7 @@ mod tests {
   fn test_future() {
     let num = Rc::new(RefCell::new(1));
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let d = rt.block_on(async{
+    let d = rt.block_on(async {
       let exec_times: i32 = 20;
       let mut task_list = vec![];
       let mut index = 0;
@@ -114,11 +116,61 @@ mod tests {
   #[test]
   fn test_tokio() {
     let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(async{
+    rt.block_on(async {
       sleep(Duration::from_secs(2)).await;
       println!("100 ms have elapsed");
     });
   }
   
+  async fn add_mutex(num: &Mutex<i32>, flag: String) {
+    let p = flag.parse::<i32>().unwrap();
+    if p % 2 == 0 {
+      sleep(Duration::from_secs(2)).await;
+    }
+    let mut i = 0;
+    while i < 3 {
+      let mut val = num.lock().await;
+      *val += 1;
+      i += 1;
+      println!("flag is {} num is {}", flag, val);
+    }
+  }
   
+  #[test]
+  fn test_tokio_mutex() {
+    let num = Mutex::new(1);
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+      let exec_times: i32 = 5;
+      let mut task_list = vec![];
+      let mut index = 0;
+      while index < exec_times {
+        let task = add_mutex(&num, index.to_string());
+        task_list.push(task);
+        index += 1;
+      }
+      futures::future::join_all(task_list).await;
+    });
+    let c = rt.block_on(async {
+      num.lock().await.clone().to_string()
+    });
+    println!("{}", c);
+    println!("........");
+  }
+  
+  #[test]
+  fn test_rc() {
+    let a = Rc::new("123");
+    println!("0->{}", Rc::strong_count(&a));
+    let mut list = vec![];
+    list.push(a.clone());
+    println!("1->{}", Rc::strong_count(&a));
+    {
+      let mut list = vec![];
+      list.push(a.clone());
+      println!("2->{}", Rc::strong_count(&a));
+    }
+    list.remove(0);
+    println!("3->{}", Rc::strong_count(&a));
+  }
 }
