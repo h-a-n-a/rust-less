@@ -9,13 +9,14 @@ use crate::new_less::option::ParseOption;
 use crate::new_less::rule::Rule;
 use crate::new_less::var::Var;
 use serde::{Serialize};
+use crate::new_less::select::Selector;
 
 #[derive(Debug, Clone)]
 pub struct RuleNode {
   // 节点内容
   pub content: String,
   // 选择器 文字
-  pub selector_txt: String,
+  pub selector: Selector,
   // 根据 原始内容 -> 转化的 字符数组
   pub origin_charlist: Vec<String>,
   // 节点坐标
@@ -63,7 +64,7 @@ impl RuleNode {
       }
     });
     RuleNodeJson {
-      selector_txt: self.selector_txt.clone(),
+      selector_txt: self.selector.value(),
       content: self.content.clone(),
       loc: self.loc.clone(),
       block_node,
@@ -79,9 +80,10 @@ impl RuleNode {
     if option.sourcemap {
       locmap = Some(LocMap::new(content.to_string()));
     }
+    let selector = Selector::new(selector_txt);
     let obj = RuleNode {
       content,
-      selector_txt,
+      selector,
       origin_charlist,
       loc,
       locmap,

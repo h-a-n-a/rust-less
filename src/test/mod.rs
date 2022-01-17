@@ -4,6 +4,7 @@ mod parse;
 mod loc;
 mod var;
 mod import;
+mod select;
 
 
 
