@@ -9,9 +9,11 @@ use crate::new_less::option::ParseOption;
 use crate::new_less::rule::Rule;
 use crate::new_less::var::Var;
 use serde::{Serialize};
+use async_recursion::async_recursion;
 
 #[derive(Debug, Clone)]
 pub struct RuleNode {
+  pub ready: bool,
   // 节点内容
   pub content: String,
   // 选择器 文字
@@ -73,7 +75,7 @@ impl RuleNode {
   ///
   /// 构造方法
   ///
-  pub fn new(content: String, selector_txt: String, loc: Loc, option: ParseOption, parent: Option<Weak<RefCell<RuleNode>>>) -> Result<Rc<RefCell<RuleNode>>, String> {
+  pub fn new(content: String, selector_txt: String, loc: Loc, option: ParseOption, parent: Option<Weak<RefCell<RuleNode>>>) -> RuleNode {
     let origin_charlist = content.tocharlist();
     let mut locmap: Option<LocMap> = None;
     if option.sourcemap {
@@ -87,20 +89,14 @@ impl RuleNode {
       locmap,
       option,
       parent,
+      ready: false,
       block_node: vec![],
     };
-    // Ok(Rc::new(RefCell::new(obj)))
-    match obj.parse() {
-      Ok(obj) => {
-        Ok(obj)
-      }
-      Err(msg) => {
-        Err(msg)
-      }
-    }
+    obj
   }
   
-  pub fn parse(mut self) -> Result<Rc<RefCell<RuleNode>>, String> {
+  #[async_recursion(? Send)]
+  pub async fn parse(mut self) -> Result<Rc<RefCell<RuleNode>>, String> {
     match self.parse_comment() {
       Ok(blocks) => {
         let mut enum_cc = blocks.into_iter().map(|x| {
@@ -124,22 +120,33 @@ impl RuleNode {
       }
     }
     let parent = Rc::new(RefCell::new(self));
-    let mut enum_rule = match parent.borrow_mut().parse_rule() {
+    let mut enum_rule = match parent.deref().borrow().parse_rule() {
       Ok(blocks) => {
+        let mut task_parse_list = vec![];
         for node in blocks.clone() {
-          node.borrow_mut().parent = Some(Rc::downgrade(&parent));
+          task_parse_list.push(node.clone().parse());
         }
-        blocks.into_iter().map(
-          |x| {
-            StyleNode::Rule(x)
-          })
-          .collect::<Vec<StyleNode>>()
+        let res = futures::future::join_all(task_parse_list).await;
+        let mut enum_rule = vec![];
+        for parse_node_res in res {
+          match parse_node_res {
+            Ok(parsenode) => {
+              parsenode.deref().borrow_mut().ready = true;
+              parsenode.deref().borrow_mut().parent = Some(Rc::downgrade(&parent));
+              enum_rule.push(StyleNode::Rule(parsenode));
+            }
+            Err(msg) => {
+              return Err(msg);
+            }
+          }
+        }
+        enum_rule
       }
       Err(msg) => {
         return Err(msg);
       }
     };
-    parent.borrow_mut().block_node.append(&mut enum_rule);
+    parent.deref().borrow_mut().block_node.append(&mut enum_rule);
     Ok(parent)
   }
 }

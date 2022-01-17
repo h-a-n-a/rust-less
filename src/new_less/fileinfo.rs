@@ -67,19 +67,19 @@ impl FileInfo {
       import_file,
     }
   }
-
+  
   ///
   /// 转 heap 堆上对象
   ///
   pub fn toheap(self) -> Rc<RefCell<FileInfo>> {
     Rc::new(RefCell::new(self))
   }
-
+  
   pub fn get_loc_by_content(content: &str) -> LocMap {
     LocMap::new(content.to_string())
   }
-
-
+  
+  
   ///
   /// 根据文件路径 解析 文件
   ///
@@ -108,12 +108,13 @@ impl FileInfo {
           option,
           import_file: vec![],
         };
-        match obj.parse() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        match rt.block_on(obj.parse()) {
           Ok(_) => {}
           Err(msg) => {
             return Err(msg);
           }
-        }
+        };
       }
       Err(msg) => {
         return Err(msg);
@@ -121,8 +122,8 @@ impl FileInfo {
     }
     Ok(obj)
   }
-
-
+  
+  
   ///
   /// 根据文件内容 解析文件
   ///
@@ -150,16 +151,17 @@ impl FileInfo {
       option,
       import_file: vec![],
     };
-    match obj.parse() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    match rt.block_on(obj.parse()) {
       Ok(_) => {}
       Err(msg) => {
         return Err(msg);
       }
-    }
+    };
     Ok(obj)
   }
-
-  fn parse(&mut self) -> Result<(), String> {
+  
+  pub async fn parse(&mut self) -> Result<(), String> {
     match self.parse_comment() {
       Ok(blocks) => {
         let mut enum_cc = blocks.into_iter().map(|x| {
@@ -182,12 +184,25 @@ impl FileInfo {
         return Err(msg);
       }
     }
-
     match self.parse_rule() {
       Ok(blocks) => {
-        let mut enum_rule = blocks.into_iter().map(|x| {
-          StyleNode::Rule(x)
-        }).collect::<Vec<StyleNode>>();
+        let mut task_parse_list = vec![];
+        for node in blocks.clone() {
+          task_parse_list.push(node.clone().parse());
+        }
+        let res = futures::future::join_all(task_parse_list).await;
+        let mut enum_rule = vec![];
+        for parse_node_res in res {
+          match parse_node_res {
+            Ok(parsenode) => {
+              parsenode.borrow_mut().ready = true;
+              enum_rule.push(StyleNode::Rule(parsenode));
+            }
+            Err(msg) => {
+              return Err(msg);
+            }
+          }
+        }
         self.block_node.append(&mut enum_rule);
       }
       Err(msg) => {

@@ -8,6 +8,7 @@ mod tests {
   use tokio::sync::Mutex;
   use crate::extend::string::StringExtend;
   use crate::extend::vec_str::VecStrExtend;
+  use async_recursion::async_recursion;
   
   #[test]
   fn test_str() {
@@ -185,5 +186,30 @@ mod tests {
     assert_eq!(test.0.as_str(), "我");
     assert_eq!(test.1.as_str(), "我");
     assert_eq!(test.2.as_str(), "");
+  }
+  
+  #[async_recursion]
+  async fn ort_add(num: i32) -> i32 {
+    println!("......{}", num);
+    match num {
+      0 => panic!("zero is not a valid argument to fib()!"),
+      1 | 2 => 1,
+      3 => 2,
+      _ => {
+        let a = ort_add(num - 1).await;
+        let b = ort_add(num - 2).await;
+        a + b
+      }
+    }
+  }
+  
+  #[test]
+  fn test_recyl() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let res = rt.block_on(async {
+      ort_add(10).await
+    });
+    println!("{}", res);
+    println!(".............")
   }
 }
