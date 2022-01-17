@@ -3,7 +3,6 @@ mod tests {
   use std::cell::RefCell;
   use std::ops::{Deref, DerefMut};
   use std::rc::Rc;
-  use std::sync::Arc;
   use std::time::Duration;
   use tokio::time::sleep;
   use tokio::sync::Mutex;
@@ -172,5 +171,19 @@ mod tests {
     }
     list.remove(0);
     println!("3->{}", Rc::strong_count(&a));
+  }
+  
+  #[test]
+  fn test_display() {
+    let str = "我是谁".to_string();
+    let test = (
+      str.charAt(None).unwrap(),
+      str.charAt(Some(0)).unwrap(),
+      str.charAt(Some(-1)).unwrap()
+    );
+    println!("{:#?}", test);
+    assert_eq!(test.0.as_str(), "我");
+    assert_eq!(test.1.as_str(), "我");
+    assert_eq!(test.2.as_str(), "");
   }
 }

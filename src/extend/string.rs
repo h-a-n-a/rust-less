@@ -1,7 +1,7 @@
 #[allow(non_snake_case)]
 pub trait StringExtend {
-  fn charCodeAt(&self, index: usize) -> Option<u32>;
-  fn charAt(&self, index: usize) -> Option<String>;
+  fn charCodeAt(&self, index: Option<usize>) -> Option<u32>;
+  fn charAt(&self, index: Option<i32>) -> Option<String>;
   fn indexOf(&self, findchar: &str, fromindex: Option<usize>) -> i32;
   fn slice(&self, fromindex: i32) -> String;
   fn substr(&self, fromindex: i32, length: Option<i32>) -> String;
@@ -12,13 +12,18 @@ pub trait StringExtend {
 
 #[allow(non_snake_case)]
 impl StringExtend for String {
-  fn charCodeAt(&self, index: usize) -> Option<u32> {
+  fn charCodeAt(&self, index: Option<usize>) -> Option<u32> {
+    let safe_index = index.unwrap_or(0);
     let charlist: Vec<char> = self.chars().collect::<Vec<char>>();
-    charlist.get(index).map(|val| *val as u32)
+    charlist.get(safe_index).map(|val| *val as u32)
   }
-  fn charAt(&self, index: usize) -> Option<String> {
+  fn charAt(&self, index: Option<i32>) -> Option<String> {
+    let safe_index = index.unwrap_or(0);
+    if safe_index < 0 {
+      return Some("".to_string());
+    }
     let charlist: Vec<char> = self.chars().collect::<Vec<char>>();
-    charlist.get(index).map(|val| val.to_string())
+    charlist.get(safe_index as usize).map(|val| val.to_string())
   }
   
   fn indexOf(&self, findchar: &str, fromindex: Option<usize>) -> i32 {
