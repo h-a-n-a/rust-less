@@ -1,5 +1,6 @@
+use std::convert::Infallible;
 use crate::extend::string::StringExtend;
-use crate::new_less::token::{Token, TokenSelect};
+use crate::new_less::token::{Token, TokenComina, TokenSelect};
 
 #[derive(Debug, Clone)]
 pub struct Selector {
@@ -55,18 +56,36 @@ impl Selector {
           continue;
         }
         current_token = Some(char.clone());
-        
-        match TokenSelect::try_from(current_token.as_ref().unwrap().clone().as_str()) {
+        let ct = current_token.as_ref().unwrap().clone().as_str();
+        match TokenSelect::try_from(ct) {
           Ok(token) => {
             match token {
               TokenSelect::ClassToken => {}
               TokenSelect::IdToken => {}
+              TokenSelect::WildCard => {}
+              TokenSelect::AttrBegin => {}
+              TokenSelect::AttrEnd => {}
               _ => {}
             }
           }
           Err(_) => {}
         }
         
+        match TokenComina::try_from(ct) {
+          Ok(token) => {
+            match token {
+              TokenComina::Comma => {}
+              TokenComina::Space => {}
+              TokenComina::NewLineOs => {}
+              TokenComina::NewLineWindos => {}
+              TokenComina::ExtendChar => {}
+              TokenComina::ColumnChar => {}
+              TokenComina::BrotherNextChar => {}
+              TokenComina::BrotherMatchChar => {}
+            }
+          }
+          Err(_) => {}
+        }
         let temp_word = templist.join("");
         
         if !temp_word.is_empty() {
