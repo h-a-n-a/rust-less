@@ -1,10 +1,15 @@
 use strum::IntoEnumIterator;
 
-pub fn generic_iterator<E, I, F>(pred: F)
-  where E: IntoEnumIterator<Iterator=I>,
-        I: Iterator<Item=E>,
-        F: Fn(E) {
-  for e in E::iter() {
-    pred(e)
+pub trait EnumExtend {
+  fn enum_vec() -> Vec<String>
+    where
+      Self: IntoEnumIterator,
+      Self: std::fmt::Display
+  {
+    let mut list = vec![];
+    for e in Self::iter() {
+      list.push(e.to_string());
+    }
+    list
   }
 }

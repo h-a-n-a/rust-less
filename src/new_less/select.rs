@@ -1,5 +1,6 @@
 use crate::extend::string::StringExtend;
-use crate::new_less::token::{Token, TokenComina, TokenSelect};
+use crate::new_less::token::select::{TokenComina, TokenSelect};
+use crate::new_less::token::Token;
 
 #[derive(Debug, Clone)]
 pub struct Selector {
