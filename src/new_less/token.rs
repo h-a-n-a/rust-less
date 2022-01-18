@@ -1,3 +1,5 @@
+use strum::{EnumIter, IntoEnumIterator};
+
 pub struct Token(String);
 
 ///
@@ -88,6 +90,11 @@ impl Token {
       r#"""#,
     ].into_iter()
       .map(|x| x.to_string()).collect()
+  }
+  
+  pub fn token_selector_forbidden() {
+    // let tokenlist = Token::get_token();
+    // TokenSelect::
   }
   
   ///

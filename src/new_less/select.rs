@@ -1,4 +1,3 @@
-use std::convert::Infallible;
 use crate::extend::string::StringExtend;
 use crate::new_less::token::{Token, TokenComina, TokenSelect};
 
@@ -56,8 +55,8 @@ impl Selector {
           continue;
         }
         current_token = Some(char.clone());
-        let ct = current_token.as_ref().unwrap().clone().as_str();
-        match TokenSelect::try_from(ct) {
+        let ct = current_token.as_ref().unwrap().clone();
+        match TokenSelect::try_from(ct.as_str()) {
           Ok(token) => {
             match token {
               TokenSelect::ClassToken => {}
@@ -65,13 +64,12 @@ impl Selector {
               TokenSelect::WildCard => {}
               TokenSelect::AttrBegin => {}
               TokenSelect::AttrEnd => {}
-              _ => {}
             }
           }
           Err(_) => {}
         }
         
-        match TokenComina::try_from(ct) {
+        match TokenComina::try_from(ct.as_str()) {
           Ok(token) => {
             match token {
               TokenComina::Comma => {}
