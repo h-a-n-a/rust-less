@@ -1,4 +1,5 @@
 use crate::extend::string::StringExtend;
+use crate::new_less::token::{Token, TokenSelect};
 
 #[derive(Debug, Clone)]
 pub struct Selector {
@@ -17,10 +18,9 @@ impl Selector {
   ///
   pub fn new(txt: String) -> Selector {
     let obj = Selector {
-      origin_txt: txt,
+      origin_txt: txt.trim().to_string(),
       rule: vec![],
     };
-    obj.analysis();
     obj
   }
   
@@ -28,37 +28,54 @@ impl Selector {
     self.origin_txt.clone()
   }
   
-  pub fn get_token() -> Vec<String> {
-    vec![".", "#", "~", " ", "\n", "\r", "|", ":", "[", "]", "@", "/", "+", "*", "-", "_", "(", ")", ";", "'", r#"""#]
-      .into_iter()
-      .map(|x| x.to_string()).collect()
-  }
-  
-  pub fn is_token(char: &str) -> bool {
-    match Selector::get_token().into_iter().find(|x| { x == char }) {
-      None => { false }
-      Some(_) => { true }
-    }
-  }
-  
   
   fn analysis(&self) {
     let charlist = self.origin_txt.tocharlist();
+    
     let mut index = 0;
     let mut token_vec = vec![];
     let mut templist = vec![];
+    
+    let mut prev_token: Option<String> = None;
+    let mut current_token: Option<String> = None;
+    
     while index < charlist.len() {
       let char = charlist.get(index).unwrap().to_string();
-      if Selector::is_token(char.as_str()) {
+      let prevchar = charlist.get(index - 1).unwrap_or(&"".to_string()).to_string();
+      if Token::is_token(&char) {
+        // 初始化的时候赋值
+        if prev_token.is_none() {
+          prev_token = Some(char.clone());
+        } else {
+          prev_token = Some(current_token.as_ref().unwrap().clone());
+        }
+        // skip  空格
+        if Token::is_space_token(&prevchar) && Token::is_space_token(&char) {
+          index += 1;
+          continue;
+        }
+        current_token = Some(char.clone());
+        
+        match TokenSelect::try_from(current_token.as_ref().unwrap().clone().as_str()) {
+          Ok(token) => {
+            match token {
+              TokenSelect::ClassToken => {}
+              TokenSelect::IdToken => {}
+              _ => {}
+            }
+          }
+          Err(_) => {}
+        }
+        
         let temp_word = templist.join("");
+        
         if !temp_word.is_empty() {
           token_vec.push(temp_word);
         }
         templist.clear();
-        token_vec.push(char);
-      } else {
-        templist.push(char.clone());
       }
+      
+      templist.push(char.clone());
       index += 1;
     }
     
