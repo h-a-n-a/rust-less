@@ -1,9 +1,10 @@
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::ops::{Deref, DerefMut};
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::time::Duration;
 use tokio::time::sleep;
 use tokio::sync::Mutex;
+use crate::extend::rs_hooks::{create_hooks_str, HookData};
 use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
 
@@ -198,4 +199,25 @@ fn test_loop() {
     list.push(a.as_ref().unwrap().clone());
     index += 1;
   }
+}
+
+
+#[test]
+fn test_clousure() {
+  fn exec() -> Weak<RefCell<HookData<String>>> {
+    let (a, change) = create_hooks_str(Some("aaaa".to_string()));
+    let c = a.upgrade().unwrap().deref().borrow().deref().value.clone();
+    println!("{:?}", c);
+    change("123");
+    let b = a.upgrade().unwrap().deref().borrow().deref().value.clone();
+    println!("{:?}", b);
+    change("456");
+    let x = a.upgrade().unwrap().deref().borrow().deref().value.clone();
+    println!("{:?}", x);
+    println!("{}", Rc::strong_count(&a.upgrade().unwrap()));
+    println!(".......");
+    a
+  }
+  let x = exec();
+  println!(".......");
 }

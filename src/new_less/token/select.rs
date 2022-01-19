@@ -19,6 +19,8 @@ pub enum TokenSelect {
   #[strum(serialize = "]")]
   AttrEnd,
   
+  #[strum(serialize = "*")]
+  WildCard,
 }
 
 
@@ -27,8 +29,6 @@ pub enum TokenSelect {
 ///
 #[derive(EnumString, Display, Debug, EnumIter, PartialEq)]
 pub enum TokenCombina {
-  #[strum(serialize = "*")]
-  WildCard,
   
   #[strum(serialize = ",")]
   Comma,
