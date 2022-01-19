@@ -184,3 +184,18 @@ fn test_display() {
   assert_eq!(test.1.as_str(), "我");
   assert_eq!(test.2.as_str(), "");
 }
+
+#[test]
+fn test_loop() {
+  let mut a: Option<String> = None;
+  let mut list = vec![];
+  let mut index = 0;
+  while index < 10 {
+    if a.is_none() {
+      println!(".....");
+    }
+    a = Some("456".to_string());
+    list.push(a.as_ref().unwrap().clone());
+    index += 1;
+  }
+}

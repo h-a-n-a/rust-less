@@ -80,7 +80,14 @@ impl RuleNode {
     if option.sourcemap {
       locmap = Some(LocMap::new(content.to_string()));
     }
-    let selector = Selector::new(selector_txt);
+    let selector = match Selector::new(selector_txt) {
+      Ok(result) => {
+        result
+      }
+      Err(msg) => {
+        return Err(msg);
+      }
+    };
     let obj = RuleNode {
       content,
       selector,

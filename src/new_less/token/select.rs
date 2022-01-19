@@ -1,5 +1,6 @@
 use crate::extend::enum_extend::EnumExtend;
 use crate::extend::str_into::StringInto;
+use crate::new_less::token::lib::{Token};
 
 ///
 /// Select 合词字符串
@@ -18,8 +19,6 @@ pub enum TokenSelect {
   #[strum(serialize = "]")]
   AttrEnd,
   
-  #[strum(serialize = "*")]
-  WildCard,
 }
 
 
@@ -27,7 +26,10 @@ pub enum TokenSelect {
 /// Select 允许的连接符
 ///
 #[derive(EnumString, Display, Debug, EnumIter, PartialEq)]
-pub enum TokenComina {
+pub enum TokenCombina {
+  #[strum(serialize = "*")]
+  WildCard,
+  
   #[strum(serialize = ",")]
   Comma,
   
@@ -55,8 +57,33 @@ pub enum TokenComina {
 
 impl EnumExtend for TokenSelect {}
 
-impl EnumExtend for TokenComina {}
+impl EnumExtend for TokenCombina {}
 
 impl StringInto for TokenSelect {}
 
-impl StringInto for TokenComina {}
+impl StringInto for TokenCombina {}
+
+pub trait SelectTokenParse {
+  fn token_selector_forbidden() -> Vec<String>;
+}
+
+impl SelectTokenParse for Token {
+  fn token_selector_forbidden() -> Vec<String> {
+    let tokenlist = Token::get_token();
+    let mut list_select = TokenSelect::enum_vec();
+    let mut list_combina = TokenCombina::enum_vec();
+    let mut list = vec![];
+    list.append(&mut list_select);
+    list.append(&mut list_combina);
+    let mut other = vec![];
+    tokenlist.into_iter().for_each(|token| {
+      match list.clone().into_iter().find(|x| *x == token) {
+        None => {
+          other.push(token);
+        }
+        Some(_) => {}
+      }
+    });
+    other
+  }
+}

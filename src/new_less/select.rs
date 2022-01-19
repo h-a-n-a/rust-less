@@ -1,6 +1,28 @@
+use crate::extend::enum_extend::EnumExtend;
+use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
-use crate::new_less::token::select::{TokenComina, TokenSelect};
-use crate::new_less::token::Token;
+use crate::extend::vec_str::VecStrExtend;
+use crate::new_less::token::lib::Token;
+use crate::new_less::token::select::{TokenCombina, TokenSelect};
+
+///
+/// 选择器范式
+///
+#[derive(Debug)]
+pub enum SelectParadigm {
+  // 选择器
+  TokenSelect(String),
+  
+  // 选择链接器
+  TokenComina(String),
+  
+  // 选择元素
+  TokenTag(String),
+  
+  // 其他token
+  TokenOther(String),
+  
+}
 
 #[derive(Debug, Clone)]
 pub struct Selector {
@@ -17,12 +39,19 @@ impl Selector {
   ///
   /// 初始化方法
   ///
-  pub fn new(txt: String) -> Selector {
+  pub fn new(txt: String) -> Result<Selector, String> {
     let obj = Selector {
       origin_txt: txt.trim().to_string(),
       rule: vec![],
     };
-    obj
+    match obj.parse() {
+      Ok(()) => {
+        Ok(obj)
+      }
+      Err(msg) => {
+        Err(msg)
+      }
+    }
   }
   
   pub fn value(&self) -> String {
@@ -30,80 +59,79 @@ impl Selector {
   }
   
   
-  fn analysis(&self) {
+  fn parse(&self) -> Result<(), String> {
     let charlist = self.origin_txt.tocharlist();
     
     let mut index = 0;
-    let mut token_vec = vec![];
+    let mut token_vec: Vec<SelectParadigm> = vec![];
     let mut templist = vec![];
     
-    let mut prev_token: Option<String> = None;
     let mut current_token: Option<String> = None;
     
     while index < charlist.len() {
       let char = charlist.get(index).unwrap().to_string();
-      let prevchar = charlist.get(index - 1).unwrap_or(&"".to_string()).to_string();
-      if Token::is_token(&char) {
-        // 初始化的时候赋值
-        if prev_token.is_none() {
-          prev_token = Some(char.clone());
-        } else {
-          prev_token = Some(current_token.as_ref().unwrap().clone());
+      let nextchar = charlist.get(index + 1).unwrap_or(&"".to_string()).to_string();
+      let mut include_attr = false;
+      if Token::is_token(&char) && !include_attr {
+        // 处理之前的 缓冲区的值
+        if index > 0 && current_token.is_none() {
+          token_vec.push(SelectParadigm::TokenTag(templist.poly()));
+        } else if current_token.is_some() {
+          if TokenSelect::is(&current_token.as_ref().unwrap()) {
+            token_vec.push(SelectParadigm::TokenSelect(templist.poly()));
+          }
         }
+        templist.clear();
+        // 替换现有的 token
+        current_token = Some(char.clone());
         // skip  空格
-        if Token::is_space_token(&prevchar) && Token::is_space_token(&char) {
+        if Token::is_space_token(&char) && Token::is_space_token(&nextchar) {
           index += 1;
           continue;
         }
-        current_token = Some(char.clone());
-        let ct = current_token.as_ref().unwrap().clone();
-        match TokenSelect::try_from(ct.as_str()) {
-          Ok(token) => {
-            match token {
-              TokenSelect::ClassToken => {}
-              TokenSelect::IdToken => {}
-              TokenSelect::WildCard => {}
-              TokenSelect::AttrBegin => {}
-              TokenSelect::AttrEnd => {}
-            }
-          }
-          Err(_) => {}
-        }
+        // 处理后续值的情况
         
-        match TokenComina::try_from(ct.as_str()) {
-          Ok(token) => {
-            match token {
-              TokenComina::Comma => {}
-              TokenComina::Space => {}
-              TokenComina::NewLineOs => {}
-              TokenComina::NewLineWindos => {}
-              TokenComina::ExtendChar => {}
-              TokenComina::ColumnChar => {}
-              TokenComina::BrotherNextChar => {}
-              TokenComina::BrotherMatchChar => {}
+        if TokenSelect::is(&current_token.as_ref().unwrap()) {
+          templist.push(char.clone());
+          index += 1;
+          continue;
+        } else if TokenCombina::is(&current_token.as_ref().unwrap()) {
+          if &char == "|" {
+            if nextchar == "|" {
+              index += 2;
+              current_token = Some("||".to_string());
+            } else {
+              return Err(r#" "|" is not allow exist!"#.to_string());
             }
+          } else {
+            index += 1;
           }
-          Err(_) => {}
+          token_vec.push(SelectParadigm::TokenComina(current_token.as_ref().unwrap().clone()));
+          continue;
+        } else {
+          token_vec.push(SelectParadigm::TokenOther(current_token.as_ref().unwrap().clone()));
+          index += 1;
+          continue;
         }
-        let temp_word = templist.join("");
-        
-        if !temp_word.is_empty() {
-          token_vec.push(temp_word);
+      } else {
+        templist.push(char.clone());
+      }
+      
+      if index == charlist.len() - 1 {
+        if current_token.is_none() || TokenCombina::is(&current_token.as_ref().unwrap()) {
+          token_vec.push(SelectParadigm::TokenTag(templist.poly()));
+        } else {
+          if TokenSelect::is(&current_token.as_ref().unwrap()) {
+            token_vec.push(SelectParadigm::TokenSelect(templist.poly()));
+          }
         }
         templist.clear();
       }
-      
-      templist.push(char.clone());
       index += 1;
     }
     
-    let temp_word = templist.join("");
-    if !temp_word.is_empty() {
-      token_vec.push(temp_word);
-      templist.clear();
-    }
+    println!("{:#?}", token_vec);
     
-    
-    println!("{}", token_vec.join(","));
+    Ok(())
   }
 }

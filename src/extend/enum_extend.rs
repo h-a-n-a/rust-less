@@ -12,4 +12,20 @@ pub trait EnumExtend {
     }
     list
   }
+  
+  fn is(char: &str) -> bool
+    where
+      Self: IntoEnumIterator,
+      Self: std::fmt::Display
+  {
+    let list = Self::enum_vec();
+    match list.into_iter().find(|x| { *x == char }) {
+      None => {
+        false
+      }
+      Some(_) => {
+        true
+      }
+    }
+  }
 }
