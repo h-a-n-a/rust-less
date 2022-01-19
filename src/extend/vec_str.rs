@@ -16,10 +16,11 @@ impl VecStrExtend for Vec<String> {
       Err("find index is over vec range!".to_string())
     }
   }
-  
+
   fn poly(&self) -> String {
     self.join("")
   }
+
 }
 
 impl VecStrExtend for [String] {
@@ -35,8 +36,9 @@ impl VecStrExtend for [String] {
       Err("find index is over vec range!".to_string())
     }
   }
-  
+
   fn poly(&self) -> String {
     self.join("")
   }
+
 }

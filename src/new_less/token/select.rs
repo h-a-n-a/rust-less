@@ -45,7 +45,7 @@ pub enum TokenCombina {
   #[strum(serialize = ">")]
   ExtendChar,
   
-  #[strum(serialize = "||")]
+  #[strum(serialize = "|")]
   ColumnChar,
   
   #[strum(serialize = "+")]
