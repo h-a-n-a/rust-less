@@ -221,3 +221,22 @@ fn test_clousure() {
   let x = exec();
   println!(".......");
 }
+
+#[test]
+fn test_clousure_loop() {
+  fn call() -> Box<dyn FnMut(Option<String>) -> String> {
+    let mut content = "".to_string();
+    Box::new(move |txt: Option<String>| -> String {
+      content = content.clone() + &txt.unwrap_or("".to_string());
+      content.clone()
+    })
+  }
+  let mut exec = call();
+  let mut i = 0;
+  while i < 5 {
+    exec(Some("a".to_string()));
+    i += 1;
+  }
+  let m: String = exec(None);
+  assert_eq!(&m, "aaaaa");
+}
