@@ -21,6 +21,9 @@ pub enum TokenSelect {
   
   #[strum(serialize = "*")]
   WildCard,
+  
+  #[strum(serialize = ":")]
+  Colon
 }
 
 
@@ -53,6 +56,11 @@ pub enum TokenCombina {
   
   #[strum(serialize = "~")]
   BrotherMatchChar,
+  
+}
+
+pub enum TokenAllow{
+
 }
 
 impl EnumExtend for TokenSelect {}

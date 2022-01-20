@@ -1,4 +1,4 @@
-use std::cell::{Cell, RefCell};
+use std::cell::{RefCell};
 use std::ops::{Deref, DerefMut};
 use std::rc::{Rc, Weak};
 use std::time::Duration;
@@ -218,7 +218,7 @@ fn test_clousure() {
     println!(".......");
     a
   }
-  let x = exec();
+  let _x = exec();
   println!(".......");
 }
 
