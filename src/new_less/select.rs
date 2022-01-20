@@ -1,7 +1,6 @@
 use crate::extend::enum_extend::EnumExtend;
 use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
-use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::select::{TokenCombina, TokenSelect};
 
@@ -58,7 +57,6 @@ impl Selector {
     let charlist = self.origin_txt.tocharlist();
     let mut index = 0;
     let mut temp: String = "".to_string();
-    let mut current_token: Option<String> = None;
     let mut paradigm_vec: Vec<SelectParadigm> = vec![];
     let mut include_attr = false;
 
