@@ -16,8 +16,11 @@ fn test_select_parse() {
     r#"*h1~*textarea"#.to_string(),
     r#".a.b"#.to_string(),
     r#"*.a+*.b"#.to_string(),
-    r#"p::first-line"#.to_string(),
-    r#"selector:pseudo-class"#.to_string(),
+    r#">a"#.to_string(),
+    r#">.b"#.to_string(),
+    r#".b > a"#.to_string(),
+    // r#"p::first-line"#.to_string(),
+    // r#"selector:pseudo-class"#.to_string(),
   ];
   let target = r#"
 .a .b
@@ -31,8 +34,9 @@ h1 ~ img
 *h1 ~ *textarea
 .a.b
 *.a + *.b
-p::firstline
-selector:pseudo-class
+> a
+> .b
+.b > a
   "#;
   let mut base = "".to_string();
   demo_select_list.into_iter().for_each(|tt| {
@@ -49,6 +53,7 @@ fn test_select_error_parse() {
   let demo_select_list = vec![
     r#"."#.to_string(),
     r#"$"#.to_string(),
+    r#".b > > a"#.to_string(),
   ];
   demo_select_list.into_iter().for_each(|tt| {
     match Selector::new(tt) {

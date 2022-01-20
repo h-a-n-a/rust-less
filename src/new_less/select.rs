@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use crate::extend::enum_extend::EnumExtend;
 use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
@@ -11,13 +12,13 @@ use crate::new_less::token::select::{TokenCombina, TokenSelect};
 pub enum SelectParadigm {
   // 选择器
   SelectWrap(String),
-  
+
   // 选择链接器
   CominaWrap(String),
-  
+
   // 其他token
   OtherWrap(String),
-  
+
   // * 通配符号
   NormalWrap(String),
 }
@@ -27,6 +28,7 @@ pub enum SelectParadigm {
 pub struct Selector {
   pub origin_txt: String,
   pub single_select_txt: Vec<String>,
+  charlist: Vec<String>,
 }
 
 impl Selector {
@@ -37,6 +39,7 @@ impl Selector {
     let mut obj = Selector {
       origin_txt: txt.trim().to_string(),
       single_select_txt: vec![],
+      charlist: txt.tocharlist(),
     };
     match obj.parse() {
       Ok(()) => {
@@ -47,11 +50,14 @@ impl Selector {
       }
     }
   }
-  
+
   pub fn value(&self) -> String {
     self.origin_txt.clone()
   }
-  
+
+  ///
+  /// 合并范式内容
+  ///
   pub fn join(paradigm: Vec<SelectParadigm>) -> String {
     let mut base = "".to_string();
     for word_paradigm in paradigm {
@@ -63,15 +69,75 @@ impl Selector {
     }
     base
   }
-  
-  
+
+  ///
+  /// 打印错误信息
+  ///
+  fn errormsg(&mut self, index: &usize) -> Result<(), String> {
+    let char = self.charlist.get(*index).unwrap().clone();
+    Err(format!("select text {}, char {} is not allow,index is {}", self.origin_txt, char, index))
+  }
+
+  ///
+  /// 判断相邻非空格字符串
+  /// 当前索引位置 -> index
+  /// 禁用单词 -> forbidword
+  /// 默认查找方向 -> true | None 向后
+  ///
+  fn check_adjacent_token(&mut self, forbidword: Vec<&str>, index: &usize, forwad: Option<bool>) -> Result<(), String> {
+    let back = forwad.unwrap_or(true);
+    let mut find_num = *index;
+    let to_move = |index: &mut usize| {
+      let start = 0;
+      let end = self.charlist.len() - 1;
+      if back {
+        if *index < end {
+          *index += 1;
+        } else {
+          *index = end;
+        }
+      } else {
+        if *index > start {
+          *index -= 1;
+        } else {
+          *index = start;
+        }
+      }
+    };
+    let mut char;
+    loop {
+      to_move(&mut find_num);
+      char = self.charlist.get(find_num).unwrap().deref();
+      if char != TokenCombina::Space.tostr_value() {
+        break;
+      }
+    }
+    if Token::is_token(char) {
+      // 验证 连接词 不能固定想连
+      let res = forbidword.into_iter().find(|x| x == &char);
+      match res {
+        None => {}
+        Some(_err_char) => {
+          return self.errormsg(&find_num);
+        }
+      }
+    }
+    Ok(())
+  }
+
+
+  ///
+  /// 解析 字符串
+  /// 验证有效性
+  /// 根据 逗号 划分规则
+  ///
   fn parse(&mut self) -> Result<(), String> {
-    let charlist = self.origin_txt.tocharlist();
+    let charlist = self.charlist.clone();
     let mut index = 0;
     let mut temp: String = "".to_string();
     let mut paradigm_vec: Vec<SelectParadigm> = vec![];
     let mut include_attr = false;
-    
+
     // 循环解析
     while index < charlist.len() {
       let prevchar = if index == 0 {
@@ -85,7 +151,7 @@ impl Selector {
       } else {
         charlist.get(index + 1).unwrap().to_string()
       };
-      
+
       // 跳过空格
       if Token::is_space_token(&char) && Token::is_space_token(&nextchar) {
         index += 1;
@@ -99,32 +165,11 @@ impl Selector {
           continue;
         }
       }
-      
-      // 报错信息
-      let errormsg = |char: &str, index: &usize| -> Result<(), String> {
-        Err(format!("select text {}, char {} is not allow,index is {}", self.origin_txt, char, index))
-      };
-      
-      // 检查相邻 token
-      let check_adjacent_token = |forbidword: Vec<&str>, char: &str, index: &usize| -> Result<(), String> {
-        if Token::is_token(char) {
-          // 验证 连接词 不能固定想连
-          let res = forbidword.into_iter().find(|x| x == &char);
-          match res {
-            None => {}
-            Some(_err_char) => {
-              return errormsg(char, index);
-            }
-          }
-        }
-        Ok(())
-      };
-      
-      
+
       if index == 0 {
         if Token::is_token(&char) {
           if charlist.len() == 1 && char != TokenSelect::WildCard.tostr_value() {
-            return errormsg(&char, &index);
+            return self.errormsg(&index);
           }
           // 第一个词 是符号
           if TokenSelect::is(&char) {
@@ -134,13 +179,13 @@ impl Selector {
                 temp += &char.clone();
                 // 起始符 后续不能接 任意 词根符 类似 "#>" ".*"
                 if Token::is_token(&nextchar) {
-                  return errormsg(&nextchar, &(index + 1));
+                  return self.errormsg(&(index + 1));
                 }
               }
               TokenSelect::Colon => {
                 temp += &char.clone();
                 if nextchar != TokenSelect::Colon.tostr_value() && Token::is_token(&nextchar) {
-                  return errormsg(&nextchar, &(index + 1));
+                  return self.errormsg(&(index + 1));
                 }
               }
               TokenSelect::AttrBegin => {
@@ -148,11 +193,11 @@ impl Selector {
                 temp += &char.clone();
                 // 起始符 后续不能接 任意 词根符 类似 "#>" ".*"
                 if Token::is_token(&nextchar) {
-                  return errormsg(&nextchar, &(index + 1));
+                  return self.errormsg(&(index + 1));
                 }
               }
               TokenSelect::AttrEnd => {
-                return errormsg(&char, &index);
+                return self.errormsg(&index);
               }
               TokenSelect::WildCard => {
                 paradigm_vec.push(SelectParadigm::NormalWrap("*".to_string()));
@@ -162,7 +207,7 @@ impl Selector {
             // 第一个词 是 链接符号 不考虑空格
             match TokenCombina::try_from(char.clone().as_str()).unwrap() {
               TokenCombina::Comma => {
-                return errormsg(&char, &index);
+                return self.errormsg(&index);
               }
               TokenCombina::ExtendChar => {
                 paradigm_vec.push(SelectParadigm::CominaWrap(TokenCombina::ExtendChar.tostr_value()));
@@ -180,6 +225,12 @@ impl Selector {
                 if !Token::is_space_token(&nextchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(TokenCombina::Space.tostr_value()));
                 }
+                match self.check_adjacent_token(vec!["\n", "\r", "]", ",", "~", "+", "|", "~", ">", "'", r#"""#], &index, None) {
+                  Ok(_) => {}
+                  Err(msg) => {
+                    return Err(msg);
+                  }
+                }
               }
               TokenCombina::BrotherMatchChar => {
                 paradigm_vec.push(SelectParadigm::CominaWrap(TokenCombina::BrotherMatchChar.tostr_value()));
@@ -187,17 +238,17 @@ impl Selector {
                 if !Token::is_space_token(&nextchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(TokenCombina::Space.tostr_value()));
                 }
+                match self.check_adjacent_token(vec!["\n", "\r", "]", ",", "~", "+", "|", "~", ">", "'", r#"""#], &index, None) {
+                  Ok(_) => {}
+                  Err(msg) => {
+                    return Err(msg);
+                  }
+                }
               }
               _ => {}
             }
-            match check_adjacent_token(vec!["\n", "\r", "]", ",", "~", "+", "|", "~", ">", "'", r#"""#], &nextchar, &(index + 1)) {
-              Ok(_) => {}
-              Err(msg) => {
-                return Err(msg);
-              }
-            }
           } else {
-            return errormsg(&char, &index);
+            return self.errormsg(&index);
           }
         } else {
           // 第一个词 非符号
@@ -230,23 +281,23 @@ impl Selector {
                 temp += &char.clone();
                 // 起始符 后续不能接 任意 词根符 类似 "#>" ".*"
                 if Token::is_token(&nextchar) {
-                  return errormsg(&nextchar, &(index + 1));
+                  return self.errormsg(&(index + 1));
                 }
               }
               TokenSelect::Colon => {
                 temp += &char.clone();
                 if nextchar != TokenSelect::Colon.tostr_value() && Token::is_token(&nextchar) {
-                  return errormsg(&nextchar, &(index + 1));
+                  return self.errormsg(&(index + 1));
                 }
               }
               TokenSelect::AttrBegin => {
                 if include_attr {
-                  return errormsg(&char, &index);
+                  return self.errormsg(&index);
                 }
               }
               TokenSelect::AttrEnd => {
                 if !include_attr {
-                  return errormsg(&char, &index);
+                  return self.errormsg(&index);
                 }
               }
               TokenSelect::WildCard => {
@@ -277,6 +328,12 @@ impl Selector {
                 if !Token::is_space_token(&nextchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(TokenCombina::Space.tostr_value()));
                 }
+                match self.check_adjacent_token(vec!["\n", "\r", "]", ",", "~", "+", "|", "~", ">", "'", r#"""#], &index, None) {
+                  Ok(_) => {}
+                  Err(msg) => {
+                    return Err(msg);
+                  }
+                }
               }
               TokenCombina::ColumnChar => {}
               TokenCombina::BrotherNextChar => {
@@ -287,6 +344,12 @@ impl Selector {
                 if !Token::is_space_token(&nextchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(TokenCombina::Space.tostr_value()));
                 }
+                match self.check_adjacent_token(vec!["\n", "\r", "]", ",", "~", "+", "|", "~", ">", "'", r#"""#], &index, None) {
+                  Ok(_) => {}
+                  Err(msg) => {
+                    return Err(msg);
+                  }
+                }
               }
               TokenCombina::BrotherMatchChar => {
                 if !Token::is_space_token(&prevchar) {
@@ -296,29 +359,23 @@ impl Selector {
                 if !Token::is_space_token(&nextchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(TokenCombina::Space.tostr_value()));
                 }
-              }
-            }
-            if Token::is_token(&nextchar) {
-              // 验证 连接词 不能固定想连
-              let error_token = vec!["\n", "\r", "]", ",", "~", "+", "|", "~", ":", ">", "'", r#"""#];
-              let res = error_token.into_iter().find(|x| *x == &nextchar);
-              match res {
-                None => {}
-                Some(_err_char) => {
-                  return errormsg(&nextchar, &(index + 1));
+                match self.check_adjacent_token(vec!["\n", "\r", "]", ",", "~", "+", "|", "~", ">", "'", r#"""#], &index, None) {
+                  Ok(_) => {}
+                  Err(msg) => {
+                    return Err(msg);
+                  }
                 }
               }
             }
           } else {
             // 其他非关键词根 []
-            
           }
         }
       }
       index += 1;
     }
     // println!("{:#?}", paradigm_vec);
-    
+
     Ok(())
   }
 }
