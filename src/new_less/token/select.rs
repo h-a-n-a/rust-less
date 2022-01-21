@@ -23,7 +23,7 @@ pub enum TokenSelect {
   WildCard,
   
   #[strum(serialize = ":")]
-  Colon
+  Colon,
 }
 
 
@@ -32,7 +32,6 @@ pub enum TokenSelect {
 ///
 #[derive(EnumString, Display, Debug, EnumIter, PartialEq)]
 pub enum TokenCombina {
-  
   #[strum(serialize = ",")]
   Comma,
   
@@ -59,17 +58,32 @@ pub enum TokenCombina {
   
 }
 
-pub enum TokenAllow{
-
+///
+/// Select 允许的 安全字符符
+///
+#[derive(EnumString, Display, Debug, EnumIter, PartialEq)]
+pub enum TokenAllow {
+  #[strum(serialize = r"\")]
+  LeftSlant,
+  
+  #[strum(serialize = "_")]
+  Underscore,
+  
+  #[strum(serialize = "-")]
+  Dash,
 }
 
 impl EnumExtend for TokenSelect {}
 
 impl EnumExtend for TokenCombina {}
 
+impl EnumExtend for TokenAllow {}
+
 impl StringInto for TokenSelect {}
 
 impl StringInto for TokenCombina {}
+
+impl StringInto for TokenAllow {}
 
 pub trait SelectTokenParse {
   fn token_selector_forbidden() -> Vec<String>;

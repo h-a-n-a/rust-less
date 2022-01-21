@@ -3,7 +3,7 @@ use crate::extend::enum_extend::EnumExtend;
 use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
 use crate::new_less::token::lib::Token;
-use crate::new_less::token::select::{TokenCombina, TokenSelect};
+use crate::new_less::token::select::{TokenAllow, TokenCombina, TokenSelect};
 
 ///
 /// 选择器范式
@@ -12,13 +12,13 @@ use crate::new_less::token::select::{TokenCombina, TokenSelect};
 pub enum SelectParadigm {
   // 选择器
   SelectWrap(String),
-
+  
   // 选择链接器
   CominaWrap(String),
-
+  
   // 其他token
   OtherWrap(String),
-
+  
   // * 通配符号
   NormalWrap(String),
 }
@@ -50,11 +50,11 @@ impl Selector {
       }
     }
   }
-
+  
   pub fn value(&self) -> String {
     self.origin_txt.clone()
   }
-
+  
   ///
   /// 合并范式内容
   ///
@@ -69,7 +69,7 @@ impl Selector {
     }
     base
   }
-
+  
   ///
   /// 打印错误信息
   ///
@@ -77,7 +77,7 @@ impl Selector {
     let char = self.charlist.get(*index).unwrap().clone();
     Err(format!("select text {}, char {} is not allow,index is {}", self.origin_txt, char, index))
   }
-
+  
   ///
   /// 判断相邻非空格字符串
   /// 当前索引位置 -> index
@@ -124,8 +124,8 @@ impl Selector {
     }
     Ok(())
   }
-
-
+  
+  
   ///
   /// 解析 字符串
   /// 验证有效性
@@ -137,7 +137,7 @@ impl Selector {
     let mut temp: String = "".to_string();
     let mut paradigm_vec: Vec<SelectParadigm> = vec![];
     let mut include_attr = false;
-
+    
     // 循环解析
     while index < charlist.len() {
       let prevchar = if index == 0 {
@@ -151,7 +151,7 @@ impl Selector {
       } else {
         charlist.get(index + 1).unwrap().to_string()
       };
-
+      
       // 跳过空格
       if Token::is_space_token(&char) && Token::is_space_token(&nextchar) {
         index += 1;
@@ -165,7 +165,7 @@ impl Selector {
           continue;
         }
       }
-
+      
       if index == 0 {
         if Token::is_token(&char) {
           if charlist.len() == 1 && char != TokenSelect::WildCard.tostr_value() {
@@ -178,7 +178,7 @@ impl Selector {
               TokenSelect::ClassToken | TokenSelect::IdToken => {
                 temp += &char.clone();
                 // 起始符 后续不能接 任意 词根符 类似 "#>" ".*"
-                if Token::is_token(&nextchar) {
+                if Token::is_token(&nextchar) && !TokenAllow::is(&nextchar) {
                   return self.errormsg(&(index + 1));
                 }
               }
@@ -248,7 +248,13 @@ impl Selector {
               _ => {}
             }
           } else {
-            return self.errormsg(&index);
+            if !TokenAllow::is(&char) {
+              // 非安全词 直接报错 排除了 括号 和 中括号 中 被引号处理的情况
+              return self.errormsg(&index);
+            } else {
+              // 安全词 可以考虑按照 普通字符一样处理
+              temp += &char.clone();
+            }
           }
         } else {
           // 第一个词 非符号
@@ -256,7 +262,15 @@ impl Selector {
         }
       } else if index == charlist.len() - 1 {
         // 结尾处理
-        if Token::is_token(&char) {} else {
+        if Token::is_token(&char) {
+          // 处理字符
+          if TokenSelect::is(&char) && char != TokenSelect::WildCard.tostr_value() {
+            return self.errormsg(&index);
+          } else if TokenCombina::is(&char) {
+            // match TokenCombina::try_from(char)
+          }
+        } else {
+          // 处理非字符
           if !temp.is_empty() {
             paradigm_vec.push(SelectParadigm::SelectWrap(temp.clone()));
             temp = "".to_string();
@@ -280,7 +294,7 @@ impl Selector {
               TokenSelect::ClassToken | TokenSelect::IdToken => {
                 temp += &char.clone();
                 // 起始符 后续不能接 任意 词根符 类似 "#>" ".*"
-                if Token::is_token(&nextchar) {
+                if Token::is_token(&nextchar) && !TokenAllow::is(&nextchar) {
                   return self.errormsg(&(index + 1));
                 }
               }
@@ -368,14 +382,21 @@ impl Selector {
               }
             }
           } else {
-            // 其他非关键词根 []
+            // 其他非关键词根 过程处理
+            if !TokenAllow::is(&char) {
+              // 非安全词 直接报错 排除了 括号 和 中括号 中 被引号处理的情况
+              return self.errormsg(&index);
+            } else {
+              // 安全词 可以考虑按照 普通字符一样处理
+              temp += &char.clone();
+            }
           }
         }
       }
       index += 1;
     }
     // println!("{:#?}", paradigm_vec);
-
+    
     Ok(())
   }
 }

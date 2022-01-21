@@ -19,8 +19,11 @@ fn test_select_parse() {
     r#">a"#.to_string(),
     r#">.b"#.to_string(),
     r#".b > a"#.to_string(),
-    // r#"p::first-line"#.to_string(),
-    // r#"selector:pseudo-class"#.to_string(),
+    r#"p::first-line"#.to_string(),
+    r#"selector:pseudo-class"#.to_string(),
+    r#"\.a\\.b"#.to_string(),
+    r#".a>.b,.c .d"#.to_string(),
+    r#".\a>._b,.-c .d"#.to_string(),
   ];
   let target = r#"
 .a .b
@@ -37,12 +40,23 @@ h1 ~ img
 > a
 > .b
 .b > a
+p::first-line
+selector:pseudo-class
+\.a\\.b
+.a > .b -> .c .d
+.\a > ._b -> .-c .d
   "#;
   let mut base = "".to_string();
   demo_select_list.into_iter().for_each(|tt| {
     let ss = Selector::new(tt).unwrap();
-    println!("{:?}", ss.single_select_txt.poly());
-    base += &ss.single_select_txt.poly();
+    let value;
+    if ss.single_select_txt.len() < 2 {
+      value = ss.single_select_txt.poly();
+    } else {
+      value = ss.single_select_txt.join(" -> ");
+    }
+    base += &value;
+    println!("{:?}", value);
   });
   assert_eq!(base.simple_compare(), target.to_string().simple_compare());
 }
