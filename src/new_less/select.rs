@@ -267,16 +267,22 @@ impl Selector {
           if TokenSelect::is(&char) && char != TokenSelect::WildCard.tostr_value() {
             return self.errormsg(&index);
           } else if TokenCombina::is(&char) {
-             match TokenCombina::try_from(char.as_str()).unwrap(){
-               TokenCombina::Comma => {}
-               TokenCombina::NewLineOs => {}
-               TokenCombina::NewLineWindos => {}
-               TokenCombina::ExtendChar => {}
-               TokenCombina::ColumnChar => {}
-               TokenCombina::BrotherNextChar => {}
-               TokenCombina::BrotherMatchChar => {}
-               _ => {}
-             }
+            match TokenCombina::try_from(char.as_str()).unwrap() {
+              TokenCombina::ColumnChar => {
+                return self.errormsg(&index);
+              }
+              _ => {
+                // 自动忽略字符
+              }
+            }
+          } else if TokenAllow::is(&char) {
+            if char != TokenAllow::LeftSlant.tostr_value() {
+              paradigm_vec.push(SelectParadigm::OtherWrap(char.clone()));
+            } else {
+              return self.errormsg(&index);
+            }
+          } else {
+            return self.errormsg(&index);
           }
         } else {
           // 处理非字符
@@ -404,8 +410,6 @@ impl Selector {
       }
       index += 1;
     }
-    // println!("{:#?}", paradigm_vec);
-    
     Ok(())
   }
 }
