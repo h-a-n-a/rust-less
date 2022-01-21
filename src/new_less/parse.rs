@@ -4,19 +4,18 @@ use std::rc::{Rc, Weak};
 use crate::extend::string::StringExtend;
 use crate::new_less::comment::Comment;
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{StyleNode, StyleNodeJson};
+use crate::new_less::node::{SelectorNode, StyleNode, StyleNodeJson};
 use crate::new_less::option::ParseOption;
 use crate::new_less::rule::Rule;
 use crate::new_less::var::Var;
 use serde::{Serialize};
-use crate::new_less::select::Selector;
 
 #[derive(Debug, Clone)]
 pub struct RuleNode {
   // 节点内容
   pub content: String,
   // 选择器 文字
-  pub selector: Selector,
+  pub selector: SelectorNode,
   // 根据 原始内容 -> 转化的 字符数组
   pub origin_charlist: Vec<String>,
   // 节点坐标
@@ -70,7 +69,7 @@ impl RuleNode {
       block_node,
     }
   }
-  
+
   ///
   /// 构造方法
   ///
@@ -80,7 +79,7 @@ impl RuleNode {
     if option.sourcemap {
       locmap = Some(LocMap::new(content.to_string()));
     }
-    let selector = match Selector::new(selector_txt) {
+    let selector = match SelectorNode::new(selector_txt) {
       Ok(result) => {
         result
       }
@@ -108,7 +107,7 @@ impl RuleNode {
       }
     }
   }
-  
+
   pub fn parse(mut self) -> Result<Rc<RefCell<RuleNode>>, String> {
     match self.parse_comment() {
       Ok(blocks) => {

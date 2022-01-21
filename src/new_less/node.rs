@@ -4,6 +4,8 @@ use crate::new_less::comment::CommentNode;
 use crate::new_less::parse::{RuleNode, RuleNodeJson};
 use crate::new_less::var::VarNode;
 use serde::{Serialize};
+use crate::new_less::media::MediaQuery;
+use crate::new_less::select::Selector;
 
 #[derive(Debug, Clone)]
 pub enum StyleNode {
@@ -20,3 +22,44 @@ pub enum StyleNodeJson {
   Rule(RuleNodeJson),
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub enum SelectorNode {
+  Select(Selector),
+  Media(MediaQuery),
+}
+
+///
+/// 创建 选择器 混合节点
+///
+impl SelectorNode {
+  ///
+  /// 初始化方法
+  ///
+  pub fn new(txt: String) -> Result<Self, String> {
+    let mut msg: String = "".to_string();
+    match MediaQuery::new(txt.clone()) {
+      Ok(obj) => {
+        return Ok(SelectorNode::Media(obj));
+      }
+      Err(media_msg) => {
+        msg += format!("try parse media query is failed,\n reason is {} \n", media_msg).as_str();
+      }
+    };
+    match Selector::new(txt) {
+      Ok(obj) => {
+        return Ok(SelectorNode::Select(obj));
+      }
+      Err(select_msg) => {
+        msg += format!("try parse select node is failed,\n reason is {} \n", select_msg).as_str();
+      }
+    };
+    Err(msg)
+  }
+
+  pub fn value(&self) -> String {
+    match self {
+      SelectorNode::Select(obj) => { obj.value() }
+      SelectorNode::Media(obj) => { obj.value() }
+    }
+  }
+}

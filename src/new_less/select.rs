@@ -3,6 +3,7 @@ use crate::extend::enum_extend::EnumExtend;
 use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
 use crate::new_less::token::lib::Token;
+use serde::{Serialize};
 use crate::new_less::token::select::{TokenAllow, TokenCombina, TokenSelect};
 
 ///
@@ -24,7 +25,7 @@ pub enum SelectParadigm {
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Selector {
   pub origin_txt: String,
   pub single_select_txt: Vec<String>,
@@ -35,7 +36,7 @@ impl Selector {
   ///
   /// 初始化方法
   ///
-  pub fn new(txt: String) -> Result<Selector, String> {
+  pub fn new(txt: String) -> Result<Self, String> {
     let mut obj = Selector {
       origin_txt: txt.trim().to_string(),
       single_select_txt: vec![],
