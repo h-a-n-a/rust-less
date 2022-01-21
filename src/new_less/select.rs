@@ -4,7 +4,7 @@ use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
 use crate::new_less::token::lib::Token;
 use serde::{Serialize};
-use crate::new_less::token::select::{TokenAllow, TokenCombina, TokenSelect};
+use crate::new_less::token::select::{TokenAllow, TokenCombina, TokenKeyWord, TokenSelect};
 
 ///
 /// 选择器范式
@@ -139,6 +139,7 @@ impl Selector {
     let mut temp: String = "".to_string();
     let mut paradigm_vec: Vec<SelectParadigm> = vec![];
     let mut include_attr = false;
+    let mut has_ref_token = false;
 
     // 循环解析
     while index < charlist.len() {
@@ -174,7 +175,11 @@ impl Selector {
             return self.errormsg(&index);
           }
           // 第一个词 是符号
-          if TokenSelect::is(&char) {
+          if TokenKeyWord::is(&char) {
+            // 第一个词 是 &
+            paradigm_vec.push(SelectParadigm::OtherWrap("$(&)".to_string()));
+            has_ref_token = true;
+          } else if TokenSelect::is(&char) {
             // 第一个词 是 选择符号
             match TokenSelect::try_from(char.clone().as_str()).unwrap() {
               TokenSelect::ClassToken | TokenSelect::IdToken => {
@@ -216,6 +221,12 @@ impl Selector {
                 if !Token::is_space_token(&nextchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(TokenCombina::Space.tostr_value()));
                 }
+                match self.check_adjacent_token(vec!["\n", "\r", "]", "&", "~", "+", "|", "~", ">", "'", r#"""#], &index, None) {
+                  Ok(_) => {}
+                  Err(msg) => {
+                    return Err(msg);
+                  }
+                }
               }
               TokenCombina::ColumnChar => {
                 index += 1;
@@ -227,7 +238,7 @@ impl Selector {
                 if !Token::is_space_token(&nextchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(TokenCombina::Space.tostr_value()));
                 }
-                match self.check_adjacent_token(vec!["\n", "\r", "]", ",", "~", "+", "|", "~", ">", "'", r#"""#], &index, None) {
+                match self.check_adjacent_token(vec!["\n", "\r", "]", "&", "~", "+", "|", "~", ">", "'", r#"""#], &index, None) {
                   Ok(_) => {}
                   Err(msg) => {
                     return Err(msg);
@@ -240,7 +251,7 @@ impl Selector {
                 if !Token::is_space_token(&nextchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(TokenCombina::Space.tostr_value()));
                 }
-                match self.check_adjacent_token(vec!["\n", "\r", "]", ",", "~", "+", "|", "~", ">", "'", r#"""#], &index, None) {
+                match self.check_adjacent_token(vec!["\n", "\r", "]", "&", "~", "+", "|", "~", ">", "'", r#"""#], &index, None) {
                   Ok(_) => {}
                   Err(msg) => {
                     return Err(msg);
@@ -264,7 +275,15 @@ impl Selector {
         // 结尾处理
         if Token::is_token(&char) {
           // 处理字符
-          if TokenSelect::is(&char) && char != TokenSelect::WildCard.tostr_value() {
+          if TokenKeyWord::is(&char) {
+            // 第一个词 是 &
+            if !has_ref_token {
+              if !Token::is_space_token(&prevchar) {
+                paradigm_vec.push(SelectParadigm::CominaWrap(TokenCombina::Space.tostr_value()));
+              }
+              paradigm_vec.push(SelectParadigm::OtherWrap("$(&)".to_string()));
+            }
+          } else if TokenSelect::is(&char) && char != TokenSelect::WildCard.tostr_value() {
             return self.errormsg(&index);
           } else if TokenCombina::is(&char) {
             match TokenCombina::try_from(char.as_str()).unwrap() {
@@ -307,7 +326,15 @@ impl Selector {
             paradigm_vec.push(SelectParadigm::SelectWrap(temp.clone()));
             temp = "".to_string();
           }
-          if TokenSelect::is(&char) {
+          if TokenKeyWord::is(&char) {
+            if !has_ref_token {
+              if !Token::is_space_token(&prevchar) {
+                paradigm_vec.push(SelectParadigm::CominaWrap(TokenCombina::Space.tostr_value()));
+              }
+              paradigm_vec.push(SelectParadigm::OtherWrap("$(&)".to_string()));
+              has_ref_token = true;
+            }
+          } else if TokenSelect::is(&char) {
             // 词 是 选择符号
             match TokenSelect::try_from(char.clone().as_str()).unwrap() {
               TokenSelect::ClassToken | TokenSelect::IdToken => {
@@ -342,6 +369,7 @@ impl Selector {
               TokenCombina::Comma => {
                 let single_select_txt = Self::join(paradigm_vec.clone());
                 self.single_select_txt.push(single_select_txt);
+                has_ref_token = false;
                 paradigm_vec = vec![];
               }
               TokenCombina::Space | TokenCombina::NewLineOs | TokenCombina::NewLineWindos => {
@@ -361,7 +389,7 @@ impl Selector {
                 if !Token::is_space_token(&nextchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(TokenCombina::Space.tostr_value()));
                 }
-                match self.check_adjacent_token(vec!["\n", "\r", "]", ",", "~", "+", "|", "~", ">", "'", r#"""#], &index, None) {
+                match self.check_adjacent_token(vec!["\n", "\r", "]", "&", "~", "+", "|", "~", ">", "'", r#"""#], &index, None) {
                   Ok(_) => {}
                   Err(msg) => {
                     return Err(msg);
@@ -377,7 +405,7 @@ impl Selector {
                 if !Token::is_space_token(&nextchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(TokenCombina::Space.tostr_value()));
                 }
-                match self.check_adjacent_token(vec!["\n", "\r", "]", ",", "~", "+", "|", "~", ">", "'", r#"""#], &index, None) {
+                match self.check_adjacent_token(vec!["\n", "\r", "]", "&", "~", "+", "|", "~", ">", "'", r#"""#], &index, None) {
                   Ok(_) => {}
                   Err(msg) => {
                     return Err(msg);
@@ -392,7 +420,7 @@ impl Selector {
                 if !Token::is_space_token(&nextchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(TokenCombina::Space.tostr_value()));
                 }
-                match self.check_adjacent_token(vec!["\n", "\r", "]", ",", "~", "+", "|", "~", ">", "'", r#"""#], &index, None) {
+                match self.check_adjacent_token(vec!["\n", "\r", "]", "&", "~", "+", "|", "~", ">", "'", r#"""#], &index, None) {
                   Ok(_) => {}
                   Err(msg) => {
                     return Err(msg);

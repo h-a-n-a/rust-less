@@ -72,15 +72,29 @@ pub enum TokenAllow {
   Dash,
 }
 
+///
+/// & 表示当前选择器的父级
+/// & -> $(&) -> 用于后期替换父元素
+///
+#[derive(EnumString, Display, Debug, EnumIter, PartialEq)]
+pub enum TokenKeyWord{
+  #[strum(serialize = "&")]
+  PranedRefer
+}
+
 impl EnumExtend for TokenSelect {}
 
 impl EnumExtend for TokenCombina {}
 
 impl EnumExtend for TokenAllow {}
 
+impl EnumExtend for TokenKeyWord {}
+
 impl StringInto for TokenSelect {}
 
 impl StringInto for TokenCombina {}
 
 impl StringInto for TokenAllow {}
+
+impl StringInto for TokenKeyWord {}
 
