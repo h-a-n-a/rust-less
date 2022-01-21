@@ -267,7 +267,16 @@ impl Selector {
           if TokenSelect::is(&char) && char != TokenSelect::WildCard.tostr_value() {
             return self.errormsg(&index);
           } else if TokenCombina::is(&char) {
-            // match TokenCombina::try_from(char)
+             match TokenCombina::try_from(char.as_str()).unwrap(){
+               TokenCombina::Comma => {}
+               TokenCombina::NewLineOs => {}
+               TokenCombina::NewLineWindos => {}
+               TokenCombina::ExtendChar => {}
+               TokenCombina::ColumnChar => {}
+               TokenCombina::BrotherNextChar => {}
+               TokenCombina::BrotherMatchChar => {}
+               _ => {}
+             }
           }
         } else {
           // 处理非字符
