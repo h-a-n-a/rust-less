@@ -12,13 +12,13 @@ use crate::new_less::token::select::{TokenAllow, TokenCombina, TokenSelect};
 pub enum SelectParadigm {
   // 选择器
   SelectWrap(String),
-  
+
   // 选择链接器
   CominaWrap(String),
-  
+
   // 其他token
   OtherWrap(String),
-  
+
   // * 通配符号
   NormalWrap(String),
 }
@@ -50,11 +50,11 @@ impl Selector {
       }
     }
   }
-  
+
   pub fn value(&self) -> String {
     self.origin_txt.clone()
   }
-  
+
   ///
   /// 合并范式内容
   ///
@@ -69,7 +69,7 @@ impl Selector {
     }
     base
   }
-  
+
   ///
   /// 打印错误信息
   ///
@@ -77,7 +77,7 @@ impl Selector {
     let char = self.charlist.get(*index).unwrap().clone();
     Err(format!("select text {}, char {} is not allow,index is {}", self.origin_txt, char, index))
   }
-  
+
   ///
   /// 判断相邻非空格字符串
   /// 当前索引位置 -> index
@@ -96,7 +96,8 @@ impl Selector {
         } else {
           *index = end;
         }
-      } else {
+      }
+      if !back {
         if *index > start {
           *index -= 1;
         } else {
@@ -124,8 +125,8 @@ impl Selector {
     }
     Ok(())
   }
-  
-  
+
+
   ///
   /// 解析 字符串
   /// 验证有效性
@@ -137,7 +138,7 @@ impl Selector {
     let mut temp: String = "".to_string();
     let mut paradigm_vec: Vec<SelectParadigm> = vec![];
     let mut include_attr = false;
-    
+
     // 循环解析
     while index < charlist.len() {
       let prevchar = if index == 0 {
@@ -151,7 +152,7 @@ impl Selector {
       } else {
         charlist.get(index + 1).unwrap().to_string()
       };
-      
+
       // 跳过空格
       if Token::is_space_token(&char) && Token::is_space_token(&nextchar) {
         index += 1;
@@ -165,7 +166,7 @@ impl Selector {
           continue;
         }
       }
-      
+
       if index == 0 {
         if Token::is_token(&char) {
           if charlist.len() == 1 && char != TokenSelect::WildCard.tostr_value() {
@@ -247,14 +248,12 @@ impl Selector {
               }
               _ => {}
             }
+          } else if TokenAllow::is(&char) {
+            // 安全词 可以考虑按照 普通字符一样处理
+            temp += &char.clone();
           } else {
-            if !TokenAllow::is(&char) {
-              // 非安全词 直接报错 排除了 括号 和 中括号 中 被引号处理的情况
-              return self.errormsg(&index);
-            } else {
-              // 安全词 可以考虑按照 普通字符一样处理
-              temp += &char.clone();
-            }
+            // 非安全词 直接报错 排除了 括号 和 中括号 中 被引号处理的情况
+            return self.errormsg(&index);
           }
         } else {
           // 第一个词 非符号

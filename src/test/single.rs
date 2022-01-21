@@ -208,10 +208,10 @@ fn test_clousure() {
     let (a, change) = create_hooks_str(Some("aaaa".to_string()));
     let c = a.upgrade().unwrap().deref().borrow().deref().value.clone();
     println!("{:?}", c);
-    change("123");
+    change("123".to_string());
     let b = a.upgrade().unwrap().deref().borrow().deref().value.clone();
     println!("{:?}", b);
-    change("456");
+    change("456".to_string());
     let x = a.upgrade().unwrap().deref().borrow().deref().value.clone();
     println!("{:?}", x);
     println!("{}", Rc::strong_count(&a.upgrade().unwrap()));
