@@ -273,6 +273,10 @@ impl Selector {
               }
               _ => {
                 // 自动忽略字符
+                if !temp.is_empty() {
+                  paradigm_vec.push(SelectParadigm::SelectWrap(temp.clone()));
+                  temp = "".to_string();
+                }
               }
             }
           } else if TokenAllow::is(&char) {
