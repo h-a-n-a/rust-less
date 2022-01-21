@@ -8,10 +8,3 @@ fn test_enum_to_vec() {
   let list = TokenSelect::enum_vec();
   assert_eq!(list.poly(), ".#[]*");
 }
-
-#[test]
-fn test_token_select_forbidden() {
-  let list = Token::token_selector_forbidden();
-  println!("{:#?}", list);
-  println!(".....")
-}
