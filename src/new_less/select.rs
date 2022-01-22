@@ -131,7 +131,7 @@ impl Selector {
   /// 单独转化 attr 属性判断
   ///
   fn parse_attr(&mut self, start: &usize) -> Result<(SelectParadigm, usize), String> {
-    let charlist = self.charlist.clone();
+    let charlist = &self.charlist;
     let mut index = *start + 1;
     let mut temp: String = "[".to_string();
     // 是否完结
@@ -220,6 +220,39 @@ impl Selector {
     Ok((obj, index))
   }
 
+  ///
+  /// 转小括号
+  ///
+  fn parse_brackets(&mut self, start: &usize) -> Result<(SelectParadigm, usize), String> {
+    let charlist = &self.charlist;
+    let mut index = *start + 1;
+    let mut temp: String = "(".to_string();
+    let mut hasend = false;
+
+    while index < charlist.len() {
+      let char = charlist.get(index).unwrap().to_string();
+      if Token::is_token(&char) {
+        if &char == "@" {
+          return Err(self.errormsg(&index).err().unwrap());
+        } else {
+          temp += &char;
+          if char == TokenSelect::RightBrackets.tostr_value() {
+            hasend = true;
+            break;
+          }
+        }
+      } else {
+        temp += &char
+      }
+      index += 1;
+    }
+    if !hasend {
+      return Err(format!("select text {}, not found ')'", self.origin_txt));
+    }
+    let obj = SelectParadigm::SelectWrap(temp);
+    Ok((obj, index))
+  }
+
 
   ///
   /// 解析 字符串
@@ -301,6 +334,22 @@ impl Selector {
                 continue;
               }
               TokenSelect::AttrEnd => {
+                return self.errormsg(&index);
+              }
+              TokenSelect::LeftBrackets => {
+                let (paradigm, jumpindex) = match self.parse_brackets(&index) {
+                  Ok(res) => {
+                    res
+                  }
+                  Err(msg) => {
+                    return Err(msg);
+                  }
+                };
+                paradigm_vec.push(paradigm);
+                index = jumpindex + 1;
+                continue;
+              }
+              TokenSelect::RightBrackets => {
                 return self.errormsg(&index);
               }
               TokenSelect::WildCard => {
@@ -461,6 +510,22 @@ impl Selector {
                 continue;
               }
               TokenSelect::AttrEnd => {
+                return self.errormsg(&index);
+              }
+              TokenSelect::LeftBrackets => {
+                let (paradigm, jumpindex) = match self.parse_brackets(&index) {
+                  Ok(res) => {
+                    res
+                  }
+                  Err(msg) => {
+                    return Err(msg);
+                  }
+                };
+                paradigm_vec.push(paradigm);
+                index = jumpindex + 1;
+                continue;
+              }
+              TokenSelect::RightBrackets => {
                 return self.errormsg(&index);
               }
               TokenSelect::WildCard => {

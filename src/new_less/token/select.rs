@@ -17,6 +17,12 @@ pub enum TokenSelect {
   
   #[strum(serialize = "]")]
   AttrEnd,
+
+  #[strum(serialize = "(")]
+  LeftBrackets,
+
+  #[strum(serialize = ")")]
+  RightBrackets,
   
   #[strum(serialize = "*")]
   WildCard,
