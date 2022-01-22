@@ -27,6 +27,8 @@ fn test_select_parse() {
     r#".a>"#.to_string(),
     r#".a~"#.to_string(),
     r#".a&c"#.to_string(),
+    r#".a[id="xyz"]>.c"#.to_string(),
+    r#".a[id*="xyz"]>.c"#.to_string(),
   ];
   let target = r#"
 .a .b
@@ -51,6 +53,8 @@ selector:pseudo-class
 .a
 .a
 .a $(&)c
+.a[id="xyz"] > .c
+.a[id*="xyz"] > .c
   "#;
   let mut base = "".to_string();
   demo_select_list.into_iter().for_each(|tt| {
@@ -79,6 +83,10 @@ fn test_select_error_parse() {
     r#".b.c!"#.to_string(),
     r#">&c"#.to_string(),
     r#"+&c"#.to_string(),
+    r#".a[*id="xyz"]>.c"#.to_string(),
+    r#".a[="xyz"]>.c"#.to_string(),
+    r#".a[id="xyz">.c"#.to_string(),
+    r#".a[id="xyz>.c"#.to_string(),
   ];
   demo_select_list.into_iter().for_each(|tt| {
     match Selector::new(tt) {

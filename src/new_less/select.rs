@@ -127,6 +127,99 @@ impl Selector {
     Ok(())
   }
 
+  ///
+  /// 单独转化 attr 属性判断
+  ///
+  fn parse_attr(&mut self, start: &usize) -> Result<(SelectParadigm, usize), String> {
+    let charlist = self.charlist.clone();
+    let mut index = *start + 1;
+    let mut temp: String = "[".to_string();
+    // 是否完结
+    let mut hasend = false;
+    // 是否有等号
+    let mut hasequal = false;
+    // 是否有引号
+    let mut has_quota = false;
+
+    while index < charlist.len() {
+      let prevchar = if index == 0 {
+        "".to_string()
+      } else {
+        charlist.get(index - 1).unwrap().to_string()
+      };
+      let char = charlist.get(index).unwrap().to_string();
+      let nextchar = if index == charlist.len() - 1 {
+        "".to_string()
+      } else {
+        charlist.get(index + 1).unwrap().to_string()
+      };
+      let token_allow = vec!["^", "$", "*", "|"];
+      // 如果重复遇到引号 则关闭 引号作用域
+      if has_quota && (&char == r#"""# || &char == r#"'"#) {
+        temp += &char;
+        has_quota = false;
+        index += 1;
+        continue;
+      }
+      // 如果 引号关闭 且是 标点符号则执行检查
+      if Token::is_token(&char) && !has_quota {
+        // 遇到 "]" 则跳出循环 当前索引即是 "]" 的位置
+        if &char == "]" {
+          hasend = true;
+          temp += &char;
+          break;
+        }
+        // 遇到 = 需要判断后一个词 只能跟 引号
+        if &char == "=" {
+          // 不能有重复的等号出现
+          if !hasequal && (&nextchar == r#"""# || &nextchar == r#"'"#) {
+            // 且不能 是 [= 这种组合
+            if temp.len() > 1 {
+              hasequal = true;
+              temp += &char;
+              index += 1;
+              continue;
+            } else {
+              return Err(self.errormsg(&index).err().unwrap());
+            }
+          } else {
+            return Err(self.errormsg(&index).err().unwrap());
+          }
+        }
+        // 直接出现引号 没有出现等号 直接报错
+        if &char == r#"""# || &char == r#"'"# {
+          if !hasequal {
+            return Err(self.errormsg(&index).err().unwrap());
+          } else {
+            // 前一个 符号必须是等号 这里重复判断可以优化!
+            if &prevchar == "=" {
+              has_quota = true;
+              temp += &char;
+              index += 1;
+              continue;
+            } else {
+              return Err(self.errormsg(&index).err().unwrap());
+            }
+          }
+        }
+        // 如果是其他符号 或者没有匹配的情况 则进行下述匹配
+        if nextchar == "=" && token_allow.contains(&&*char) {
+          temp += &char
+        } else {
+          return Err(self.errormsg(&index).err().unwrap());
+        }
+      } else {
+        temp += &char
+      }
+      index += 1;
+    }
+    if !hasend {
+      return Err(format!("select text {}, not found ']'", self.origin_txt));
+    }
+    let obj = SelectParadigm::SelectWrap(temp);
+    Ok((obj, index))
+  }
+
 
   ///
   /// 解析 字符串
@@ -138,7 +231,6 @@ impl Selector {
     let mut index = 0;
     let mut temp: String = "".to_string();
     let mut paradigm_vec: Vec<SelectParadigm> = vec![];
-    let mut include_attr = false;
     let mut has_ref_token = false;
 
     // 循环解析
@@ -196,12 +288,17 @@ impl Selector {
                 }
               }
               TokenSelect::AttrBegin => {
-                include_attr = true;
-                temp += &char.clone();
-                // 起始符 后续不能接 任意 词根符 类似 "#>" ".*"
-                if Token::is_token(&nextchar) {
-                  return self.errormsg(&(index + 1));
-                }
+                let (paradigm, jumpindex) = match self.parse_attr(&index) {
+                  Ok(res) => {
+                    res
+                  }
+                  Err(msg) => {
+                    return Err(msg);
+                  }
+                };
+                paradigm_vec.push(paradigm);
+                index = jumpindex + 1;
+                continue;
               }
               TokenSelect::AttrEnd => {
                 return self.errormsg(&index);
@@ -351,14 +448,20 @@ impl Selector {
                 }
               }
               TokenSelect::AttrBegin => {
-                if include_attr {
-                  return self.errormsg(&index);
-                }
+                let (paradigm, jumpindex) = match self.parse_attr(&index) {
+                  Ok(res) => {
+                    res
+                  }
+                  Err(msg) => {
+                    return Err(msg);
+                  }
+                };
+                paradigm_vec.push(paradigm);
+                index = jumpindex + 1;
+                continue;
               }
               TokenSelect::AttrEnd => {
-                if !include_attr {
-                  return self.errormsg(&index);
-                }
+                return self.errormsg(&index);
               }
               TokenSelect::WildCard => {
                 paradigm_vec.push(SelectParadigm::NormalWrap("*".to_string()));
