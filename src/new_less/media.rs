@@ -54,23 +54,28 @@ impl MediaQuery {
     if charlist.len() < 6 || charlist[0..6].poly().as_str() != "@media" {
       return Err(format!("select_txt not match media query"));
     }
-    let mut word_vec = vec!["@media"];
+    let mut word_vec = vec!["@media".to_string()];
     let mut index = 6;
     
     // 循环解析
     while index < charlist.len() {
       let char = charlist.get(index).unwrap().to_string();
       if Token::is_token(&char) {
-        if Token::is_space_token(&char) {}
-        if TokenMeidaAllow::is(&char) {
+        if Token::is_space_token(&char) {
+          // todo! 验收词
+          word_vec.push(temp.clone())
+        } else if TokenMeidaAllow::is(&char) {
           match TokenMeidaAllow::try_from(char.as_str()).unwrap() {
-            TokenMeidaAllow::LeftBrackets => {}
-            TokenMeidaAllow::RightBrackets => {}
-            TokenMeidaAllow::Colon => {
+            TokenMeidaAllow::LeftBrackets => {
+              // todo ! 跳变分析 feature
+            }
+            _ => {
               return Err(self.errormsg(&index).err().unwrap());
             }
           }
-        } else {}
+        } else {
+          return Err(self.errormsg(&index).err().unwrap());
+        }
       } else {
         temp += &char;
       }
