@@ -16,7 +16,6 @@ pub struct MediaQuery {
 }
 
 impl MediaQuery {
-  
   ///
   /// 初始化方法
   ///
@@ -93,9 +92,16 @@ impl MediaQuery {
         } else if TokenMeidaAllow::is(&char) {
           match TokenMeidaAllow::try_from(char.as_str()).unwrap() {
             TokenMeidaAllow::LeftBrackets => {
-              // todo ! 跳变分析 feature
-              
-              
+              match self.parse_media_feature(&index) {
+                Ok((word, jump)) => {
+                  word_vec.push(temp.clone());
+                  index = jumpindex + 1;
+                  continue;
+                }
+                Err(msg) => {
+                  return Err(msg);
+                }
+              }
             }
             _ => {
               return Err(self.errormsg(&index).err().unwrap());
