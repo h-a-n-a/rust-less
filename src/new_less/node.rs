@@ -42,7 +42,7 @@ impl SelectorNode {
         return Ok(SelectorNode::Media(obj));
       }
       Err(media_msg) => {
-        msg += format!("try parse media query is failed,\n reason is {} \n", media_msg).as_str();
+        msg += &media_msg
       }
     };
     if msg == "select_txt not match media query" {
@@ -52,7 +52,7 @@ impl SelectorNode {
           return Ok(SelectorNode::Select(obj));
         }
         Err(select_msg) => {
-          msg += format!("try parse select node is failed,\n reason is {} \n", select_msg).as_str();
+          msg += &select_msg
         }
       };
     }

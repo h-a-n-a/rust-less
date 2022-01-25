@@ -93,7 +93,7 @@ impl MediaQuery {
             word_vec.push(" ".to_string());
           }
         } else if &char == "-" {
-          if !haskey || (haskey && prevchar == TokenMeidaAllow::Colon.tostr_value()) {
+          if !haskey || prevchar == TokenMeidaAllow::Colon.tostr_value() {
             temp += &char;
           } else {
             return Err(self.errormsg(&index).err().unwrap());
@@ -139,7 +139,7 @@ impl MediaQuery {
     if charlist.len() < 6 ||
       (charlist.len() == 6 && charlist[0..6].poly().as_str() != "@media") ||
       (charlist.len() > 6 && charlist[0..7].poly().as_str() != "@media ") {
-      return Err(format!("select_txt not match media query"));
+      return Err("select_txt not match media query".to_string());
     }
     let mut word_vec = vec!["@media".to_string()];
     let mut index = 6;
