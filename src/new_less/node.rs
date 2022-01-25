@@ -45,17 +45,20 @@ impl SelectorNode {
         msg += format!("try parse media query is failed,\n reason is {} \n", media_msg).as_str();
       }
     };
-    match Selector::new(txt) {
-      Ok(obj) => {
-        return Ok(SelectorNode::Select(obj));
-      }
-      Err(select_msg) => {
-        msg += format!("try parse select node is failed,\n reason is {} \n", select_msg).as_str();
-      }
-    };
+    if msg == "select_txt not match media query" {
+      // 确定是因为不适配 media 然后重新计算 select
+      match Selector::new(txt) {
+        Ok(obj) => {
+          return Ok(SelectorNode::Select(obj));
+        }
+        Err(select_msg) => {
+          msg += format!("try parse select node is failed,\n reason is {} \n", select_msg).as_str();
+        }
+      };
+    }
     Err(msg)
   }
-
+  
   pub fn value(&self) -> String {
     match self {
       SelectorNode::Select(obj) => { obj.value() }
