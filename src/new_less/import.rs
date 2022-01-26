@@ -16,7 +16,7 @@ impl Import {
   ///
   pub fn new(txt: String) -> Result<Import, String> {
     let mut obj = Import {
-      origin_txt: txt.to_string().clone(),
+      origin_txt: txt.to_string(),
       charlist: txt.trim().to_string().tocharlist(),
     };
     
@@ -38,7 +38,7 @@ impl Import {
       || (length == 7 && charlist[0..7].poly().as_str() != "@import")
       || (length > 7 && charlist[0..8].poly().as_str() != "@import")
     {
-      return Err(format!("select_txt not match import"));
+      return Err("select_txt not match import".to_string());
     }
     
     let index = 7;
