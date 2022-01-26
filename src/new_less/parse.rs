@@ -69,18 +69,18 @@ impl RuleNode {
       block_node,
     }
   }
-
+  
   ///
   /// 构造方法
   ///
   pub fn new(content: String, selector_txt: String, loc: Loc, option: ParseOption, parent_locmap: &Option<LocMap>) -> Result<Rc<RefCell<RuleNode>>, String> {
     let origin_charlist = content.tocharlist();
+    
     let mut locmap: Option<LocMap> = None;
     if option.sourcemap {
-      locmap = Some(LocMap::new(content.to_string()));
-      // todo ! 重新计算 merge local
-      let _a = locmap.as_ref().unwrap().get(0);
-      println!("......")
+      let origin_content = format!(r#"{}{}{}{}"#, selector_txt, "{", content, "}");
+      //todo!  重新算 select  和 content 的值 这里算错了
+      locmap = Some(LocMap::merge(&loc, origin_content));
     }
     let selector = match SelectorNode::new(selector_txt) {
       Ok(result) => {
@@ -100,7 +100,6 @@ impl RuleNode {
       block_node: vec![],
       parent: None,
     };
-    // Ok(Rc::new(RefCell::new(obj)))
     match obj.parse() {
       Ok(obj) => {
         Ok(obj)
@@ -110,7 +109,7 @@ impl RuleNode {
       }
     }
   }
-
+  
   pub fn parse(mut self) -> Result<Rc<RefCell<RuleNode>>, String> {
     match self.parse_comment() {
       Ok(blocks) => {

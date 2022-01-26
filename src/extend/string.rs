@@ -8,6 +8,7 @@ pub trait StringExtend {
   fn tocharlist(&self) -> Vec<String>;
   fn simple_compare(&self) -> std::string::String;
   fn removelast(&self) -> std::string::String;
+  fn removelast_without_trim(&self) -> String;
 }
 
 #[allow(non_snake_case)]
@@ -112,5 +113,11 @@ impl StringExtend for String {
     let start = 0;
     let end = self.len() - 1;
     self.as_str()[start..end].to_string().trim().to_string()
+  }
+  
+  fn removelast_without_trim(&self) -> String {
+    let start = 0;
+    let end = self.len() - 1;
+    self.as_str()[start..end].to_string()
   }
 }
