@@ -3,6 +3,7 @@ use serde::{Serialize};
 use crate::extend::enum_extend::EnumExtend;
 use crate::extend::str_into::StringInto;
 use crate::extend::vec_str::VecStrExtend;
+use crate::new_less::scan::{ScanArg, ScanResult, traversal};
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::media::{TokenMediaFeature, TokenMediaLogic, TokenMediaType, TokenMeidaAllow};
 
@@ -38,7 +39,7 @@ impl MediaQuery {
   ///
   /// 打印错误信息
   ///
-  pub fn errormsg(&mut self, index: &usize) -> Result<(), String> {
+  pub fn errormsg(&self, index: &usize) -> Result<(), String> {
     let char = self.charlist.get(*index).unwrap().clone();
     Err(format!("select text {}, char {} is not allow,index is {}", self.origin_txt, char, index))
   }
@@ -48,82 +49,127 @@ impl MediaQuery {
   }
   
   ///
+  /// 子转化 媒体功能 转化 key
+  ///
+  pub fn parse_media_feature_key(&self, start: &usize) -> Result<(String, usize), String> {
+    let charlist = self.charlist.clone();
+    match traversal(Some(start.clone()), charlist, &mut (|arg, charword| {
+      let mut hasend = arg.hasend;
+      let mut temp = arg.temp;
+      let index = arg.index;
+      let (_, char, next) = charword;
+      if Token::is_token(&char) {
+        if char == TokenMeidaAllow::Colon.tostr_value() {
+          if TokenMediaFeature::is(&temp) {
+            // 加冒号之前 先判断是否是有效 key
+            hasend = true;
+          } else {
+            return Err(self.errormsg(&index).err().unwrap());
+          }
+        } else if Token::is_space_token(&char) {
+          if Token::is_space_token(&next) {
+            return Ok(ScanResult::Skip);
+          } else {
+            temp += &char;
+          }
+        } else if &char == "-" {
+          temp += "-";
+        } else {
+          return Err(self.errormsg(&index).err().unwrap());
+        }
+      } else {
+        temp += &char;
+      }
+      Ok(ScanResult::Arg(ScanArg {
+        temp,
+        index,
+        hasend,
+      }))
+    })) {
+      Ok(res) => {
+        Ok(res)
+      }
+      Err(msg) => {
+        Err(msg)
+      }
+    }
+  }
+  
+  ///
+  /// 子转化 媒体功能 转化 value
+  ///
+  pub fn parse_media_value(&self, start: &usize) -> Result<(String, usize), String> {
+    let charlist = self.charlist.clone();
+    match traversal(
+      Some(start.clone()),
+      charlist,
+      &mut (|arg, charword| {
+        let mut hasend = arg.hasend;
+        let mut temp = arg.temp;
+        let index = arg.index;
+        let (_, char, next) = charword;
+        if Token::is_token(&char) {
+          if char == TokenMeidaAllow::RightBrackets.tostr_value() {
+            hasend = true;
+          } else if Token::is_space_token(&char) {
+            if Token::is_space_token(&next) {
+              return Ok(ScanResult::Skip);
+            } else {
+              temp += &char;
+            }
+          } else if &char == "-" {
+            temp += "-";
+          } else {
+            return Err(self.errormsg(&index).err().unwrap());
+          }
+        } else {
+          temp += &char;
+        }
+        Ok(ScanResult::Arg(ScanArg {
+          temp,
+          index,
+          hasend,
+        }))
+      }),
+    ) {
+      Ok(res) => {
+        Ok(res)
+      }
+      Err(msg) => {
+        Err(msg)
+      }
+    }
+  }
+  
+  
+  ///
   /// 子转化 媒体功能
   ///
   pub fn parse_media_feature(&mut self, start: &usize) -> Result<(String, usize), String> {
     let charlist = &self.charlist;
     let mut index = *start + 1;
-    let mut temp: String = "".to_string();
-    let mut hasend = false;
-    let mut haskey: bool = false;
     let mut word_vec: Vec<String> = vec!["(".to_string()];
     
-    while index < charlist.len() {
-      let prevchar = if index == 0 {
-        "".to_string()
-      } else {
-        charlist.get(index - 1).unwrap().to_string()
-      };
-      let char = charlist.get(index).unwrap().to_string();
-      let nextchar = if index == charlist.len() - 1 {
-        "".to_string()
-      } else {
-        charlist.get(index + 1).unwrap().to_string()
-      };
-      // 分析value
-      // 分析key
-      if Token::is_token(&char) {
-        if !temp.is_empty() && &char != "-" {
-          word_vec.push(temp.clone());
-          temp = "".to_string();
-        }
-        if char == TokenMeidaAllow::RightBrackets.tostr_value() {
-          // 右括号完结
-          hasend = true;
-          word_vec.push(")".to_string());
-          break;
-        } else if Token::is_space_token(&char) {
-          // 检查空格
-          if Token::is_space_token(&nextchar) {
-            // 连续空格跳过
-            index += 1;
-            continue;
-          } else {
-            // 非连续记录
-            word_vec.push(" ".to_string());
-          }
-        } else if &char == "-" {
-          if !haskey || prevchar == TokenMeidaAllow::Colon.tostr_value() {
-            temp += &char;
-          } else {
-            return Err(self.errormsg(&index).err().unwrap());
-          }
-        } else if char == TokenMeidaAllow::Colon.tostr_value() {
-          if !haskey {
-            let feature = match word_vec.last() {
-              None => { "".to_string() }
-              Some(val) => { val.clone() }
-            };
-            if !feature.is_empty() && TokenMediaFeature::is(&feature) {
-              haskey = true;
-            } else {
-              return Err(self.errormsg(&index).err().unwrap());
-            }
-            word_vec.push(TokenMeidaAllow::Colon.tostr_value());
-          } else {
-            // 防止多次出现冒号
-            return Err(self.errormsg(&index).err().unwrap());
-          }
-        } else {
-          return Err(self.errormsg(&index).err().unwrap());
-        }
-      } else {
-        temp += &char
-      }
-      index += 1;
-    }
-    if !hasend || !haskey {
-      return Err(format!("select text {}, not found ')'", self.origin_txt));
+    // 分析key
+    let (key, jump) = match self.parse_media_feature_key(&index.clone()) {
+      Ok(res) => { res }
+      Err(msg) => { return Err(msg); }
+    };
+    word_vec.push(key);
+    word_vec.push(":".to_string());
+    index = jump + 1;
+    
+    // 分析value
+    let (value, jump) = match self.parse_media_value(&index.clone()) {
+      Ok(res) => { res }
+      Err(msg) => { return Err(msg); }
+    };
+    word_vec.push(value);
+    word_vec.push(")".to_string());
+    index = jump + 1;
+    
+    if index < charlist.len() {
+      return Err(self.errormsg(&index).err().unwrap());
     }
     
     Ok((word_vec.poly(), index))

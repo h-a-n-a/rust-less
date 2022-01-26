@@ -12,3 +12,4 @@ pub mod rule;
 pub mod select;
 pub mod token;
 pub mod var;
+pub mod scan;
