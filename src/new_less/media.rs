@@ -53,14 +53,14 @@ impl MediaQuery {
   ///
   pub fn parse_media_feature_key(&self, start: &usize) -> Result<(String, usize), String> {
     let charlist = &self.charlist;
-    match traversal(Some(start.clone()), &charlist, &mut (|arg, charword| {
+    match traversal(Some(*start), charlist, &mut (|arg, charword| {
       let mut hasend = arg.hasend;
       let mut temp = arg.temp;
       let index = arg.index;
       let (_, char, next) = charword;
       if Token::is_token(&char) {
         if char == TokenMeidaAllow::Colon.tostr_value() {
-          if TokenMediaFeature::is(&temp.trim()) {
+          if TokenMediaFeature::is(temp.trim()) {
             // 加冒号之前 先判断是否是有效 key
             hasend = true;
           } else {
@@ -101,8 +101,8 @@ impl MediaQuery {
   pub fn parse_media_value(&self, start: &usize) -> Result<(String, usize), String> {
     let charlist = &self.charlist;
     match traversal(
-      Some(start.clone()),
-      &charlist,
+      Some(*start),
+      charlist,
       &mut (|arg, charword| {
         let mut hasend = arg.hasend;
         let mut temp = arg.temp;

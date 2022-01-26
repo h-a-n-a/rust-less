@@ -23,7 +23,7 @@ pub enum ScanResult {
 ///
 pub fn traversal(
   arg_start: Option<usize>,
-  charlist: &Vec<String>,
+  charlist: &[String],
   exec: &mut dyn FnMut(ScanArg, CharWord) -> Result<ScanResult, String>,
 ) -> Result<(String, usize), String> {
   let mut index = arg_start.unwrap_or(0);
