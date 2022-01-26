@@ -132,10 +132,11 @@ impl RuleNode {
       }
     }
     let parent = Rc::new(RefCell::new(self));
-    let mut enum_rule = match parent.borrow_mut().parse_rule() {
+    let mut enum_rule = match parent.borrow().parse_rule() {
       Ok(blocks) => {
         for node in blocks.clone() {
-          node.borrow_mut().parent = Some(Rc::downgrade(&parent));
+          let mut node_value = node.borrow_mut();
+          node_value.parent = Some(Rc::downgrade(&parent));
         }
         blocks.into_iter().map(
           |x| {
