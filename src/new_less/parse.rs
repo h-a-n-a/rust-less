@@ -73,11 +73,14 @@ impl RuleNode {
   ///
   /// 构造方法
   ///
-  pub fn new(content: String, selector_txt: String, loc: Loc, option: ParseOption, parent: Option<Weak<RefCell<RuleNode>>>) -> Result<Rc<RefCell<RuleNode>>, String> {
+  pub fn new(content: String, selector_txt: String, loc: Loc, option: ParseOption, parent_locmap: &Option<LocMap>) -> Result<Rc<RefCell<RuleNode>>, String> {
     let origin_charlist = content.tocharlist();
     let mut locmap: Option<LocMap> = None;
     if option.sourcemap {
       locmap = Some(LocMap::new(content.to_string()));
+      // todo ! 重新计算 merge local
+      let _a = locmap.as_ref().unwrap().get(0);
+      println!("......")
     }
     let selector = match SelectorNode::new(selector_txt) {
       Ok(result) => {
@@ -94,8 +97,8 @@ impl RuleNode {
       loc,
       locmap,
       option,
-      parent,
       block_node: vec![],
+      parent: None,
     };
     // Ok(Rc::new(RefCell::new(obj)))
     match obj.parse() {
