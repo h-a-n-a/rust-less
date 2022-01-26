@@ -22,7 +22,7 @@ impl MediaQuery {
   /// 初始化方法
   ///
   pub fn new(txt: String) -> Result<Self, String> {
-    let mut obj = Self {
+    let obj = Self {
       origin_txt: txt.clone(),
       charlist: txt.trim().to_string().tocharlist(),
     };
@@ -52,15 +52,15 @@ impl MediaQuery {
   /// 子转化 媒体功能 转化 key
   ///
   pub fn parse_media_feature_key(&self, start: &usize) -> Result<(String, usize), String> {
-    let charlist = self.charlist.clone();
-    match traversal(Some(start.clone()), charlist, &mut (|arg, charword| {
+    let charlist = &self.charlist;
+    match traversal(Some(start.clone()), &charlist, &mut (|arg, charword| {
       let mut hasend = arg.hasend;
       let mut temp = arg.temp;
       let index = arg.index;
       let (_, char, next) = charword;
       if Token::is_token(&char) {
         if char == TokenMeidaAllow::Colon.tostr_value() {
-          if TokenMediaFeature::is(&temp) {
+          if TokenMediaFeature::is(&temp.trim()) {
             // 加冒号之前 先判断是否是有效 key
             hasend = true;
           } else {
@@ -99,10 +99,10 @@ impl MediaQuery {
   /// 子转化 媒体功能 转化 value
   ///
   pub fn parse_media_value(&self, start: &usize) -> Result<(String, usize), String> {
-    let charlist = self.charlist.clone();
+    let charlist = &self.charlist;
     match traversal(
       Some(start.clone()),
-      charlist,
+      &charlist,
       &mut (|arg, charword| {
         let mut hasend = arg.hasend;
         let mut temp = arg.temp;
@@ -118,7 +118,11 @@ impl MediaQuery {
               temp += &char;
             }
           } else if &char == "-" {
-            temp += "-";
+            if temp.trim().is_empty() {
+              temp += "-";
+            } else {
+              return Err(self.errormsg(&index).err().unwrap());
+            }
           } else {
             return Err(self.errormsg(&index).err().unwrap());
           }
@@ -145,7 +149,7 @@ impl MediaQuery {
   ///
   /// 子转化 媒体功能
   ///
-  pub fn parse_media_feature(&mut self, start: &usize) -> Result<(String, usize), String> {
+  pub fn parse_media_feature(&self, start: &usize) -> Result<(String, usize), String> {
     let charlist = &self.charlist;
     let mut index = *start + 1;
     let mut word_vec: Vec<String> = vec!["(".to_string()];
@@ -153,7 +157,9 @@ impl MediaQuery {
     // 分析key
     let (key, jump) = match self.parse_media_feature_key(&index.clone()) {
       Ok(res) => { res }
-      Err(msg) => { return Err(msg); }
+      Err(msg) => {
+        return Err(msg);
+      }
     };
     word_vec.push(key);
     word_vec.push(":".to_string());
@@ -162,7 +168,9 @@ impl MediaQuery {
     // 分析value
     let (value, jump) = match self.parse_media_value(&index.clone()) {
       Ok(res) => { res }
-      Err(msg) => { return Err(msg); }
+      Err(msg) => {
+        return Err(msg);
+      }
     };
     word_vec.push(value);
     word_vec.push(")".to_string());
@@ -176,70 +184,125 @@ impl MediaQuery {
   }
   
   ///
-  /// 转化代码
+  /// 转化 逻辑词
   ///
-  pub fn parse(&mut self) -> Result<(), String> {
-    let charlist = self.charlist.clone();
-    let mut temp: String = "".to_string();
+  pub fn parse_media_logicword(&self, start: &usize) -> Result<(String, usize), String> {
+    let charlist = &self.charlist;
+    let (word, jump) = match traversal(
+      Some(*start),
+      charlist,
+      &mut (|arg, charword| {
+        let mut hasend = arg.hasend;
+        let mut temp = arg.temp;
+        let index = arg.index;
+        let (_, char, _) = charword;
+        if Token::is_token(&char) {
+          if Token::is_space_token(&char) {
+            hasend = true;
+          } else {
+            return Err(self.errormsg(&index).err().unwrap());
+          }
+        } else {
+          temp += &char;
+        }
+        Ok(ScanResult::Arg(ScanArg {
+          temp,
+          index,
+          hasend,
+        }))
+      }),
+    ) {
+      Ok(res) => { res }
+      Err(msg) => {
+        return Err(msg);
+      }
+    };
     
+    if TokenMediaLogic::is(&word) || TokenMediaType::is(&word) {
+      Ok((word, jump))
+    } else {
+      Err(self.errormsg(&jump).err().unwrap())
+    }
+  }
+  
+  
+  pub fn parse(&self) -> Result<(), String> {
+    let charlist = &self.charlist;
     if charlist.len() < 6 ||
       (charlist.len() == 6 && charlist[0..6].poly().as_str() != "@media") ||
       (charlist.len() > 6 && charlist[0..7].poly().as_str() != "@media ") {
       return Err("select_txt not match media query".to_string());
     }
     let mut word_vec = vec!["@media".to_string()];
-    let mut index = 6;
+    let index = 6;
     
-    // 循环解析
-    while index < charlist.len() {
-      let char = charlist.get(index).unwrap().to_string();
-      let nextchar = if index == charlist.len() - 1 {
-        "".to_string()
-      } else {
-        charlist.get(index + 1).unwrap().to_string()
-      };
-      if Token::is_token(&char) {
-        if Token::is_space_token(&char) {
-          if !Token::is_space_token(&nextchar) {
-            let word = temp.clone();
-            if TokenMediaLogic::is(&word) || TokenMediaType::is(&word) || word.is_empty() {
-              word_vec.push(temp.clone());
-              temp = "".to_string();
+    match traversal(
+      Some(index),
+      charlist,
+      &mut (|arg, charword| {
+        let temp = arg.temp;
+        let mut index = arg.index;
+        let (_, char, next) = charword;
+        return if Token::is_token(&char) {
+          if Token::is_space_token(&char) {
+            if !Token::is_space_token(&next) {
               word_vec.push(" ".to_string());
+              Ok(ScanResult::Skip)
             } else {
-              return Err(self.errormsg(&index).err().unwrap());
+              Ok(ScanResult::Skip)
             }
-          } else {
-            index += 1;
-            continue;
-          }
-        } else if TokenMeidaAllow::is(&char) {
-          match TokenMeidaAllow::try_from(char.as_str()).unwrap() {
-            TokenMeidaAllow::LeftBrackets => {
-              match self.parse_media_feature(&index) {
-                Ok((word, jump)) => {
-                  word_vec.push(word);
-                  temp = "".to_string();
-                  index = jump + 1;
-                  continue;
-                }
-                Err(msg) => {
-                  return Err(msg);
+          } else if TokenMeidaAllow::is(&char) {
+            match TokenMeidaAllow::try_from(char.as_str()).unwrap() {
+              TokenMeidaAllow::LeftBrackets => {
+                match self.parse_media_feature(&index) {
+                  Ok((word, jump)) => {
+                    word_vec.push(word);
+                    index = jump;
+                    return Ok(ScanResult::Arg(ScanArg {
+                      index,
+                      temp,
+                      hasend: false,
+                    }));
+                  }
+                  Err(msg) => {
+                    Err(msg)
+                  }
                 }
               }
+              _ => {
+                Err(self.errormsg(&index).err().unwrap())
+              }
             }
-            _ => {
-              return Err(self.errormsg(&index).err().unwrap());
-            }
+          } else {
+            Err(self.errormsg(&index).err().unwrap())
           }
         } else {
-          return Err(self.errormsg(&index).err().unwrap());
-        }
-      } else {
-        temp += &char;
+          let (word, jump) = match self.parse_media_logicword(&index) {
+            Ok(res) => {
+              res
+            }
+            Err(msg) => {
+              return Err(msg);
+            }
+          };
+          index = jump;
+          word_vec.push(word);
+          word_vec.push(" ".to_string());
+          Ok(ScanResult::Arg(ScanArg {
+            index,
+            temp,
+            hasend: false,
+          }))
+        };
+      })) {
+      Ok(res) => {
+        res
       }
-      index += 1;
-    }
+      Err(msg) => {
+        return Err(msg);
+      }
+    };
+    println!("{:#?}", word_vec);
     Ok(())
   }
 }

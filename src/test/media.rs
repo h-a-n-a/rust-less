@@ -4,6 +4,7 @@ use crate::new_less::media::MediaQuery;
 fn test_select_parse() {
   let demo_select_list = vec![
     r#"@media screen and ( max-width: 900px)"#.to_string(),
+    r#"@media screen and ( max-width  : 900px)"#.to_string(),
   ];
   let mut haserror = 0;
   demo_select_list.into_iter().for_each(|tt| {
