@@ -1,12 +1,9 @@
-mod single;
 mod comment;
-mod parse;
-mod loc;
-mod var;
 mod import;
-mod select;
-mod token;
+mod loc;
 mod media;
-
-
-
+mod parse;
+mod select;
+mod single;
+mod token;
+mod var;

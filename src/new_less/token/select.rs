@@ -6,61 +6,59 @@ use crate::extend::str_into::StringInto;
 ///
 #[derive(EnumString, Display, Debug, EnumIter, PartialEq)]
 pub enum TokenSelect {
-  #[strum(serialize = ".")]
-  ClassToken,
-  
-  #[strum(serialize = "#")]
-  IdToken,
-  
-  #[strum(serialize = "[")]
-  AttrBegin,
-  
-  #[strum(serialize = "]")]
-  AttrEnd,
+    #[strum(serialize = ".")]
+    ClassToken,
 
-  #[strum(serialize = "(")]
-  LeftBrackets,
+    #[strum(serialize = "#")]
+    IdToken,
 
-  #[strum(serialize = ")")]
-  RightBrackets,
-  
-  #[strum(serialize = "*")]
-  WildCard,
-  
-  #[strum(serialize = ":")]
-  Colon,
+    #[strum(serialize = "[")]
+    AttrBegin,
+
+    #[strum(serialize = "]")]
+    AttrEnd,
+
+    #[strum(serialize = "(")]
+    LeftBrackets,
+
+    #[strum(serialize = ")")]
+    RightBrackets,
+
+    #[strum(serialize = "*")]
+    WildCard,
+
+    #[strum(serialize = ":")]
+    Colon,
 }
-
 
 ///
 /// Select 允许的连接符
 ///
 #[derive(EnumString, Display, Debug, EnumIter, PartialEq)]
 pub enum TokenCombina {
-  #[strum(serialize = ",")]
-  Comma,
-  
-  #[strum(serialize = " ")]
-  Space,
-  
-  #[strum(serialize = "\n")]
-  NewLineOs,
-  
-  #[strum(serialize = "\r")]
-  NewLineWindos,
-  
-  #[strum(serialize = ">")]
-  ExtendChar,
-  
-  #[strum(serialize = "|")]
-  ColumnChar,
-  
-  #[strum(serialize = "+")]
-  BrotherNextChar,
-  
-  #[strum(serialize = "~")]
-  BrotherMatchChar,
-  
+    #[strum(serialize = ",")]
+    Comma,
+
+    #[strum(serialize = " ")]
+    Space,
+
+    #[strum(serialize = "\n")]
+    NewLineOs,
+
+    #[strum(serialize = "\r")]
+    NewLineWindos,
+
+    #[strum(serialize = ">")]
+    ExtendChar,
+
+    #[strum(serialize = "|")]
+    ColumnChar,
+
+    #[strum(serialize = "+")]
+    BrotherNextChar,
+
+    #[strum(serialize = "~")]
+    BrotherMatchChar,
 }
 
 ///
@@ -68,14 +66,14 @@ pub enum TokenCombina {
 ///
 #[derive(EnumString, Display, Debug, EnumIter, PartialEq)]
 pub enum TokenAllow {
-  #[strum(serialize = r"\")]
-  LeftSlant,
-  
-  #[strum(serialize = "_")]
-  Underscore,
-  
-  #[strum(serialize = "-")]
-  Dash,
+    #[strum(serialize = r"\")]
+    LeftSlant,
+
+    #[strum(serialize = "_")]
+    Underscore,
+
+    #[strum(serialize = "-")]
+    Dash,
 }
 
 ///
@@ -83,9 +81,9 @@ pub enum TokenAllow {
 /// & -> $(&) -> 用于后期替换父元素
 ///
 #[derive(EnumString, Display, Debug, EnumIter, PartialEq)]
-pub enum TokenKeyWord{
-  #[strum(serialize = "&")]
-  PranedRefer
+pub enum TokenKeyWord {
+    #[strum(serialize = "&")]
+    PranedRefer,
 }
 
 impl EnumExtend for TokenSelect {}
@@ -103,4 +101,3 @@ impl StringInto for TokenCombina {}
 impl StringInto for TokenAllow {}
 
 impl StringInto for TokenKeyWord {}
-
