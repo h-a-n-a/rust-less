@@ -1,6 +1,7 @@
 use crate::extend::enum_extend::EnumExtend;
 use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
+use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::select::{TokenAllow, TokenCombina, TokenKeyWord, TokenSelect};
 use serde::Serialize;
@@ -28,6 +29,10 @@ pub enum SelectParadigm {
 pub struct Selector {
     pub origin_txt: String,
     pub single_select_txt: Vec<String>,
+
+    pub loc: Option<Loc>,
+    #[serde(skip_serializing)]
+    map: Option<LocMap>,
     charlist: Vec<String>,
 }
 
@@ -35,10 +40,12 @@ impl Selector {
     ///
     /// 初始化方法
     ///
-    pub fn new(txt: String) -> Result<Self, String> {
+    pub fn new(txt: String, loc: Option<Loc>, map: Option<LocMap>) -> Result<Self, String> {
         let mut obj = Selector {
             origin_txt: txt.trim().to_string(),
             single_select_txt: vec![],
+            loc,
+            map,
             charlist: txt.tocharlist(),
         };
         match obj.parse() {
@@ -49,6 +56,10 @@ impl Selector {
 
     pub fn value(&self) -> String {
         self.origin_txt.clone()
+    }
+
+    pub fn map(&self) -> Option<LocMap> {
+        self.map.clone()
     }
 
     ///

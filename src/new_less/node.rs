@@ -37,7 +37,8 @@ impl SelectorNode {
     ///
     pub fn new(txt: String, loc: Option<Loc>, map: Option<LocMap>) -> Result<Self, String> {
         let mut msg: String = "".to_string();
-        match MediaQuery::new(txt.clone(), loc, map) {
+
+        match MediaQuery::new(txt.clone(), loc.clone(), map.clone()) {
             Ok(obj) => {
                 return Ok(SelectorNode::Media(obj));
             }
@@ -45,7 +46,7 @@ impl SelectorNode {
         };
         if msg == "select_txt not match media query" {
             // 确定是因为不适配 media 然后重新计算 select
-            match Selector::new(txt) {
+            match Selector::new(txt, loc, map) {
                 Ok(obj) => {
                     return Ok(SelectorNode::Select(obj));
                 }
