@@ -6,29 +6,29 @@ use crate::extend::str_into::StringInto;
 ///
 #[derive(EnumString, Display, Debug, EnumIter, PartialEq)]
 pub enum TokenSelect {
-    #[strum(serialize = ".")]
-    ClassToken,
+  #[strum(serialize = ".")]
+  ClassToken,
 
-    #[strum(serialize = "#")]
-    IdToken,
+  #[strum(serialize = "#")]
+  IdToken,
 
-    #[strum(serialize = "[")]
-    AttrBegin,
+  #[strum(serialize = "[")]
+  AttrBegin,
 
-    #[strum(serialize = "]")]
-    AttrEnd,
+  #[strum(serialize = "]")]
+  AttrEnd,
 
-    #[strum(serialize = "(")]
-    LeftBrackets,
+  #[strum(serialize = "(")]
+  LeftBrackets,
 
-    #[strum(serialize = ")")]
-    RightBrackets,
+  #[strum(serialize = ")")]
+  RightBrackets,
 
-    #[strum(serialize = "*")]
-    WildCard,
+  #[strum(serialize = "*")]
+  WildCard,
 
-    #[strum(serialize = ":")]
-    Colon,
+  #[strum(serialize = ":")]
+  Colon,
 }
 
 ///
@@ -36,29 +36,29 @@ pub enum TokenSelect {
 ///
 #[derive(EnumString, Display, Debug, EnumIter, PartialEq)]
 pub enum TokenCombina {
-    #[strum(serialize = ",")]
-    Comma,
+  #[strum(serialize = ",")]
+  Comma,
 
-    #[strum(serialize = " ")]
-    Space,
+  #[strum(serialize = " ")]
+  Space,
 
-    #[strum(serialize = "\n")]
-    NewLineOs,
+  #[strum(serialize = "\n")]
+  NewLineOs,
 
-    #[strum(serialize = "\r")]
-    NewLineWindos,
+  #[strum(serialize = "\r")]
+  NewLineWindos,
 
-    #[strum(serialize = ">")]
-    ExtendChar,
+  #[strum(serialize = ">")]
+  ExtendChar,
 
-    #[strum(serialize = "|")]
-    ColumnChar,
+  #[strum(serialize = "|")]
+  ColumnChar,
 
-    #[strum(serialize = "+")]
-    BrotherNextChar,
+  #[strum(serialize = "+")]
+  BrotherNextChar,
 
-    #[strum(serialize = "~")]
-    BrotherMatchChar,
+  #[strum(serialize = "~")]
+  BrotherMatchChar,
 }
 
 ///
@@ -66,14 +66,14 @@ pub enum TokenCombina {
 ///
 #[derive(EnumString, Display, Debug, EnumIter, PartialEq)]
 pub enum TokenAllow {
-    #[strum(serialize = r"\")]
-    LeftSlant,
+  #[strum(serialize = r"\")]
+  LeftSlant,
 
-    #[strum(serialize = "_")]
-    Underscore,
+  #[strum(serialize = "_")]
+  Underscore,
 
-    #[strum(serialize = "-")]
-    Dash,
+  #[strum(serialize = "-")]
+  Dash,
 }
 
 ///
@@ -82,8 +82,8 @@ pub enum TokenAllow {
 ///
 #[derive(EnumString, Display, Debug, EnumIter, PartialEq)]
 pub enum TokenKeyWord {
-    #[strum(serialize = "&")]
-    PranedRefer,
+  #[strum(serialize = "&")]
+  PranedRefer,
 }
 
 impl EnumExtend for TokenSelect {}
