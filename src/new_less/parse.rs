@@ -73,14 +73,16 @@ impl RuleNode {
   ///
   /// 构造方法
   ///
-  pub fn new(content: String, selector_txt: String, loc: Loc, option: ParseOption, parent_locmap: &Option<LocMap>) -> Result<Rc<RefCell<RuleNode>>, String> {
+  pub fn new(content: String, selector_txt: String, loc: Loc, option: ParseOption) -> Result<Rc<RefCell<RuleNode>>, String> {
     let origin_charlist = content.tocharlist();
     
     let mut locmap: Option<LocMap> = None;
     if option.sourcemap {
-      let origin_content = format!(r#"{}{}{}{}"#, selector_txt, "{", content, "}");
       //todo!  重新算 select  和 content 的值 这里算错了
-      locmap = Some(LocMap::merge(&loc, origin_content));
+      let (_selector_txt_map, end) = LocMap::merge(&loc, &selector_txt);
+      let rule_map_content = format!("{}{}", "{", content);
+      let (rule_map, _) = LocMap::merge(&end, &rule_map_content);
+      locmap = Some(rule_map);
     }
     let selector = match SelectorNode::new(selector_txt) {
       Ok(result) => {

@@ -69,7 +69,7 @@ impl LocMap {
     loc
   }
   
-  pub fn merge(start: &Loc, content: String) -> Self {
+  pub fn merge(start: &Loc, content: &String) -> (Self, Loc) {
     let map = HashMap::new();
     let chars = content.tocharlist();
     let mut line = start.line;
@@ -77,6 +77,7 @@ impl LocMap {
     let mut obj = LocMap {
       data: map
     };
+    let mut last: Loc = start.clone();
     for (index, cc) in chars.iter().enumerate() {
       let loc: Loc;
       if *cc != '\r'.to_string() && *cc != '\n'.to_string() {
@@ -97,8 +98,11 @@ impl LocMap {
         col = 1;
         line += 1;
       }
+      if index == chars.len() - 1 {
+        last = loc.clone();
+      }
       obj.data.insert(index, loc);
     }
-    obj
+    (obj, last)
   }
 }

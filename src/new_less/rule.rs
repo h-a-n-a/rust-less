@@ -83,7 +83,6 @@ fn parse_rule(
           selector_txt.clone(),
           record_loc.unwrap(),
           options.clone(),
-          locmap,
         ) {
           Ok(rule) => {
             blocklist.push(rule);
