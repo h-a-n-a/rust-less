@@ -5,11 +5,11 @@ use std::path::Path;
 /// 返回命令行执行的目录
 ///
 pub fn cmd_path() -> String {
-  std::env::current_dir()
-    .unwrap()
-    .into_os_string()
-    .into_string()
-    .unwrap()
+    std::env::current_dir()
+        .unwrap()
+        .into_os_string()
+        .into_string()
+        .unwrap()
 }
 
 ///
@@ -17,23 +17,23 @@ pub fn cmd_path() -> String {
 /// 路径 a + b
 ///
 pub fn path_join(basepath: &str, joinpath: &str) -> String {
-  Path::new(basepath)
-    .join(joinpath)
-    .into_os_string()
-    .into_string()
-    .unwrap()
+    Path::new(basepath)
+        .join(joinpath)
+        .into_os_string()
+        .into_string()
+        .unwrap()
 }
 
 ///
 /// 返回 join += 命令行执行的目录
 ///
 pub fn cmd_path_resolve(path: &str) -> String {
-  std::env::current_dir()
-    .unwrap()
-    .join(path)
-    .into_os_string()
-    .into_string()
-    .unwrap()
+    std::env::current_dir()
+        .unwrap()
+        .join(path)
+        .into_os_string()
+        .into_string()
+        .unwrap()
 }
 
 ///
@@ -41,26 +41,26 @@ pub fn cmd_path_resolve(path: &str) -> String {
 /// path -> join ./cargo.toml/../{path}
 ///
 pub fn path_resolve(path: &str) -> String {
-  let work_cwd = env!("CARGO_MANIFEST_DIR");
-  let os_work_cwd = OsString::from(work_cwd);
-  Path::new(&os_work_cwd)
-    .join(path)
-    .into_os_string()
-    .into_string()
-    .unwrap()
+    let work_cwd = env!("CARGO_MANIFEST_DIR");
+    let os_work_cwd = OsString::from(work_cwd);
+    Path::new(&os_work_cwd)
+        .join(path)
+        .into_os_string()
+        .into_string()
+        .unwrap()
 }
 
 ///
 /// 执行安全的 读取 某路径文件
 ///
 pub fn readfile(path: String) -> Option<String> {
-  let filepath = Path::new(&path);
-  if filepath.exists() {
-    match std::fs::read_to_string(filepath) {
-      Ok(content) => { Some(content) }
-      Err(_) => { None }
+    let filepath = Path::new(&path);
+    if filepath.exists() {
+        match std::fs::read_to_string(filepath) {
+            Ok(content) => Some(content),
+            Err(_) => None,
+        }
+    } else {
+        None
     }
-  } else {
-    None
-  }
 }

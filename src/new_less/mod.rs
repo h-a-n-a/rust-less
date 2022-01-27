@@ -9,7 +9,7 @@ pub mod node;
 pub mod option;
 pub mod parse;
 pub mod rule;
+pub mod scan;
 pub mod select;
 pub mod token;
 pub mod var;
-pub mod scan;
