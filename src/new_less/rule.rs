@@ -85,7 +85,7 @@ fn parse_rule(
                 match RuleNode::new(
                     templist.poly().removelast_without_trim(),
                     selector_txt.clone(),
-                    record_loc.unwrap(),
+                    record_loc,
                     options.clone(),
                 ) {
                     Ok(rule) => {

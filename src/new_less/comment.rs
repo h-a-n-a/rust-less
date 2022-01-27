@@ -19,7 +19,11 @@ pub struct CommentNode {
     // 节点内容
     pub content: String,
     // 节点坐标
-    pub loc: Loc,
+    pub loc: Option<Loc>,
+
+    // 注释开始索引
+    #[serde(skip_serializing)]
+    startindex: usize,
 }
 
 impl Comment for FileInfo {
@@ -99,6 +103,7 @@ fn parse_comment(
     let mut record_loc: Option<Loc> = None;
 
     let mut index = 0;
+    let mut start_index: Option<usize> = None;
     while index < origin_charlist.len() {
         // 处理字符
         let char = origin_charlist.get(index).unwrap().clone();
@@ -128,10 +133,12 @@ fn parse_comment(
             }
             let comment = CommentNode {
                 content: commentlist.join(""),
-                loc: record_loc.unwrap(),
+                loc: record_loc,
+                startindex: start_index.unwrap(),
             };
             blocklist.push(comment);
             commentlist.clear();
+            start_index = None;
             record_loc = None;
             continue;
         }
@@ -139,6 +146,9 @@ fn parse_comment(
             // 如果启用 sourcemap 则记录坐标
             if options.sourcemap && char != "\r" && char != "\n" && record_loc.is_none() {
                 record_loc = Some(locmap.as_ref().unwrap().get(index).unwrap());
+            }
+            if start_index.is_none() {
+                start_index = Some(index);
             }
             commentlist.push(char.clone());
         }
@@ -182,18 +192,16 @@ fn rm_comment(commentlist: &[CommentNode], origin_charlist: &[String]) -> String
         let mut charlist = origin_charlist.to_owned();
         for cc in commentlist {
             let length = cc.content.len();
-            let start = cc.loc.index;
-            let end = cc.loc.index + length;
+            let start = cc.startindex;
+            let end = cc.startindex + length;
             let mut i = start;
             while i < end {
-                println!(".........{}", i);
                 let char = charlist.get(i).unwrap();
                 if char != "\n" && char != "\r" {
                     charlist[i] = " ".to_string();
                 }
                 i += 1;
             }
-            println!("{}", charlist.join(""));
         }
         charlist.join("")
     };

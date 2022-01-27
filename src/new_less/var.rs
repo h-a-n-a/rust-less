@@ -16,7 +16,7 @@ pub struct VarNode {
     // 节点内容
     pub content: String,
     // 节点坐标
-    pub loc: Loc,
+    pub loc: Option<Loc>,
 }
 
 impl Var for FileInfo {
@@ -137,7 +137,7 @@ fn parse_var(
                     if val {
                         let style_var = VarNode {
                             content: pure_text.join(""),
-                            loc: record_loc.unwrap(),
+                            loc: record_loc,
                         };
                         blocklist.push(style_var);
                     }

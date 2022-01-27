@@ -41,7 +41,8 @@ fn test_less_bench_without_sourcemap() {
                 include_path: None,
                 sourcemap: false,
             },
-        );
+        )
+        .unwrap();
         index += 1;
     }
     record();

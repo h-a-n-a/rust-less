@@ -19,7 +19,7 @@ pub struct RuleNode {
     // 根据 原始内容 -> 转化的 字符数组
     pub origin_charlist: Vec<String>,
     // 节点坐标
-    pub loc: Loc,
+    pub loc: Option<Loc>,
     // 当前所有 索引 对应的 坐标行列 -> 用于执行 sourcemap
     pub locmap: Option<LocMap>,
     // 内部调用方式时 需要拿到对应的 转化配置
@@ -37,7 +37,7 @@ pub struct RuleNodeJson {
     // 选择器 文字
     pub selector_txt: String,
     // 节点坐标
-    pub loc: Loc,
+    pub loc: Option<Loc>,
     // 节点 子节点
     pub block_node: Vec<StyleNodeJson>,
 }
@@ -66,7 +66,10 @@ impl RuleNode {
         RuleNodeJson {
             selector_txt: self.selector.value(),
             content: self.content.clone(),
-            loc: self.loc.clone(),
+            loc: match &self.loc {
+                None => None,
+                Some(l) => Some(l.clone()),
+            },
             block_node,
         }
     }
@@ -77,7 +80,7 @@ impl RuleNode {
     pub fn new(
         content: String,
         selector_txt: String,
-        loc: Loc,
+        loc: Option<Loc>,
         option: ParseOption,
     ) -> Result<Rc<RefCell<RuleNode>>, String> {
         let origin_charlist = content.tocharlist();
@@ -86,13 +89,16 @@ impl RuleNode {
         let mut select_locmap: Option<LocMap> = None;
         let mut select_loc: Option<Loc> = None;
         if option.sourcemap {
-            //todo!  重新算 select  和 content 的值 这里算错了
-            let (selector_txt_map, end) = LocMap::merge(&loc, &selector_txt);
+            let (selector_txt_map, end) =
+                LocMap::merge(&loc.as_ref().unwrap().clone(), &selector_txt);
             select_locmap = Some(selector_txt_map);
             let rule_map_content = format!("{}{}", "{", content);
             let (rule_map, _) = LocMap::merge(&end, &rule_map_content);
             locmap = Some(rule_map);
-            select_loc = Some(loc.clone());
+            select_loc = match &loc {
+                None => None,
+                Some(l) => Some(l.clone()),
+            };
         }
         let selector = match SelectorNode::new(selector_txt, select_loc, select_locmap) {
             Ok(result) => result,
