@@ -301,7 +301,7 @@ impl MediaQuery {
                 return Err(msg);
             }
         };
-        println!("{:#?}", word_vec);
+        // println!("{:#?}", word_vec);
         Ok(())
     }
 }
