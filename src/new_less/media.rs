@@ -3,7 +3,7 @@ use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{HandleResult, ParentRef};
+use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::media::{
@@ -27,7 +27,7 @@ pub struct MediaQuery {
   charlist: Vec<String>,
 
   #[serde(skip_serializing)]
-  pub parent: ParentRef,
+  pub parent: NodeWeakRef,
 }
 
 impl MediaQuery {

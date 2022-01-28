@@ -11,7 +11,8 @@ use serde::Serialize;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-pub type ParentRef = Option<Weak<RefCell<RuleNode>>>;
+pub type NodeWeakRef = Option<Weak<RefCell<RuleNode>>>;
+pub type NodeRef = Rc<RefCell<RuleNode>>;
 
 #[derive(Debug, Clone)]
 pub enum StyleNode {
@@ -26,7 +27,6 @@ pub enum StyleNodeJson {
   Var(VarRuleNode),
   Rule(RuleNodeJson),
 }
-
 
 #[derive(Debug, Clone, Serialize)]
 pub enum SelectorNode {
@@ -71,7 +71,7 @@ impl SelectorNode {
     Err(format!("nothing node match the txt -> {}", txt))
   }
 
-  pub fn set_parent(&mut self, parent: ParentRef) {
+  pub fn set_parent(&mut self, parent: NodeWeakRef) {
     match self {
       SelectorNode::Select(obj) => {
         obj.parent = parent;
@@ -126,9 +126,9 @@ impl VarRuleNode {
   ///
   /// 初始化
   ///
-  pub fn new(txt: String, loc: Option<Loc>, option: &ParseOption) -> Result<Self, String> {
+  pub fn new(txt: String, loc: Option<Loc>, parent: NodeWeakRef) -> Result<Self, String> {
     // 处理 导入
-    match ImportNode::new(txt.clone(), loc.clone(), option.clone()) {
+    match ImportNode::new(txt.clone(), loc.clone(), parent.clone()) {
       HandleResult::Success(obj) => return Ok(VarRuleNode::Import(obj)),
       HandleResult::Fail(msg) => {
         return Err(msg);
@@ -136,7 +136,7 @@ impl VarRuleNode {
       HandleResult::Swtich => {}
     };
     // 处理 变量声明
-    match VarNode::new(txt.clone(), loc.clone(), option.clone()) {
+    match VarNode::new(txt.clone(), loc.clone(), parent.clone()) {
       HandleResult::Success(obj) => return Ok(VarRuleNode::Var(obj)),
       HandleResult::Fail(msg) => {
         return Err(msg);
@@ -144,7 +144,7 @@ impl VarRuleNode {
       HandleResult::Swtich => {}
     };
     // 处理 规则
-    match StyleRuleNode::new(txt.clone(), loc, option.clone()) {
+    match StyleRuleNode::new(txt.clone(), loc, parent.clone()) {
       HandleResult::Success(obj) => return Ok(VarRuleNode::Rule(obj)),
       HandleResult::Fail(msg) => {
         return Err(msg);
@@ -154,12 +154,10 @@ impl VarRuleNode {
     Err(format!("nothing node match the txt -> {}", txt))
   }
 
-  pub fn set_parent(&mut self, parent: ParentRef) {
+  pub fn set_parent(&mut self, parent: NodeWeakRef) {
     match self {
       VarRuleNode::Import(_) => {}
-      VarRuleNode::Var(var) => {
-        var.parent = parent
-      }
+      VarRuleNode::Var(var) => var.parent = parent,
       VarRuleNode::Rule(_) => {}
     }
   }

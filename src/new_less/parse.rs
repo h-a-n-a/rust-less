@@ -1,14 +1,14 @@
 use crate::extend::string::StringExtend;
 use crate::new_less::comment::Comment;
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{ParentRef, SelectorNode, StyleNode, StyleNodeJson};
+use crate::new_less::node::{NodeRef, NodeWeakRef, SelectorNode, StyleNode, StyleNodeJson};
 use crate::new_less::option::ParseOption;
 use crate::new_less::rule::Rule;
 use crate::new_less::var::Var;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::ops::Deref;
-use std::rc::{Rc};
+use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub struct RuleNode {
@@ -25,7 +25,9 @@ pub struct RuleNode {
   // 内部调用方式时 需要拿到对应的 转化配置
   pub option: ParseOption,
   // 节点 父节点
-  pub parent: ParentRef,
+  pub parent: NodeWeakRef,
+  // 自己的引用关系
+  pub weak_self: NodeWeakRef,
   // 节点 子节点
   pub block_node: Vec<StyleNode>,
 }
@@ -83,7 +85,7 @@ impl RuleNode {
     selector_txt: String,
     loc: Option<Loc>,
     option: ParseOption,
-  ) -> Result<Rc<RefCell<RuleNode>>, String> {
+  ) -> Result<NodeRef, String> {
     let origin_charlist = content.tocharlist();
     let mut locmap: Option<LocMap> = None;
     let mut change_loc: Option<Loc> = loc;
@@ -106,59 +108,50 @@ impl RuleNode {
       option,
       block_node: vec![],
       parent: None,
+      weak_self: None,
     };
-    match obj.parse() {
-      Ok(obj) => {
-        let parent = Rc::downgrade(&obj);
-        obj.borrow_mut()
-          .selector
-          .set_parent(Some(parent.clone()));
-        obj.borrow_mut().block_node.iter().for_each(|x| {
-          match x {
-            StyleNode::Var(var) => {
-              var.to_owned().set_parent(Some(parent.clone()));
-            }
-            _ => {}
-          }
-        });
-
-        Ok(obj)
+    let heapobj = Rc::new(RefCell::new(obj));
+    let wek_self = Rc::downgrade(&heapobj);
+    heapobj
+      .borrow_mut()
+      .selector
+      .set_parent(Some(wek_self.clone()));
+    heapobj.borrow_mut().weak_self = Some(wek_self.clone());
+    match Self::parse_heap(heapobj.clone()) {
+      Ok(_) => {}
+      Err(msg) => {
+        return Err(msg);
       }
-      Err(msg) => Err(msg),
     }
+    Ok(heapobj)
   }
 
-  pub fn parse(mut self) -> Result<Rc<RefCell<RuleNode>>, String> {
-    match self.parse_comment() {
-      Ok(blocks) => {
-        let mut enum_cc = blocks
-          .into_iter()
-          .map(StyleNode::Comment)
-          .collect::<Vec<StyleNode>>();
-        self.block_node.append(&mut enum_cc);
-      }
+  pub fn parse_heap(obj: NodeRef) -> Result<(), String> {
+    let mut comments = match obj.borrow().parse_comment() {
+      Ok(blocks) => blocks
+        .into_iter()
+        .map(StyleNode::Comment)
+        .collect::<Vec<StyleNode>>(),
       Err(msg) => {
         return Err(msg);
       }
-    }
-    match self.parse_var() {
-      Ok(blocks) => {
-        let mut enum_var = blocks
-          .into_iter()
-          .map(StyleNode::Var)
-          .collect::<Vec<StyleNode>>();
-        self.block_node.append(&mut enum_var);
-      }
+    };
+    obj.borrow_mut().block_node.append(&mut comments);
+    let mut vars = match obj.borrow().parse_var() {
+      Ok(blocks) => blocks
+        .into_iter()
+        .map(StyleNode::Var)
+        .collect::<Vec<StyleNode>>(),
       Err(msg) => {
         return Err(msg);
       }
-    }
-    let parent = Rc::new(RefCell::new(self));
-    let mut enum_rule = match parent.borrow().parse_rule() {
+    };
+    obj.borrow_mut().block_node.append(&mut vars);
+    let mut enum_rule = match obj.borrow().parse_rule() {
       Ok(blocks) => {
         for node in blocks.clone() {
           let mut node_value = node.borrow_mut();
-          node_value.parent = Some(Rc::downgrade(&parent));
+          node_value.parent = Some(Rc::downgrade(&obj));
         }
         blocks
           .into_iter()
@@ -169,7 +162,7 @@ impl RuleNode {
         return Err(msg);
       }
     };
-    parent.borrow_mut().block_node.append(&mut enum_rule);
-    Ok(parent)
+    obj.borrow_mut().block_node.append(&mut enum_rule);
+    Ok(())
   }
 }

@@ -3,23 +3,22 @@ use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::comment::skip_comment;
 use crate::new_less::fileinfo::FileInfo;
 use crate::new_less::loc::{Loc, LocMap};
+use crate::new_less::node::NodeRef;
 use crate::new_less::option::{OptionExtend, ParseOption};
 use crate::new_less::parse::RuleNode;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 pub trait Rule {
-  fn parse_rule(&self) -> Result<Vec<Rc<RefCell<RuleNode>>>, String>;
+  fn parse_rule(&self) -> Result<Vec<NodeRef>, String>;
 }
 
 impl Rule for FileInfo {
-  fn parse_rule(&self) -> Result<Vec<Rc<RefCell<RuleNode>>>, String> {
+  fn parse_rule(&self) -> Result<Vec<NodeRef>, String> {
     parse_rule(&self.get_options(), &self.origin_charlist, &self.locmap)
   }
 }
 
 impl Rule for RuleNode {
-  fn parse_rule(&self) -> Result<Vec<Rc<RefCell<RuleNode>>>, String> {
+  fn parse_rule(&self) -> Result<Vec<NodeRef>, String> {
     parse_rule(&self.get_options(), &self.origin_charlist, &self.locmap)
   }
 }
@@ -28,8 +27,8 @@ fn parse_rule(
   options: &ParseOption,
   origin_charlist: &[String],
   locmap: &Option<LocMap>,
-) -> Result<Vec<Rc<RefCell<RuleNode>>>, String> {
-  let mut blocklist: Vec<Rc<RefCell<RuleNode>>> = vec![];
+) -> Result<Vec<NodeRef>, String> {
+  let mut blocklist: Vec<NodeRef> = vec![];
   let mut templist: Vec<String> = vec![];
   let mut index = 0;
 

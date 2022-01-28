@@ -1,8 +1,7 @@
 use crate::extend::string::StringExtend;
 use crate::new_less::loc::Loc;
-use crate::new_less::node::HandleResult;
+use crate::new_less::node::{HandleResult, NodeWeakRef};
 use serde::Serialize;
-use crate::new_less::option::ParseOption;
 
 ///
 /// import 处理
@@ -15,9 +14,9 @@ pub struct ImportNode {
   // 节点坐标
   pub loc: Option<Loc>,
 
-  // 内部调用方式时 需要拿到对应的 转化配置
+  // 自身 Rule 的弱引用
   #[serde(skip_serializing)]
-  option: ParseOption,
+  parent: NodeWeakRef,
 
   // 内部快速扫词 字符串 数组
   #[serde(skip_serializing)]
@@ -28,11 +27,11 @@ impl ImportNode {
   ///
   /// 初始化方法
   ///
-  pub fn new(txt: String, loc: Option<Loc>, option: ParseOption) -> HandleResult<Self> {
+  pub fn new(txt: String, loc: Option<Loc>, parent: NodeWeakRef) -> HandleResult<Self> {
     let _obj = Self {
       origin_txt: txt.to_string(),
       loc,
-      option,
+      parent,
       charlist: txt.trim().to_string().tocharlist(),
     };
     // match obj.parse() {

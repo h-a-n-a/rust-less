@@ -2,7 +2,7 @@ use crate::extend::enum_extend::EnumExtend;
 use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{HandleResult, ParentRef};
+use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::select::{TokenAllow, TokenCombina, TokenKeyWord, TokenSelect};
 use serde::Serialize;
@@ -48,7 +48,7 @@ pub struct Selector {
   // 节点 父节点
   // 延迟赋值
   #[serde(skip_serializing)]
-  pub parent: ParentRef,
+  pub parent: NodeWeakRef,
 }
 
 impl Selector {
