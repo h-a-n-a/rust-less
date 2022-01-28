@@ -9,7 +9,7 @@ use crate::new_less::style_rule::StyleRuleNode;
 use crate::new_less::var_node::VarNode;
 use serde::Serialize;
 use std::cell::RefCell;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
 #[derive(Debug, Clone)]
 pub enum StyleNode {
@@ -66,6 +66,17 @@ impl SelectorNode {
       HandleResult::Swtich => {}
     };
     Err(format!("nothing node match the txt -> {}", txt))
+  }
+
+  pub fn set_parent(&mut self, parent: Option<Weak<RefCell<RuleNode>>>) {
+    match self {
+      SelectorNode::Select(obj) => {
+        obj.parent = parent;
+      }
+      SelectorNode::Media(obj) => {
+        obj.parent = parent;
+      }
+    }
   }
 
   pub fn value(&self) -> String {

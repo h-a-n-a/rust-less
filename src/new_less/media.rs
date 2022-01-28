@@ -4,12 +4,15 @@ use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::HandleResult;
+use crate::new_less::parse::RuleNode;
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::media::{
   TokenMediaFeature, TokenMediaLogic, TokenMediaType, TokenMeidaAllow,
 };
 use serde::Serialize;
+use std::cell::RefCell;
+use std::rc::Weak;
 
 ///
 /// 媒体查询
@@ -17,11 +20,17 @@ use serde::Serialize;
 #[derive(Debug, Clone, Serialize)]
 pub struct MediaQuery {
   pub origin_txt: String,
+
   pub loc: Option<Loc>,
+
   #[serde(skip_serializing)]
   map: Option<LocMap>,
+
   #[serde(skip_serializing)]
   charlist: Vec<String>,
+
+  #[serde(skip_serializing)]
+  pub parent: Option<Weak<RefCell<RuleNode>>>,
 }
 
 impl MediaQuery {
@@ -34,6 +43,7 @@ impl MediaQuery {
       loc,
       map,
       charlist: txt.trim().to_string().tocharlist(),
+      parent: None,
     };
     match obj.parse() {
       Ok(_) => HandleResult::Success(obj),

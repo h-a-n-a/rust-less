@@ -3,10 +3,13 @@ use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::HandleResult;
+use crate::new_less::parse::RuleNode;
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::select::{TokenAllow, TokenCombina, TokenKeyWord, TokenSelect};
 use serde::Serialize;
+use std::cell::RefCell;
 use std::ops::Deref;
+use std::rc::Weak;
 
 ///
 /// 选择器范式
@@ -28,13 +31,27 @@ pub enum SelectParadigm {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Selector {
+  // 原始字符串
   pub origin_txt: String,
+
+  // 字符串规则 根据逗号分割
   pub single_select_txt: Vec<String>,
 
+  // 坐标位置
   pub loc: Option<Loc>,
+
+  // 内部处理 地图
   #[serde(skip_serializing)]
   map: Option<LocMap>,
+
+  // 字符串 操作 序列
+  #[serde(skip_serializing)]
   charlist: Vec<String>,
+
+  // 节点 父节点
+  // 延迟赋值
+  #[serde(skip_serializing)]
+  pub parent: Option<Weak<RefCell<RuleNode>>>,
 }
 
 impl Selector {
@@ -48,6 +65,7 @@ impl Selector {
       loc,
       map,
       charlist: txt.tocharlist(),
+      parent: None,
     };
     match obj.parse() {
       Ok(()) => HandleResult::Success(obj),

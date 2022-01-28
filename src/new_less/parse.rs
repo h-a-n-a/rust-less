@@ -108,7 +108,13 @@ impl RuleNode {
       parent: None,
     };
     match obj.parse() {
-      Ok(obj) => Ok(obj),
+      Ok(obj) => {
+        obj
+          .borrow_mut()
+          .selector
+          .set_parent(Some(Rc::downgrade(&obj)));
+        Ok(obj)
+      }
       Err(msg) => Err(msg),
     }
   }
