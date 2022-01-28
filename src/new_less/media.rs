@@ -3,6 +3,7 @@ use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::loc::{Loc, LocMap};
+use crate::new_less::node::HandleResult;
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::media::{
@@ -27,7 +28,7 @@ impl MediaQuery {
   ///
   /// 初始化方法
   ///
-  pub fn new(txt: String, loc: Option<Loc>, map: Option<LocMap>) -> Result<Self, String> {
+  pub fn new(txt: String, loc: Option<Loc>, map: Option<LocMap>) -> HandleResult<Self> {
     let obj = Self {
       origin_txt: txt.clone(),
       loc,
@@ -35,8 +36,14 @@ impl MediaQuery {
       charlist: txt.trim().to_string().tocharlist(),
     };
     match obj.parse() {
-      Ok(_) => Ok(obj),
-      Err(msg) => Err(msg),
+      Ok(_) => HandleResult::Success(obj),
+      Err(msg) => {
+        if &msg == "select_txt not match media query" {
+          HandleResult::Swtich
+        } else {
+          HandleResult::Fail(msg)
+        }
+      }
     }
   }
 

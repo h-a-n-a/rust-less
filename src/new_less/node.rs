@@ -38,24 +38,27 @@ impl SelectorNode {
   /// 初始化方法
   ///
   pub fn new(txt: String, loc: Option<Loc>, map: Option<LocMap>) -> Result<Self, String> {
-    let mut msg: String = "".to_string();
-
+    // 处理 media
     match MediaQuery::new(txt.clone(), loc.clone(), map.clone()) {
-      Ok(obj) => {
+      HandleResult::Success(obj) => {
         return Ok(SelectorNode::Media(obj));
       }
-      Err(media_msg) => msg += &media_msg,
+      HandleResult::Fail(msg) => {
+        return Err(msg);
+      }
+      HandleResult::Swtich => {}
     };
-    if msg == "select_txt not match media query" {
-      // 确定是因为不适配 media 然后重新计算 select
-      match Selector::new(txt, loc, map) {
-        Ok(obj) => {
-          return Ok(SelectorNode::Select(obj));
-        }
-        Err(select_msg) => msg += &select_msg,
-      };
-    }
-    Err(msg)
+    // 处理 select
+    match Selector::new(txt.clone(), loc, map) {
+      HandleResult::Success(obj) => {
+        return Ok(SelectorNode::Select(obj));
+      }
+      HandleResult::Fail(msg) => {
+        return Err(msg);
+      }
+      HandleResult::Swtich => {}
+    };
+    Err(format!("nothing node match the txt -> {}", txt))
   }
 
   pub fn value(&self) -> String {

@@ -2,6 +2,7 @@ use crate::extend::enum_extend::EnumExtend;
 use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
 use crate::new_less::loc::{Loc, LocMap};
+use crate::new_less::node::HandleResult;
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::select::{TokenAllow, TokenCombina, TokenKeyWord, TokenSelect};
 use serde::Serialize;
@@ -40,7 +41,7 @@ impl Selector {
   ///
   /// 初始化方法
   ///
-  pub fn new(txt: String, loc: Option<Loc>, map: Option<LocMap>) -> Result<Self, String> {
+  pub fn new(txt: String, loc: Option<Loc>, map: Option<LocMap>) -> HandleResult<Self> {
     let mut obj = Selector {
       origin_txt: txt.trim().to_string(),
       single_select_txt: vec![],
@@ -49,8 +50,8 @@ impl Selector {
       charlist: txt.tocharlist(),
     };
     match obj.parse() {
-      Ok(()) => Ok(obj),
-      Err(msg) => Err(msg),
+      Ok(()) => HandleResult::Success(obj),
+      Err(msg) => HandleResult::Fail(msg),
     }
   }
 
