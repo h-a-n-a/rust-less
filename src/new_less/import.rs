@@ -8,9 +8,14 @@ use serde::Serialize;
 ///
 #[derive(Debug, Clone, Serialize)]
 pub struct ImportNode {
+  // 原始字符
   pub origin_txt: String,
+
   // 节点坐标
   pub loc: Option<Loc>,
+
+  // 内部快速扫词 字符串 数组
+  #[serde(skip_serializing)]
   charlist: Vec<String>,
 }
 
