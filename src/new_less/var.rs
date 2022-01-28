@@ -65,7 +65,7 @@ fn parse_var(
     templist.push(char.clone());
     if char == endqueto && braces_level == 0 {
       let pure_text = templist.join("").trim().to_string().tocharlist();
-      let style_var = match VarRuleNode::new(pure_text.poly(), record_loc) {
+      let style_var = match VarRuleNode::new(pure_text.poly(), record_loc,options) {
         Ok(obj) => obj,
         Err(msg) => {
           return Err(msg);

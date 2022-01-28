@@ -126,9 +126,9 @@ impl VarRuleNode {
   ///
   /// 初始化
   ///
-  pub fn new(txt: String, loc: Option<Loc>) -> Result<Self, String> {
+  pub fn new(txt: String, loc: Option<Loc>, option: &ParseOption) -> Result<Self, String> {
     // 处理 导入
-    match ImportNode::new(txt.clone(), loc.clone()) {
+    match ImportNode::new(txt.clone(), loc.clone(), option.clone()) {
       HandleResult::Success(obj) => return Ok(VarRuleNode::Import(obj)),
       HandleResult::Fail(msg) => {
         return Err(msg);
@@ -136,7 +136,7 @@ impl VarRuleNode {
       HandleResult::Swtich => {}
     };
     // 处理 变量声明
-    match VarNode::new(txt.clone(), loc.clone()) {
+    match VarNode::new(txt.clone(), loc.clone(), option.clone()) {
       HandleResult::Success(obj) => return Ok(VarRuleNode::Var(obj)),
       HandleResult::Fail(msg) => {
         return Err(msg);
@@ -144,7 +144,7 @@ impl VarRuleNode {
       HandleResult::Swtich => {}
     };
     // 处理 规则
-    match StyleRuleNode::new(txt.clone(), loc) {
+    match StyleRuleNode::new(txt.clone(), loc, option.clone()) {
       HandleResult::Success(obj) => return Ok(VarRuleNode::Rule(obj)),
       HandleResult::Fail(msg) => {
         return Err(msg);

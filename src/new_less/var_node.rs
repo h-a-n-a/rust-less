@@ -2,6 +2,7 @@ use crate::extend::string::StringExtend;
 use crate::new_less::loc::Loc;
 use crate::new_less::node::{HandleResult, ParentRef};
 use serde::Serialize;
+use crate::new_less::option::ParseOption;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct VarNode {
@@ -10,6 +11,10 @@ pub struct VarNode {
   // 节点坐标
   pub loc: Option<Loc>,
 
+  // 内部调用方式时 需要拿到对应的 转化配置
+  #[serde(skip_serializing)]
+  option: ParseOption,
+
   // 节点 父节点
   // 延迟赋值
   #[serde(skip_serializing)]
@@ -17,8 +22,8 @@ pub struct VarNode {
 }
 
 impl VarNode {
-  pub fn new(txt: String, loc: Option<Loc>) -> HandleResult<Self> {
-    let obj = Self { content: txt, loc, parent: None };
+  pub fn new(txt: String, loc: Option<Loc>, option: ParseOption) -> HandleResult<Self> {
+    let obj = Self { content: txt, loc, option, parent: None };
     HandleResult::Success::<Self>(obj)
   }
 }

@@ -2,6 +2,7 @@ use crate::extend::string::StringExtend;
 use crate::new_less::loc::Loc;
 use crate::new_less::node::HandleResult;
 use serde::Serialize;
+use crate::new_less::option::ParseOption;
 
 ///
 /// import 处理
@@ -14,6 +15,10 @@ pub struct ImportNode {
   // 节点坐标
   pub loc: Option<Loc>,
 
+  // 内部调用方式时 需要拿到对应的 转化配置
+  #[serde(skip_serializing)]
+  option: ParseOption,
+
   // 内部快速扫词 字符串 数组
   #[serde(skip_serializing)]
   charlist: Vec<String>,
@@ -23,10 +28,11 @@ impl ImportNode {
   ///
   /// 初始化方法
   ///
-  pub fn new(txt: String, loc: Option<Loc>) -> HandleResult<Self> {
+  pub fn new(txt: String, loc: Option<Loc>, option: ParseOption) -> HandleResult<Self> {
     let _obj = Self {
       origin_txt: txt.to_string(),
       loc,
+      option,
       charlist: txt.trim().to_string().tocharlist(),
     };
     // match obj.parse() {
