@@ -8,63 +8,63 @@ pub type CharWord = (String, String, String);
 ///
 #[derive(Clone, Debug, PartialEq)]
 pub struct ScanArg {
-    pub index: usize,
-    pub temp: String,
-    pub hasend: bool,
+  pub index: usize,
+  pub temp: String,
+  pub hasend: bool,
 }
 
 pub enum ScanResult {
-    Arg(ScanArg),
-    Skip,
+  Arg(ScanArg),
+  Skip,
 }
 
 ///
 /// 遍历
 ///
 pub fn traversal(
-    arg_start: Option<usize>,
-    charlist: &[String],
-    exec: &mut dyn FnMut(ScanArg, CharWord) -> Result<ScanResult, String>,
+  arg_start: Option<usize>,
+  charlist: &[String],
+  exec: &mut dyn FnMut(ScanArg, CharWord) -> Result<ScanResult, String>,
 ) -> Result<(String, usize), String> {
-    let mut index = arg_start.unwrap_or(0);
-    let mut temp: String = "".to_string();
-    let mut hasend = false;
+  let mut index = arg_start.unwrap_or(0);
+  let mut temp: String = "".to_string();
+  let mut hasend = false;
 
-    while index < charlist.len() {
-        let prevchar = if index == 0 {
-            "".to_string()
-        } else {
-            charlist.get(index - 1).unwrap().to_string()
-        };
-        let char = charlist.get(index).unwrap().to_string();
-        let nextchar = if index == charlist.len() - 1 {
-            "".to_string()
-        } else {
-            charlist.get(index + 1).unwrap().to_string()
-        };
-        let arg = ScanArg {
-            index,
-            temp: temp.clone(),
-            hasend,
-        };
-        let res: ScanResult = match exec(arg, (prevchar, char, nextchar)) {
-            Err(msg) => {
-                return Err(msg);
-            }
-            Ok(obj) => obj,
-        };
-        match res {
-            ScanResult::Arg(arg) => {
-                index = arg.index;
-                temp = arg.temp;
-                hasend = arg.hasend;
-            }
-            ScanResult::Skip => {}
-        }
-        if hasend {
-            break;
-        }
-        index += 1;
+  while index < charlist.len() {
+    let prevchar = if index == 0 {
+      "".to_string()
+    } else {
+      charlist.get(index - 1).unwrap().to_string()
+    };
+    let char = charlist.get(index).unwrap().to_string();
+    let nextchar = if index == charlist.len() - 1 {
+      "".to_string()
+    } else {
+      charlist.get(index + 1).unwrap().to_string()
+    };
+    let arg = ScanArg {
+      index,
+      temp: temp.clone(),
+      hasend,
+    };
+    let res: ScanResult = match exec(arg, (prevchar, char, nextchar)) {
+      Err(msg) => {
+        return Err(msg);
+      }
+      Ok(obj) => obj,
+    };
+    match res {
+      ScanResult::Arg(arg) => {
+        index = arg.index;
+        temp = arg.temp;
+        hasend = arg.hasend;
+      }
+      ScanResult::Skip => {}
     }
-    Ok((temp, index))
+    if hasend {
+      break;
+    }
+    index += 1;
+  }
+  Ok((temp, index))
 }
