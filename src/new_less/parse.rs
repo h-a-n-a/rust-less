@@ -1,14 +1,14 @@
 use crate::extend::string::StringExtend;
 use crate::new_less::comment::Comment;
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{SelectorNode, StyleNode, StyleNodeJson};
+use crate::new_less::node::{ParentRef, SelectorNode, StyleNode, StyleNodeJson};
 use crate::new_less::option::ParseOption;
 use crate::new_less::rule::Rule;
 use crate::new_less::var::Var;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::ops::Deref;
-use std::rc::{Rc, Weak};
+use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct RuleNode {
@@ -25,7 +25,7 @@ pub struct RuleNode {
   // 内部调用方式时 需要拿到对应的 转化配置
   pub option: ParseOption,
   // 节点 父节点
-  pub parent: Option<Weak<RefCell<RuleNode>>>,
+  pub parent: ParentRef,
   // 节点 子节点
   pub block_node: Vec<StyleNode>,
 }
@@ -109,10 +109,19 @@ impl RuleNode {
     };
     match obj.parse() {
       Ok(obj) => {
-        obj
-          .borrow_mut()
+        let parent = Rc::downgrade(&obj);
+        obj.borrow_mut()
           .selector
-          .set_parent(Some(Rc::downgrade(&obj)));
+          .set_parent(Some(parent.clone()));
+        obj.borrow_mut().block_node.iter().for_each(|x| {
+          match x {
+            StyleNode::Var(var) => {
+              var.to_owned().set_parent(Some(parent.clone()));
+            }
+            _ => {}
+          }
+        });
+
         Ok(obj)
       }
       Err(msg) => Err(msg),

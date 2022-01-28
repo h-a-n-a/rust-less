@@ -2,14 +2,11 @@ use crate::extend::enum_extend::EnumExtend;
 use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::HandleResult;
-use crate::new_less::parse::RuleNode;
+use crate::new_less::node::{HandleResult, ParentRef};
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::select::{TokenAllow, TokenCombina, TokenKeyWord, TokenSelect};
 use serde::Serialize;
-use std::cell::RefCell;
 use std::ops::Deref;
-use std::rc::Weak;
 
 ///
 /// 选择器范式
@@ -51,7 +48,7 @@ pub struct Selector {
   // 节点 父节点
   // 延迟赋值
   #[serde(skip_serializing)]
-  pub parent: Option<Weak<RefCell<RuleNode>>>,
+  pub parent: ParentRef,
 }
 
 impl Selector {

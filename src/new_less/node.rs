@@ -11,6 +11,8 @@ use serde::Serialize;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
+pub type ParentRef = Option<Weak<RefCell<RuleNode>>>;
+
 #[derive(Debug, Clone)]
 pub enum StyleNode {
   Comment(CommentNode),
@@ -24,6 +26,7 @@ pub enum StyleNodeJson {
   Var(VarRuleNode),
   Rule(RuleNodeJson),
 }
+
 
 #[derive(Debug, Clone, Serialize)]
 pub enum SelectorNode {
@@ -68,7 +71,7 @@ impl SelectorNode {
     Err(format!("nothing node match the txt -> {}", txt))
   }
 
-  pub fn set_parent(&mut self, parent: Option<Weak<RefCell<RuleNode>>>) {
+  pub fn set_parent(&mut self, parent: ParentRef) {
     match self {
       SelectorNode::Select(obj) => {
         obj.parent = parent;
@@ -120,6 +123,9 @@ pub enum VarRuleNode {
 /// 联合 节点 声明
 ///
 impl VarRuleNode {
+  ///
+  /// 初始化
+  ///
   pub fn new(txt: String, loc: Option<Loc>) -> Result<Self, String> {
     // 处理 导入
     match ImportNode::new(txt.clone(), loc.clone()) {
@@ -146,5 +152,15 @@ impl VarRuleNode {
       HandleResult::Swtich => {}
     };
     Err(format!("nothing node match the txt -> {}", txt))
+  }
+
+  pub fn set_parent(&mut self, parent: ParentRef) {
+    match self {
+      VarRuleNode::Import(_) => {}
+      VarRuleNode::Var(var) => {
+        var.parent = parent
+      }
+      VarRuleNode::Rule(_) => {}
+    }
   }
 }
