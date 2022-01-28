@@ -15,7 +15,7 @@ pub struct RuleNode {
   // 节点内容
   pub content: String,
   // 选择器 文字
-  pub selector: SelectorNode,
+  pub selector: Option<SelectorNode>,
   // 根据 原始内容 -> 转化的 字符数组
   pub origin_charlist: Vec<String>,
   // 节点坐标
@@ -67,7 +67,7 @@ impl RuleNode {
         }
       });
     RuleNodeJson {
-      selector_txt: self.selector.value(),
+      selector_txt: self.selector.as_ref().unwrap().value(),
       content: self.content.clone(),
       loc: match &self.loc {
         None => None,
@@ -87,36 +87,34 @@ impl RuleNode {
     option: ParseOption,
   ) -> Result<NodeRef, String> {
     let origin_charlist = content.tocharlist();
-    let mut locmap: Option<LocMap> = None;
-    let mut change_loc: Option<Loc> = loc;
-    let selector = match SelectorNode::new(selector_txt, &mut change_loc, &option) {
-      Ok(result) => result,
-      Err(msg) => {
-        return Err(msg);
-      }
-    };
-    if option.sourcemap {
-      let (calcmap, _) = LocMap::merge(&change_loc.as_ref().unwrap(), &content);
-      locmap = Some(calcmap);
-    }
+    let mut change_loc: Option<Loc> = loc.clone();
     let obj = RuleNode {
-      content,
-      selector,
+      content: content.clone(),
+      selector: None,
       origin_charlist,
-      loc: change_loc,
-      locmap,
-      option,
+      loc,
+      locmap: None,
+      option: option.clone(),
       block_node: vec![],
       parent: None,
       weak_self: None,
     };
     let heapobj = Rc::new(RefCell::new(obj));
     let wek_self = Rc::downgrade(&heapobj);
-    heapobj
-      .borrow_mut()
-      .selector
-      .set_parent(Some(wek_self.clone()));
     heapobj.borrow_mut().weak_self = Some(wek_self.clone());
+
+    let selector = match SelectorNode::new(selector_txt, &mut change_loc, Some(wek_self.clone())) {
+      Ok(result) => result,
+      Err(msg) => {
+        return Err(msg);
+      }
+    };
+    heapobj.borrow_mut().selector = Some(selector);
+    if option.sourcemap {
+      let (calcmap, _) = LocMap::merge(&change_loc.as_ref().unwrap(), &content);
+      heapobj.borrow_mut().locmap = Some(calcmap);
+    }
+
     match Self::parse_heap(heapobj.clone()) {
       Ok(_) => {}
       Err(msg) => {

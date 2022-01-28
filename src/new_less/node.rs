@@ -2,13 +2,13 @@ use crate::new_less::comment::CommentNode;
 use crate::new_less::import::ImportNode;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::media::MediaQuery;
-use crate::new_less::option::ParseOption;
 use crate::new_less::parse::{RuleNode, RuleNodeJson};
 use crate::new_less::select::Selector;
 use crate::new_less::style_rule::StyleRuleNode;
 use crate::new_less::var_node::VarNode;
 use serde::Serialize;
 use std::cell::RefCell;
+use std::ops::Deref;
 use std::rc::{Rc, Weak};
 
 pub type NodeWeakRef = Option<Weak<RefCell<RuleNode>>>;
@@ -41,12 +41,17 @@ impl SelectorNode {
   ///
   /// 初始化方法
   ///
-  pub fn new(txt: String, loc: &mut Option<Loc>, option: &ParseOption) -> Result<Self, String> {
+  pub fn new(txt: String, loc: &mut Option<Loc>, parent: NodeWeakRef) -> Result<Self, String> {
     let mut map: Option<LocMap> = None;
-    if option.sourcemap {
-      let (calcmap, end) = LocMap::merge(&loc.as_ref().unwrap(), &txt);
-      *loc = Some(end);
-      map = Some(calcmap);
+    match parent.unwrap().upgrade() {
+      None => {}
+      Some(p) => {
+        if p.deref().borrow().option.sourcemap {
+          let (calcmap, end) = LocMap::merge(&loc.as_ref().unwrap(), &txt);
+          *loc = Some(end);
+          map = Some(calcmap);
+        }
+      }
     }
     // 处理 media
     match MediaQuery::new(txt.clone(), loc.clone(), map.clone()) {
@@ -69,17 +74,6 @@ impl SelectorNode {
       HandleResult::Swtich => {}
     };
     Err(format!("nothing node match the txt -> {}", txt))
-  }
-
-  pub fn set_parent(&mut self, parent: NodeWeakRef) {
-    match self {
-      SelectorNode::Select(obj) => {
-        obj.parent = parent;
-      }
-      SelectorNode::Media(obj) => {
-        obj.parent = parent;
-      }
-    }
   }
 
   pub fn value(&self) -> String {
