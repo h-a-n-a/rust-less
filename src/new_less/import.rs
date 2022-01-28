@@ -24,15 +24,16 @@ impl ImportNode {
   /// 初始化方法
   ///
   pub fn new(txt: String, loc: Option<Loc>) -> HandleResult<Self> {
-    let obj = Self {
+    let _obj = Self {
       origin_txt: txt.to_string(),
       loc,
       charlist: txt.trim().to_string().tocharlist(),
     };
-    match obj.parse() {
-      Ok(()) => HandleResult::Success(obj),
-      Err(msg) => HandleResult::Fail(msg),
-    }
+    // match obj.parse() {
+    //   Ok(()) => HandleResult::Success(obj),
+    //   Err(msg) => HandleResult::Fail(msg),
+    // }
+    HandleResult::Swtich
   }
 
   ///

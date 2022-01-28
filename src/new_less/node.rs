@@ -2,6 +2,7 @@ use crate::new_less::comment::CommentNode;
 use crate::new_less::import::ImportNode;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::media::MediaQuery;
+use crate::new_less::option::ParseOption;
 use crate::new_less::parse::{RuleNode, RuleNodeJson};
 use crate::new_less::select::Selector;
 use crate::new_less::style_rule::StyleRuleNode;
@@ -37,7 +38,13 @@ impl SelectorNode {
   ///
   /// 初始化方法
   ///
-  pub fn new(txt: String, loc: Option<Loc>, map: Option<LocMap>) -> Result<Self, String> {
+  pub fn new(txt: String, loc: &mut Option<Loc>, option: &ParseOption) -> Result<Self, String> {
+    let mut map: Option<LocMap> = None;
+    if option.sourcemap {
+      let (calcmap, end) = LocMap::merge(&loc.as_ref().unwrap(), &txt);
+      *loc = Some(end);
+      map = Some(calcmap);
+    }
     // 处理 media
     match MediaQuery::new(txt.clone(), loc.clone(), map.clone()) {
       HandleResult::Success(obj) => {
@@ -49,7 +56,7 @@ impl SelectorNode {
       HandleResult::Swtich => {}
     };
     // 处理 select
-    match Selector::new(txt.clone(), loc, map) {
+    match Selector::new(txt.clone(), loc.clone(), map) {
       HandleResult::Success(obj) => {
         return Ok(SelectorNode::Select(obj));
       }

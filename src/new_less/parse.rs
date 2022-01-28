@@ -85,32 +85,23 @@ impl RuleNode {
     option: ParseOption,
   ) -> Result<Rc<RefCell<RuleNode>>, String> {
     let origin_charlist = content.tocharlist();
-
     let mut locmap: Option<LocMap> = None;
-    let mut select_locmap: Option<LocMap> = None;
-    let mut select_loc: Option<Loc> = None;
-    if option.sourcemap {
-      let (selector_txt_map, end) = LocMap::merge(&loc.as_ref().unwrap().clone(), &selector_txt);
-      select_locmap = Some(selector_txt_map);
-      let rule_map_content = format!("{}{}", "{", content);
-      let (rule_map, _) = LocMap::merge(&end, &rule_map_content);
-      locmap = Some(rule_map);
-      select_loc = match &loc {
-        None => None,
-        Some(l) => Some(l.clone()),
-      };
-    }
-    let selector = match SelectorNode::new(selector_txt, select_loc, select_locmap) {
+    let mut change_loc: Option<Loc> = loc;
+    let selector = match SelectorNode::new(selector_txt, &mut change_loc, &option) {
       Ok(result) => result,
       Err(msg) => {
         return Err(msg);
       }
     };
+    if option.sourcemap {
+      let (calcmap, _) = LocMap::merge(&change_loc.as_ref().unwrap(), &content);
+      locmap = Some(calcmap);
+    }
     let obj = RuleNode {
       content,
       selector,
       origin_charlist,
-      loc,
+      loc: change_loc,
       locmap,
       option,
       block_node: vec![],
