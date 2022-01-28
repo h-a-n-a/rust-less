@@ -1,5 +1,6 @@
 use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
+use crate::new_less::node::HandleResult;
 use crate::new_less::select::Selector;
 
 #[test]
@@ -60,7 +61,12 @@ selector:pseudo-class
   "#;
   let mut base = "".to_string();
   demo_select_list.into_iter().for_each(|tt| {
-    let ss = Selector::new(tt, None, None).unwrap();
+    let ss = match Selector::new(tt, None, None) {
+      HandleResult::Success(obj) => Some(obj),
+      HandleResult::Fail(_) => None,
+      HandleResult::Swtich => None,
+    }
+    .unwrap();
     let value;
     if ss.single_select_txt.len() < 2 {
       value = ss.single_select_txt.poly();
@@ -94,13 +100,14 @@ fn test_select_error_parse() {
   ];
   demo_select_list.into_iter().for_each(|tt| {
     match Selector::new(tt, None, None) {
-      Ok(_) => {
+      HandleResult::Success(_) => {
         haserror += 1;
       }
-      Err(msg) => {
+      HandleResult::Fail(msg) => {
         haserror += 0;
         println!("{:?}", msg);
       }
+      HandleResult::Swtich => {}
     };
   });
   assert_eq!(haserror, 0)

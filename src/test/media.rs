@@ -1,4 +1,5 @@
 use crate::new_less::media::MediaQuery;
+use crate::new_less::node::HandleResult;
 
 #[test]
 fn test_select_parse() {
@@ -9,13 +10,14 @@ fn test_select_parse() {
   let mut haserror = 0;
   demo_select_list.into_iter().for_each(|tt| {
     match MediaQuery::new(tt, None, None) {
-      Ok(_) => {
+      HandleResult::Success(_) => {
         haserror += 0;
       }
-      Err(msg) => {
+      HandleResult::Fail(msg) => {
         haserror += 1;
         println!("{:?}", msg);
       }
+      HandleResult::Swtich => {}
     };
   });
   assert_eq!(haserror, 0);
@@ -27,13 +29,14 @@ fn test_select_error_parse() {
   let demo_select_list = vec![r#"@media screen and ( a: 900px:)"#.to_string()];
   demo_select_list.into_iter().for_each(|tt| {
     match MediaQuery::new(tt, None, None) {
-      Ok(_) => {
+      HandleResult::Success(_) => {
         haserror += 1;
       }
-      Err(msg) => {
+      HandleResult::Fail(msg) => {
         haserror += 0;
         println!("{:?}", msg);
       }
+      HandleResult::Swtich => {}
     };
   });
   assert_eq!(haserror, 0)
