@@ -67,7 +67,7 @@ fn parse_rule(
     }
 
     if options.sourcemap && char != " " && char != "\r" && char != "\n" && record_loc.is_none() {
-      record_loc = Some(locmap.as_ref().unwrap().get(index).unwrap());
+      record_loc = Some(locmap.as_ref().unwrap().get(&index).unwrap());
     }
     templist.push(char.clone());
 

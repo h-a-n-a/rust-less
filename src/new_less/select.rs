@@ -39,7 +39,7 @@ pub struct Selector {
 
   // 内部处理 地图
   #[serde(skip_serializing)]
-  map: Option<LocMap>,
+  map: LocMap,
 
   // 字符串 操作 序列
   #[serde(skip_serializing)]
@@ -60,7 +60,9 @@ impl Selector {
       origin_txt: txt.trim().to_string(),
       single_select_txt: vec![],
       loc,
-      map,
+      map: map.unwrap_or_else(|| {
+        LocMap::new(txt.clone())
+      }),
       charlist: txt.tocharlist(),
       parent: None,
     };
@@ -72,10 +74,6 @@ impl Selector {
 
   pub fn value(&self) -> String {
     self.origin_txt.clone()
-  }
-
-  pub fn map(&self) -> Option<LocMap> {
-    self.map.clone()
   }
 
   ///
@@ -101,9 +99,10 @@ impl Selector {
   ///
   fn errormsg(&mut self, index: &usize) -> Result<(), String> {
     let char = self.charlist.get(*index).unwrap().clone();
+    let error_loc = self.map.get(index).unwrap();
     Err(format!(
-      "select text {}, char {} is not allow,index is {}",
-      self.origin_txt, char, index
+      "select text {}, char {} is not allow, line is {} col is {}",
+      self.origin_txt, char, error_loc.line, error_loc.col
     ))
   }
 

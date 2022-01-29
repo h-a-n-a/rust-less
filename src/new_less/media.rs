@@ -21,7 +21,7 @@ pub struct MediaQuery {
   pub loc: Option<Loc>,
 
   #[serde(skip_serializing)]
-  map: Option<LocMap>,
+  map: LocMap,
 
   #[serde(skip_serializing)]
   charlist: Vec<String>,
@@ -38,7 +38,9 @@ impl MediaQuery {
     let obj = Self {
       origin_txt: txt.clone(),
       loc,
-      map,
+      map: map.unwrap_or_else(|| {
+        LocMap::new(txt.clone())
+      }),
       charlist: txt.trim().to_string().tocharlist(),
       parent: None,
     };
@@ -59,18 +61,15 @@ impl MediaQuery {
   ///
   pub fn errormsg(&self, index: &usize) -> Result<(), String> {
     let char = self.charlist.get(*index).unwrap().clone();
+    let error_loc = self.map.get(index).unwrap();
     Err(format!(
-      "select text {}, char {} is not allow,index is {}",
-      self.origin_txt, char, index
+      "select text {}, char {} is not allow,line is {} col is {}",
+      self.origin_txt, char, error_loc.line, error_loc.col
     ))
   }
 
   pub fn value(&self) -> String {
     self.origin_txt.clone()
-  }
-
-  pub fn map(&self) -> Option<LocMap> {
-    self.map.clone()
   }
 
   ///

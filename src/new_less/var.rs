@@ -65,7 +65,7 @@ fn parse_var(
 
     // 记录第一个非空字符 起始位置
     if options.sourcemap && char != " " && char != "\r" && char != "\n" && record_loc.is_none() {
-      record_loc = Some(locmap.as_ref().unwrap().get(index).unwrap());
+      record_loc = Some(locmap.as_ref().unwrap().get(&index).unwrap());
     }
 
     templist.push(char.clone());

@@ -147,7 +147,7 @@ impl FileInfo {
       None => cmd_path_resolve("_virtual.less"),
       Some(path_val) => path_val,
     };
-    let mut obj = FileInfo {
+    let obj = FileInfo {
       disk_location: Some(abs_path),
       block_node: vec![],
       origin_txt_content: text_content,
@@ -167,7 +167,7 @@ impl FileInfo {
     Ok(obj_heap)
   }
 
-  fn parse_heap(obj: FileRef) -> Result<(), String> {
+  pub fn parse_heap(obj: FileRef) -> Result<(), String> {
     let mut comments = match obj.borrow().parse_comment() {
       Ok(blocks) => blocks
         .into_iter()
@@ -201,44 +201,4 @@ impl FileInfo {
     Ok(())
   }
 
-  fn parse(&mut self) -> Result<(), String> {
-    match self.parse_comment() {
-      Ok(blocks) => {
-        let mut enum_cc = blocks
-          .into_iter()
-          .map(StyleNode::Comment)
-          .collect::<Vec<StyleNode>>();
-        self.block_node.append(&mut enum_cc);
-      }
-      Err(msg) => {
-        return Err(msg);
-      }
-    }
-    match self.parse_var() {
-      Ok(blocks) => {
-        let mut enum_var = blocks
-          .into_iter()
-          .map(StyleNode::Var)
-          .collect::<Vec<StyleNode>>();
-        self.block_node.append(&mut enum_var);
-      }
-      Err(msg) => {
-        return Err(msg);
-      }
-    }
-
-    match self.parse_rule() {
-      Ok(blocks) => {
-        let mut enum_rule = blocks
-          .into_iter()
-          .map(StyleNode::Rule)
-          .collect::<Vec<StyleNode>>();
-        self.block_node.append(&mut enum_rule);
-      }
-      Err(msg) => {
-        return Err(msg);
-      }
-    }
-    Ok(())
-  }
 }
