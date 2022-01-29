@@ -1,5 +1,6 @@
 use crate::new_less::fileinfo::FileInfo;
 use crate::new_less::parse::RuleNode;
+use std::ops::Deref;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ParseOption {
@@ -28,6 +29,9 @@ impl OptionExtend for FileInfo {
 
 impl OptionExtend for RuleNode {
   fn get_options(&self) -> ParseOption {
-    self.option.clone()
+    match self.file_info.clone() {
+      None => Default::default(),
+      Some(obj) => obj.upgrade().unwrap().deref().borrow().option.clone(),
+    }
   }
 }

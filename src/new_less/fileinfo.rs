@@ -10,7 +10,7 @@ use crate::new_less::var::Var;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::ops::Deref;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
 #[derive(Debug)]
 pub struct FileInfo {
@@ -28,6 +28,8 @@ pub struct FileInfo {
   pub option: ParseOption,
   // 当前引用链
   pub import_file: Vec<Rc<RefCell<FileInfo>>>,
+  // 自身弱引用
+  pub self_weak: FileWeakRef,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -36,6 +38,10 @@ pub struct FileInfoJson {
   pub block_node: Vec<StyleNodeJson>,
   pub import_file: Vec<FileInfoJson>,
 }
+
+pub type FileRef = Rc<RefCell<FileInfo>>;
+
+pub type FileWeakRef = Option<Weak<RefCell<FileInfo>>>;
 
 impl FileInfo {
   ///
@@ -71,8 +77,10 @@ impl FileInfo {
   ///
   /// 转 heap 堆上对象
   ///
-  pub fn toheap(self) -> Rc<RefCell<FileInfo>> {
-    Rc::new(RefCell::new(self))
+  pub fn toheap(self) -> FileRef {
+    let heapobj = Rc::new(RefCell::new(self));
+    heapobj.borrow_mut().self_weak = Some(Rc::downgrade(&heapobj));
+    heapobj
   }
 
   pub fn get_loc_by_content(content: &str) -> LocMap {
@@ -82,12 +90,12 @@ impl FileInfo {
   ///
   /// 根据文件路径 解析 文件
   ///
-  pub fn create_disklocation(filepath: String, option: ParseOption) -> Result<FileInfo, String> {
+  pub fn create_disklocation(filepath: String, option: ParseOption) -> Result<FileRef, String> {
     let abs_path: String;
     let text_content: String;
     let charlist: Vec<String>;
     let mut locmap: Option<LocMap> = None;
-    let mut obj: FileInfo;
+    let obj_heap: FileRef;
     match FileManger::resolve(filepath, option.include_path.clone()) {
       Ok((calc_path, content)) => {
         abs_path = calc_path;
@@ -96,7 +104,7 @@ impl FileInfo {
           locmap = Some(FileInfo::get_loc_by_content(content.as_str()));
         }
         charlist = content.tocharlist();
-        obj = FileInfo {
+        let obj = FileInfo {
           disk_location: Some(abs_path),
           block_node: vec![],
           origin_txt_content: text_content,
@@ -104,8 +112,10 @@ impl FileInfo {
           locmap,
           option,
           import_file: vec![],
+          self_weak: None,
         };
-        match obj.parse() {
+        obj_heap = obj.toheap();
+        match Self::parse_heap(obj_heap.clone()) {
           Ok(_) => {}
           Err(msg) => {
             return Err(msg);
@@ -116,7 +126,7 @@ impl FileInfo {
         return Err(msg);
       }
     }
-    Ok(obj)
+    Ok(obj_heap)
   }
 
   ///
@@ -126,7 +136,7 @@ impl FileInfo {
     content: String,
     option: ParseOption,
     filename: Option<String>,
-  ) -> Result<FileInfo, String> {
+  ) -> Result<FileRef, String> {
     let text_content: String = content.clone();
     let charlist: Vec<String> = text_content.tocharlist();
     let mut locmap: Option<LocMap> = None;
@@ -145,14 +155,50 @@ impl FileInfo {
       locmap,
       option,
       import_file: vec![],
+      self_weak: None,
     };
-    match obj.parse() {
+    let obj_heap = obj.toheap();
+    match Self::parse_heap(obj_heap.clone()) {
       Ok(_) => {}
       Err(msg) => {
         return Err(msg);
       }
     }
-    Ok(obj)
+    Ok(obj_heap)
+  }
+
+  fn parse_heap(obj: FileRef) -> Result<(), String> {
+    let mut comments = match obj.borrow().parse_comment() {
+      Ok(blocks) => blocks
+        .into_iter()
+        .map(StyleNode::Comment)
+        .collect::<Vec<StyleNode>>(),
+      Err(msg) => {
+        return Err(msg);
+      }
+    };
+    obj.borrow_mut().block_node.append(&mut comments);
+    let mut vars = match obj.borrow().parse_var() {
+      Ok(blocks) => blocks
+        .into_iter()
+        .map(StyleNode::Var)
+        .collect::<Vec<StyleNode>>(),
+      Err(msg) => {
+        return Err(msg);
+      }
+    };
+    obj.borrow_mut().block_node.append(&mut vars);
+    let mut rules = match obj.borrow().parse_rule() {
+      Ok(blocks) => blocks
+        .into_iter()
+        .map(StyleNode::Rule)
+        .collect::<Vec<StyleNode>>(),
+      Err(msg) => {
+        return Err(msg);
+      }
+    };
+    obj.borrow_mut().block_node.append(&mut rules);
+    Ok(())
   }
 
   fn parse(&mut self) -> Result<(), String> {

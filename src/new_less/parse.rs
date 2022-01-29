@@ -1,8 +1,9 @@
 use crate::extend::string::StringExtend;
 use crate::new_less::comment::Comment;
+use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{NodeRef, NodeWeakRef, SelectorNode, StyleNode, StyleNodeJson};
-use crate::new_less::option::ParseOption;
+use crate::new_less::option::OptionExtend;
 use crate::new_less::rule::Rule;
 use crate::new_less::var::Var;
 use serde::Serialize;
@@ -22,14 +23,14 @@ pub struct RuleNode {
   pub loc: Option<Loc>,
   // 当前所有 索引 对应的 坐标行列 -> 用于执行 sourcemap
   pub locmap: Option<LocMap>,
-  // 内部调用方式时 需要拿到对应的 转化配置
-  pub option: ParseOption,
   // 节点 父节点
   pub parent: NodeWeakRef,
   // 自己的引用关系
   pub weak_self: NodeWeakRef,
   // 节点 子节点
   pub block_node: Vec<StyleNode>,
+  // 文件弱引用
+  pub file_info: FileWeakRef,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -84,7 +85,7 @@ impl RuleNode {
     content: String,
     selector_txt: String,
     loc: Option<Loc>,
-    option: ParseOption,
+    file_info: FileWeakRef,
   ) -> Result<NodeRef, String> {
     let origin_charlist = content.tocharlist();
     let mut change_loc: Option<Loc> = loc.clone();
@@ -94,10 +95,10 @@ impl RuleNode {
       origin_charlist,
       loc,
       locmap: None,
-      option: option.clone(),
       block_node: vec![],
       parent: None,
       weak_self: None,
+      file_info,
     };
     let heapobj = Rc::new(RefCell::new(obj));
     let wek_self = Rc::downgrade(&heapobj);
@@ -110,7 +111,7 @@ impl RuleNode {
       }
     };
     heapobj.borrow_mut().selector = Some(selector);
-    if option.sourcemap {
+    if heapobj.borrow().get_options().sourcemap {
       let (calcmap, _) = LocMap::merge(&change_loc.as_ref().unwrap(), &content);
       heapobj.borrow_mut().locmap = Some(calcmap);
     }

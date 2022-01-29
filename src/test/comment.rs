@@ -10,7 +10,7 @@ fn test_comment_remove() {
   let record = wastetime("test_less");
   let filepath = path_resolve("assets/demo.less");
   let info = FileInfo::create_disklocation(filepath, Default::default()).unwrap();
-  let content = info.rm_comment();
+  let content = info.borrow().rm_comment();
   record();
   let target = r#"
 @width: 400px;

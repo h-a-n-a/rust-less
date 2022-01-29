@@ -1,7 +1,7 @@
 use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::comment::skip_comment;
-use crate::new_less::fileinfo::FileInfo;
+use crate::new_less::fileinfo::{FileInfo, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::NodeRef;
 use crate::new_less::option::{OptionExtend, ParseOption};
@@ -13,13 +13,23 @@ pub trait Rule {
 
 impl Rule for FileInfo {
   fn parse_rule(&self) -> Result<Vec<NodeRef>, String> {
-    parse_rule(&self.get_options(), &self.origin_charlist, &self.locmap)
+    parse_rule(
+      &self.get_options(),
+      &self.origin_charlist,
+      &self.locmap,
+      self.self_weak.clone(),
+    )
   }
 }
 
 impl Rule for RuleNode {
   fn parse_rule(&self) -> Result<Vec<NodeRef>, String> {
-    parse_rule(&self.get_options(), &self.origin_charlist, &self.locmap)
+    parse_rule(
+      &self.get_options(),
+      &self.origin_charlist,
+      &self.locmap,
+      self.file_info.clone(),
+    )
   }
 }
 
@@ -27,6 +37,7 @@ fn parse_rule(
   options: &ParseOption,
   origin_charlist: &[String],
   locmap: &Option<LocMap>,
+  file_info: FileWeakRef,
 ) -> Result<Vec<NodeRef>, String> {
   let mut blocklist: Vec<NodeRef> = vec![];
   let mut templist: Vec<String> = vec![];
@@ -84,7 +95,7 @@ fn parse_rule(
           templist.poly().removelast_without_trim(),
           selector_txt.clone(),
           record_loc,
-          options.clone(),
+          file_info.clone(),
         ) {
           Ok(rule) => {
             blocklist.push(rule);

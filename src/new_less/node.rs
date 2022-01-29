@@ -2,6 +2,7 @@ use crate::new_less::comment::CommentNode;
 use crate::new_less::import::ImportNode;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::media::MediaQuery;
+use crate::new_less::option::OptionExtend;
 use crate::new_less::parse::{RuleNode, RuleNodeJson};
 use crate::new_less::select::Selector;
 use crate::new_less::style_rule::StyleRuleNode;
@@ -46,7 +47,7 @@ impl SelectorNode {
     match parent.unwrap().upgrade() {
       None => {}
       Some(p) => {
-        if p.deref().borrow().option.sourcemap {
+        if p.deref().borrow().get_options().sourcemap {
           let (calcmap, end) = LocMap::merge(&loc.as_ref().unwrap(), &txt);
           *loc = Some(end);
           map = Some(calcmap);

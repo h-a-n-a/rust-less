@@ -4,7 +4,7 @@ use crate::new_less::comment::skip_comment;
 use crate::new_less::fileinfo::FileInfo;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{NodeWeakRef, VarRuleNode};
-use crate::new_less::option::ParseOption;
+use crate::new_less::option::{OptionExtend, ParseOption};
 use crate::new_less::parse::RuleNode;
 
 pub trait Var {
@@ -20,7 +20,7 @@ impl Var for FileInfo {
 impl Var for RuleNode {
   fn parse_var(&self) -> Result<Vec<VarRuleNode>, String> {
     parse_var(
-      &self.option,
+      &self.get_options(),
       &self.origin_charlist,
       &self.locmap,
       self.weak_self.clone(),
