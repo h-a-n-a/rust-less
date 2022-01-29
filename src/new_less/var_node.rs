@@ -4,6 +4,7 @@ use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{HandleResult, NodeWeakRef};
 use serde::Serialize;
 use crate::new_less::option::ParseOption;
+use crate::new_less::scan::{ScanResult, traversal};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct VarNode {
@@ -97,6 +98,25 @@ impl VarNode {
   /// 转化校验
   ///
   fn parse(&self) -> Result<(), String> {
+    let charlist = &self.charlist;
+    if charlist.is_empty() {
+      return Err("var declare text is empty".to_string());
+    }
+    let mut word_vec = vec!["@".to_string()];
+    let index = 1;
+
+    match traversal(
+      Some(index),
+      charlist,
+      &mut (|arg, charword| {
+        Ok(ScanResult::Arg(arg))
+      })) {
+      Ok(res) => {}
+      Err(msg) => {
+        return Err(msg);
+      }
+    };
+
     Ok(())
   }
 }
