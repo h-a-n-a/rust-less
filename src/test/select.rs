@@ -83,6 +83,8 @@ selector:pseudo-class
 fn test_select_error_parse() {
   let mut haserror = 0;
   let demo_select_list = vec![
+    r#""#.to_string(),
+    r#" "#.to_string(),
     r#"."#.to_string(),
     r#"$"#.to_string(),
     r#".b > > a"#.to_string(),

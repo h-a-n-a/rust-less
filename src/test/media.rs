@@ -26,7 +26,11 @@ fn test_select_parse() {
 #[test]
 fn test_select_error_parse() {
   let mut haserror = 0;
-  let demo_select_list = vec![r#"@media screen and ( a: 900px:)"#.to_string()];
+  let demo_select_list = vec![
+    r#"@media screen and ( a: 900px:)"#.to_string(),
+    r#" "#.to_string(),
+    r#""#.to_string()
+  ];
   demo_select_list.into_iter().for_each(|tt| {
     match MediaQuery::new(tt, None, None) {
       HandleResult::Success(_) => {

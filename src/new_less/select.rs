@@ -297,6 +297,10 @@ impl Selector {
     let mut paradigm_vec: Vec<SelectParadigm> = vec![];
     let mut has_ref_token = false;
 
+    if charlist.is_empty() {
+      return Err("select text is empty".to_string());
+    }
+
     // 循环解析
     while index < charlist.len() {
       let prevchar = if index == 0 {

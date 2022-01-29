@@ -246,6 +246,9 @@ impl MediaQuery {
 
   pub fn parse(&self) -> Result<(), String> {
     let charlist = &self.charlist;
+    if charlist.is_empty() {
+      return Err("media query text is empty".to_string());
+    }
     if charlist.len() < 6
       || (charlist.len() == 6 && charlist[0..6].poly().as_str() != "@media")
       || (charlist.len() > 6 && charlist[0..7].poly().as_str() != "@media ")

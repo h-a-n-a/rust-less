@@ -1,4 +1,3 @@
-use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::comment::skip_comment;
 use crate::new_less::fileinfo::FileInfo;
@@ -70,8 +69,11 @@ fn parse_var(
 
     templist.push(char.clone());
     if char == endqueto && braces_level == 0 {
-      let pure_text = templist.join("").trim().to_string().tocharlist();
-      let style_var = match VarRuleNode::new(pure_text.poly(), record_loc, parent.clone()) {
+      let style_var = match VarRuleNode::new(
+        templist.poly().trim().to_string(),
+        record_loc,
+        parent.clone(),
+      ) {
         Ok(obj) => obj,
         Err(msg) => {
           return Err(msg);
