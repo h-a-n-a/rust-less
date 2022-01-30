@@ -1,9 +1,11 @@
+use crate::extend::enum_extend::EnumExtend;
 use crate::extend::string::StringExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::option::ParseOption;
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
+use crate::new_less::token::var::TokenVarKeyAllow;
 use serde::Serialize;
 use std::ops::Deref;
 
@@ -25,6 +27,10 @@ pub struct VarNode {
   // 节点 父节点
   #[serde(skip_serializing)]
   pub parent: NodeWeakRef,
+
+  pub key: Option<String>,
+
+  pub value: Option<String>,
 }
 
 impl VarNode {
@@ -44,6 +50,8 @@ impl VarNode {
       map,
       charlist: txt.tocharlist(),
       parent,
+      key: None,
+      value: None,
     };
     if !obj.content.is_empty() && obj.charlist.get(0).unwrap() != "@" && !obj.is_top() {
       return HandleResult::Swtich;
@@ -98,6 +106,12 @@ impl VarNode {
         } = arg;
         let (_, char, next) = charword;
         if Token::is_token(&char) {
+          if TokenVarKeyAllow::is(&char) {
+            temp += &char;
+          } else if Token::is_space_token(&char) {
+          } else {
+            return Err(self.error_msg(&index));
+          }
         } else {
           temp += &char;
         }
