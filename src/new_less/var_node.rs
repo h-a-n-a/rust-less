@@ -1,10 +1,11 @@
-use std::ops::Deref;
 use crate::extend::string::StringExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{HandleResult, NodeWeakRef};
-use serde::Serialize;
 use crate::new_less::option::ParseOption;
-use crate::new_less::scan::{ScanResult, traversal};
+use crate::new_less::scan::{traversal, ScanArg, ScanResult};
+use crate::new_less::token::lib::Token;
+use serde::Serialize;
+use std::ops::Deref;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct VarNode {
@@ -50,12 +51,8 @@ impl VarNode {
       return HandleResult::Fail(obj.error_msg(&0));
     }
     match obj.parse() {
-      Ok(_) => {
-        HandleResult::Success(obj)
-      }
-      Err(msg) => {
-        HandleResult::Fail(msg)
-      }
+      Ok(_) => HandleResult::Success(obj),
+      Err(msg) => HandleResult::Fail(msg),
     }
   }
 
@@ -68,19 +65,11 @@ impl VarNode {
   ///
   pub fn get_options(&self) -> ParseOption {
     match self.parent.clone() {
-      None => {
-        Default::default()
-      }
-      Some(pr) => {
-        match pr.upgrade().unwrap().deref().borrow().file_info.clone() {
-          None => {
-            Default::default()
-          }
-          Some(file) => {
-            file.upgrade().unwrap().deref().borrow().option.clone()
-          }
-        }
-      }
+      None => Default::default(),
+      Some(pr) => match pr.upgrade().unwrap().deref().borrow().file_info.clone() {
+        None => Default::default(),
+        Some(file) => file.upgrade().unwrap().deref().borrow().option.clone(),
+      },
     }
   }
 
@@ -90,9 +79,40 @@ impl VarNode {
   pub fn error_msg(&self, index: &usize) -> String {
     let error_loc = self.map.get(index).unwrap();
     let char = self.charlist.get(*index).unwrap();
-    format!("text {}, char {} is not allow, line is {} col is {}", &self.content, char, error_loc.line, error_loc.col)
+    format!(
+      "text {}, char {} is not allow, line is {} col is {}",
+      &self.content, char, error_loc.line, error_loc.col
+    )
   }
 
+  pub fn parse_var_ident(&self, start: &usize) -> Result<(String, usize), String> {
+    let charlist = &self.charlist;
+    match traversal(
+      Some(*start),
+      charlist,
+      &mut (|arg, charword| {
+        let ScanArg {
+          mut temp,
+          mut index,
+          mut hasend,
+        } = arg;
+        let (_, char, next) = charword;
+        if Token::is_token(&char) {
+        } else {
+          temp += &char;
+        }
+        let new_arg = ScanArg {
+          index,
+          temp,
+          hasend,
+        };
+        Ok(ScanResult::Arg(new_arg))
+      }),
+    ) {
+      Ok(obj) => Ok(obj),
+      Err(msg) => Err(msg),
+    }
+  }
 
   ///
   /// 转化校验
@@ -109,8 +129,19 @@ impl VarNode {
       Some(index),
       charlist,
       &mut (|arg, charword| {
-        Ok(ScanResult::Arg(arg))
-      })) {
+        let mut temp = arg.temp;
+        let mut index = arg.index;
+        let (key, jump) = self.parse_var_ident(&arg.index)?;
+        index = jump;
+        temp += &key;
+        let new_arg = ScanArg {
+          index,
+          temp,
+          hasend: false,
+        };
+        Ok(ScanResult::Arg(new_arg))
+      }),
+    ) {
       Ok(res) => {}
       Err(msg) => {
         return Err(msg);
@@ -119,53 +150,4 @@ impl VarNode {
 
     Ok(())
   }
-}
-
-
-///
-/// 检查是否 合规
-/// 检查是否 变量
-///
-pub fn is_var(charlist: &[String], istop: bool, locationmsg: String) -> Result<bool, String> {
-  // 变量片段中 含有换行
-  if charlist.is_empty() {
-    return Err(format!("var token word is empty,{}", locationmsg));
-  }
-  if charlist
-    .iter()
-    .filter(|&x| x.as_str() == "\n" || x.as_str() == "\r")
-    .count()
-    > 0
-  {
-    return Err(format!(
-      r#"token word has contains "\n","\r",{} "#,
-      locationmsg
-    ));
-  }
-  // 变量类似 ;; || @a:10px;;
-  if charlist[0].as_str() == ";" {
-    return Err(format!(r#"token word is only semicolon,{} "#, locationmsg));
-  }
-  if istop {
-    // 变量片段中首位必须是 @
-    if charlist[0].as_str() != "@" {
-      return Err(format!(
-        r#"token word is not with @ begin,{} "#,
-        locationmsg
-      ));
-    }
-    // 先判断 是否含有 @import
-    if charlist.join("").indexOf("@import", None) > -1 {
-      return Ok(false);
-    }
-    // 判断是否复合基本格式
-    if charlist.join("").split(':').count() != 2 {
-      return Err(format!(
-        r#"var token is not liek '@var: 10px',{} ,{}"#,
-        charlist.join(""),
-        locationmsg
-      ));
-    }
-  }
-  Ok(true)
 }
