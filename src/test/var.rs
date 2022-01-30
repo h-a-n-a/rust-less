@@ -4,7 +4,7 @@ use crate::new_less::node::HandleResult;
 use crate::new_less::var_node::VarNode;
 
 #[test]
-fn test_error_var_check() {
+fn test_var_parse() {
   let vars_list = vec![r#"@width:400px;"#.to_string()];
   let mut haserror = 0;
   vars_list
@@ -23,5 +23,33 @@ fn test_error_var_check() {
         println!("{:?}", "swtich case ....");
       }
     });
-  println!("........");
+  assert_eq!(haserror, 0);
+}
+
+#[test]
+fn test_var_error_parse() {
+  let mut haserror = 0;
+  let demo_select_list = vec![
+    r#"@widt h:400px;"#.to_string(),
+    r#"@#width:400px;"#.to_string(),
+    r#"@wid,th:400px;"#.to_string(),
+    r#"@widt
+    h:400px;"#
+      .to_string(),
+    r#" "#.to_string(),
+    r#""#.to_string(),
+  ];
+  demo_select_list.into_iter().for_each(|tt| {
+    match VarNode::new(tt, None, None) {
+      HandleResult::Success(_) => {
+        haserror += 1;
+      }
+      HandleResult::Fail(msg) => {
+        haserror += 0;
+        println!("{:?}", msg);
+      }
+      HandleResult::Swtich => {}
+    };
+  });
+  assert_eq!(haserror, 0)
 }

@@ -1,4 +1,5 @@
 use crate::extend::enum_extend::EnumExtend;
+use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{HandleResult, NodeWeakRef};
@@ -44,7 +45,7 @@ impl VarNode {
     } else {
       map = LocMap::merge(&loc.as_ref().unwrap(), &txt).0;
     }
-    let obj = Self {
+    let mut obj = Self {
       content: txt.clone(),
       loc,
       map,
@@ -57,6 +58,8 @@ impl VarNode {
       return HandleResult::Swtich;
     } else if !obj.content.is_empty() && obj.charlist.get(0).unwrap() != "@" && obj.is_top() {
       return HandleResult::Fail(obj.error_msg(&0));
+    } else if obj.content.is_empty() {
+      return HandleResult::Fail("var declare txt is empty!".to_string());
     }
     match obj.parse() {
       Ok(_) => HandleResult::Success(obj),
@@ -86,7 +89,7 @@ impl VarNode {
   ///
   pub fn error_msg(&self, index: &usize) -> String {
     let error_loc = self.map.get(index).unwrap();
-    let char = self.charlist.get(*index).unwrap();
+    let char = self.charlist.get(*index).unwrap().to_string();
     format!(
       "text {}, char {} is not allow, line is {} col is {}",
       &self.content, char, error_loc.line, error_loc.col
@@ -95,25 +98,42 @@ impl VarNode {
 
   pub fn parse_var_ident(&self, start: &usize) -> Result<(String, usize), String> {
     let charlist = &self.charlist;
+    let mut hasspace = false;
     match traversal(
       Some(*start),
       charlist,
-      &mut (|arg, charword| {
+      &mut (move |arg, charword| {
         let ScanArg {
           mut temp,
           mut index,
           mut hasend,
         } = arg;
         let (_, char, next) = charword;
-        if Token::is_token(&char) {
-          if TokenVarKeyAllow::is(&char) {
+        if hasspace && Token::is_space_token(&next) {
+          return Ok(ScanResult::Skip);
+        } else if hasspace && !Token::is_space_token(&char) {
+          if char == TokenVarKeyAllow::Colon.tostr_value() {
             temp += &char;
-          } else if Token::is_space_token(&char) {
           } else {
-            return Err(self.error_msg(&index));
+            return Err(self.error_msg(&(index - 1)));
           }
         } else {
-          temp += &char;
+          if Token::is_token(&char) {
+            if TokenVarKeyAllow::is(&char) {
+              if char == TokenVarKeyAllow::Colon.tostr_value() {
+                hasend = true;
+              } else {
+                temp += &char;
+              }
+            } else if Token::is_space_token(&char) {
+              hasspace = true;
+              temp += &char;
+            } else {
+              return Err(self.error_msg(&index));
+            }
+          } else {
+            temp += &char;
+          }
         }
         let new_arg = ScanArg {
           index,
@@ -131,23 +151,23 @@ impl VarNode {
   ///
   /// 转化校验
   ///
-  fn parse(&self) -> Result<(), String> {
-    let charlist = &self.charlist;
+  fn parse(&mut self) -> Result<(), String> {
+    let charlist = &self.charlist.clone();
     if charlist.is_empty() {
       return Err("var declare text is empty".to_string());
     }
-    let mut word_vec = vec!["@".to_string()];
     let index = 1;
-
     match traversal(
       Some(index),
       charlist,
       &mut (|arg, charword| {
         let mut temp = arg.temp;
         let mut index = arg.index;
-        let (key, jump) = self.parse_var_ident(&arg.index)?;
-        index = jump;
-        temp += &key;
+        if self.key.is_none() {
+          let (key, jump) = self.parse_var_ident(&arg.index)?;
+          index = jump;
+          self.key = Some("@".to_string() + &key);
+        }
         let new_arg = ScanArg {
           index,
           temp,
