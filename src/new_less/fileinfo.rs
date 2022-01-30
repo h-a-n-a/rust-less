@@ -83,6 +83,9 @@ impl FileInfo {
     heapobj
   }
 
+  ///
+  /// 生成整个文件的 locmap 地图
+  ///
   pub fn get_loc_by_content(content: &str) -> LocMap {
     LocMap::new(content.to_string())
   }
