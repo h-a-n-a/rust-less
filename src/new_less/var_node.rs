@@ -6,9 +6,10 @@ use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::option::ParseOption;
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
-use crate::new_less::token::var::TokenVarKeyAllow;
+use crate::new_less::token::var::{TokenVarKeyAllow, TokenVarValue};
 use serde::Serialize;
 use std::ops::Deref;
+use crate::extend::vec_str::VecStrExtend;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct VarNode {
@@ -39,12 +40,11 @@ impl VarNode {
   /// 初始化
   ///
   pub fn new(txt: String, loc: Option<Loc>, parent: NodeWeakRef) -> HandleResult<Self> {
-    let map: LocMap;
-    if loc.is_none() {
-      map = LocMap::new(txt.clone())
+    let map = if loc.is_none() {
+      LocMap::new(txt.clone())
     } else {
-      map = LocMap::merge(&loc.as_ref().unwrap(), &txt).0;
-    }
+      LocMap::merge(loc.as_ref().unwrap(), &txt).0
+    };
     let mut obj = Self {
       content: txt.clone(),
       loc,
@@ -105,7 +105,7 @@ impl VarNode {
       &mut (move |arg, charword| {
         let ScanArg {
           mut temp,
-          mut index,
+          index,
           mut hasend,
         } = arg;
         let (_, char, next) = charword;
@@ -117,24 +117,23 @@ impl VarNode {
           } else {
             return Err(self.error_msg(&(index - 1)));
           }
-        } else {
-          if Token::is_token(&char) {
-            if TokenVarKeyAllow::is(&char) {
-              if char == TokenVarKeyAllow::Colon.tostr_value() {
-                hasend = true;
-              } else {
-                temp += &char;
-              }
-            } else if Token::is_space_token(&char) {
-              hasspace = true;
-              temp += &char;
+        } else if Token::is_token(&char) && !hasspace {
+          if TokenVarKeyAllow::is(&char) {
+            if char == TokenVarKeyAllow::Colon.tostr_value() {
+              hasend = true;
             } else {
-              return Err(self.error_msg(&index));
+              temp += &char;
             }
-          } else {
+          } else if Token::is_space_token(&char) {
+            hasspace = true;
             temp += &char;
+          } else {
+            return Err(self.error_msg(&index));
           }
+        } else if !Token::is_token(&char) && !hasspace {
+          temp += &char;
         }
+
         let new_arg = ScanArg {
           index,
           temp,
@@ -144,6 +143,42 @@ impl VarNode {
       }),
     ) {
       Ok(obj) => Ok(obj),
+      Err(msg) => Err(msg),
+    }
+  }
+
+  pub fn parse_var_value(&self, start: &usize) -> Result<(String, usize), String> {
+    // 取分号前一位 最后一定是分号
+    let end = self.charlist.len() - 1;
+    let c = self.charlist[*start..end].poly().trim().to_string();
+    let charlist = &c.tocharlist();
+    match traversal(None, charlist, &mut (|arg, charword| {
+      let ScanArg {
+        mut temp,
+        index,
+        hasend,
+      } = arg;
+      let (_, char, _) = charword;
+      //todo! 目前是简单计算 后续需要修改加强 value 的 parse 过程
+      if Token::is_token(&char) {
+        if TokenVarValue::is(&char) {
+          temp += &char;
+        } else {
+          return Err(self.error_msg(&(index - 1)));
+        }
+      } else {
+        temp += &char;
+      }
+      let new_arg = ScanArg {
+        index,
+        temp,
+        hasend,
+      };
+      Ok(ScanResult::Arg(new_arg))
+    })) {
+      Ok(obj) => Ok(
+        (obj.0, self.charlist.len() - 1)
+      ),
       Err(msg) => Err(msg),
     }
   }
@@ -160,23 +195,28 @@ impl VarNode {
     match traversal(
       Some(index),
       charlist,
-      &mut (|arg, charword| {
-        let mut temp = arg.temp;
+      &mut (|arg, _| {
         let mut index = arg.index;
         if self.key.is_none() {
           let (key, jump) = self.parse_var_ident(&arg.index)?;
           index = jump;
           self.key = Some("@".to_string() + &key);
+        } else if self.value.is_none() {
+          let (value, jump) = self.parse_var_value(&arg.index)?;
+          index = jump;
+          self.value = Some(value);
+        } else if self.value.is_some() && self.key.is_some() {
+          return Err(self.error_msg(&index));
         }
         let new_arg = ScanArg {
           index,
-          temp,
+          temp: arg.temp,
           hasend: false,
         };
         Ok(ScanResult::Arg(new_arg))
       }),
     ) {
-      Ok(res) => {}
+      Ok(_) => {}
       Err(msg) => {
         return Err(msg);
       }

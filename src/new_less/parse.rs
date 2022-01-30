@@ -70,10 +70,7 @@ impl RuleNode {
     RuleNodeJson {
       selector_txt: self.selector.as_ref().unwrap().value(),
       content: self.content.clone(),
-      loc: match &self.loc {
-        None => None,
-        Some(l) => Some(l.clone()),
-      },
+      loc: self.loc.as_ref().cloned(),
       block_node,
     }
   }
@@ -104,7 +101,7 @@ impl RuleNode {
     let wek_self = Rc::downgrade(&heapobj);
     heapobj.borrow_mut().weak_self = Some(wek_self.clone());
 
-    let selector = match SelectorNode::new(selector_txt, &mut change_loc, Some(wek_self.clone())) {
+    let selector = match SelectorNode::new(selector_txt, &mut change_loc, Some(wek_self)) {
       Ok(result) => result,
       Err(msg) => {
         return Err(msg);
@@ -112,7 +109,7 @@ impl RuleNode {
     };
     heapobj.borrow_mut().selector = Some(selector);
     if heapobj.borrow().get_options().sourcemap {
-      let (calcmap, _) = LocMap::merge(&change_loc.as_ref().unwrap(), &content);
+      let (calcmap, _) = LocMap::merge(change_loc.as_ref().unwrap(), &content);
       heapobj.borrow_mut().locmap = Some(calcmap);
     }
 

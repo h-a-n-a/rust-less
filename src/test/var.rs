@@ -12,7 +12,8 @@ fn test_var_parse() {
     .for_each(|tt| match VarNode::new(tt, None, None) {
       HandleResult::Success(obj) => {
         haserror += 0;
-        println!("{:?}", obj);
+        let json = serde_json::to_string_pretty(&obj).unwrap();
+        println!("{}", json);
       }
       HandleResult::Fail(msg) => {
         haserror += 1;

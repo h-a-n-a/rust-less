@@ -48,7 +48,7 @@ impl SelectorNode {
       None => {}
       Some(p) => {
         if p.deref().borrow().get_options().sourcemap {
-          let (calcmap, end) = LocMap::merge(&loc.as_ref().unwrap(), &txt);
+          let (calcmap, end) = LocMap::merge(loc.as_ref().unwrap(), &txt);
           *loc = Some(end);
           map = Some(calcmap);
         }
@@ -111,7 +111,7 @@ pub enum VarRuleNode {
   Var(VarNode),
 
   /// 样式规则
-  Rule(StyleRuleNode),
+  StyleRule(StyleRuleNode),
 }
 
 ///
@@ -139,21 +139,13 @@ impl VarRuleNode {
       HandleResult::Swtich => {}
     };
     // 处理 规则
-    match StyleRuleNode::new(txt.clone(), loc, parent.clone()) {
-      HandleResult::Success(obj) => return Ok(VarRuleNode::Rule(obj)),
+    match StyleRuleNode::new(txt.clone(), loc, parent) {
+      HandleResult::Success(obj) => return Ok(VarRuleNode::StyleRule(obj)),
       HandleResult::Fail(msg) => {
         return Err(msg);
       }
       HandleResult::Swtich => {}
     };
     Err(format!("nothing node match the txt -> {}", txt))
-  }
-
-  pub fn set_parent(&mut self, parent: NodeWeakRef) {
-    match self {
-      VarRuleNode::Import(_) => {}
-      VarRuleNode::Var(var) => var.parent = parent,
-      VarRuleNode::Rule(_) => {}
-    }
   }
 }
