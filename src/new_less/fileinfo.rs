@@ -3,7 +3,7 @@ use crate::new_less::comment::Comment;
 use crate::new_less::file::cmd_path_resolve;
 use crate::new_less::file_manger::FileManger;
 use crate::new_less::loc::LocMap;
-use crate::new_less::node::{StyleNode, StyleNodeJson};
+use crate::new_less::node::{NodeRef, StyleNode, StyleNodeJson};
 use crate::new_less::option::ParseOption;
 use crate::new_less::rule::Rule;
 use crate::new_less::var::Var;
@@ -27,7 +27,7 @@ pub struct FileInfo {
   // 内部调用方式时 需要拿到对应的 转化配置
   pub option: ParseOption,
   // 当前引用链
-  pub import_file: Vec<Rc<RefCell<FileInfo>>>,
+  pub import_file: Vec<FileRef>,
   // 自身弱引用
   pub self_weak: FileWeakRef,
 }
@@ -90,15 +90,11 @@ impl FileInfo {
     LocMap::new(content.to_string())
   }
 
-  ///
-  /// 根据文件路径 解析 文件
-  ///
-  pub fn create_disklocation(filepath: String, option: ParseOption) -> Result<FileRef, String> {
+  pub fn resolve_disklocation(filepath: String, option: ParseOption) -> Result<Self, String> {
     let abs_path: String;
     let text_content: String;
     let charlist: Vec<String>;
     let mut locmap: Option<LocMap> = None;
-    let obj_heap: FileRef;
     match FileManger::resolve(filepath, option.include_path.clone()) {
       Ok((calc_path, content)) => {
         abs_path = calc_path;
@@ -117,18 +113,41 @@ impl FileInfo {
           import_file: vec![],
           self_weak: None,
         };
-        obj_heap = obj.toheap();
-        match Self::parse_heap(obj_heap.clone()) {
-          Ok(_) => {}
-          Err(msg) => {
-            return Err(msg);
-          }
-        }
+        Ok(obj)
       }
+      Err(msg) => Err(msg),
+    }
+  }
+
+  ///
+  /// 根据文件路径 转换 文件
+  ///
+  pub fn create_disklocation(filepath: String, option: ParseOption) -> Result<String, String> {
+    let obj = Self::resolve_disklocation(filepath, option)?;
+    let obj_heap = obj.toheap();
+    match Self::parse_heap(obj_heap.clone()) {
+      Ok(_) => {}
       Err(msg) => {
         return Err(msg);
       }
     }
+    let res = match obj_heap.deref().borrow().code_gen() {
+      Ok(res) => Ok(res),
+      Err(msg) => Err(msg),
+    };
+    res
+  }
+
+  ///
+  /// 根据文件路径 解析 文件
+  ///
+  pub fn create_disklocation_parse(
+    filepath: String,
+    option: ParseOption,
+  ) -> Result<FileRef, String> {
+    let obj = Self::resolve_disklocation(filepath, option)?;
+    let obj_heap = obj.toheap();
+    Self::parse_heap(obj_heap.clone())?;
     Ok(obj_heap)
   }
 
@@ -204,4 +223,23 @@ impl FileInfo {
     Ok(())
   }
 
+  pub fn getrules(&self) -> Vec<NodeRef> {
+    let mut list = vec![];
+    self.block_node.iter().for_each(|x| match x {
+      StyleNode::Rule(rule) => list.push(rule.clone()),
+      _ => {}
+    });
+    list
+  }
+
+  ///
+  /// 生成代码
+  ///
+  pub fn code_gen(&self) -> Result<String, String> {
+    let mut res = "".to_string();
+    for item in self.getrules() {
+      item.deref().borrow().code_gen(&mut res);
+    }
+    Ok(res)
+  }
 }

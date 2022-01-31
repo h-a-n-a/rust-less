@@ -2,9 +2,12 @@ use crate::extend::string::StringExtend;
 use crate::new_less::comment::Comment;
 use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{NodeRef, NodeWeakRef, SelectorNode, StyleNode, StyleNodeJson};
+use crate::new_less::node::{
+  NodeRef, NodeWeakRef, SelectorNode, StyleNode, StyleNodeJson, VarRuleNode,
+};
 use crate::new_less::option::OptionExtend;
 use crate::new_less::rule::Rule;
+use crate::new_less::style_rule::StyleRuleNode;
 use crate::new_less::var::Var;
 use serde::Serialize;
 use std::cell::RefCell;
@@ -122,6 +125,27 @@ impl RuleNode {
     Ok(heapobj)
   }
 
+  pub fn getrules(&self) -> Vec<NodeRef> {
+    let mut list = vec![];
+    self.block_node.iter().for_each(|x| match x {
+      StyleNode::Rule(rule) => list.push(rule.clone()),
+      _ => {}
+    });
+    list
+  }
+
+  pub fn get_style_rule(&self) -> Vec<StyleRuleNode> {
+    let mut list = vec![];
+    self.block_node.iter().for_each(|x| match x {
+      StyleNode::Var(var) => match var {
+        VarRuleNode::StyleRule(style) => list.push(style.clone()),
+        _ => {}
+      },
+      _ => {}
+    });
+    list
+  }
+
   pub fn parse_heap(obj: NodeRef) -> Result<(), String> {
     let mut comments = match obj.borrow().parse_comment() {
       Ok(blocks) => blocks
@@ -160,5 +184,24 @@ impl RuleNode {
     };
     obj.borrow_mut().block_node.append(&mut enum_rule);
     Ok(())
+  }
+
+  pub fn code_gen(&self, content: &mut String) {
+    let select_txt = match self.selector.as_ref().unwrap() {
+      SelectorNode::Select(se) => se.origin_txt.clone(),
+      SelectorNode::Media(me) => me.origin_txt.clone(),
+    };
+    let stylerules = self
+      .get_style_rule()
+      .iter()
+      .map(|x| x.content.clone())
+      .collect::<Vec<String>>()
+      .join("\n");
+
+    *content += format!("\n{}{}\n{}\n{}", select_txt, "{", stylerules, "}").as_ref();
+
+    self.getrules().iter().for_each(|x| {
+      x.deref().borrow().code_gen(content);
+    });
   }
 }

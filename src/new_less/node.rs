@@ -19,7 +19,7 @@ pub type NodeRef = Rc<RefCell<RuleNode>>;
 pub enum StyleNode {
   Comment(CommentNode),
   Var(VarRuleNode),
-  Rule(Rc<RefCell<RuleNode>>),
+  Rule(NodeRef),
 }
 
 #[derive(Debug, Clone, Serialize)]
