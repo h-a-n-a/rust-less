@@ -60,9 +60,7 @@ impl Selector {
       origin_txt: txt.trim().to_string(),
       single_select_txt: vec![],
       loc,
-      map: map.unwrap_or_else(|| {
-        LocMap::new(txt.clone())
-      }),
+      map: map.unwrap_or_else(|| LocMap::new(txt.clone())),
       charlist: txt.tocharlist(),
       parent: None,
     };

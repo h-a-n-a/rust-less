@@ -1,15 +1,11 @@
 use crate::new_less::comment::CommentNode;
 use crate::new_less::import::ImportNode;
-use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::media::MediaQuery;
-use crate::new_less::option::OptionExtend;
+use crate::new_less::loc::Loc;
 use crate::new_less::parse::{RuleNode, RuleNodeJson};
-use crate::new_less::select::Selector;
 use crate::new_less::style_rule::StyleRuleNode;
 use crate::new_less::var_node::VarNode;
 use serde::Serialize;
 use std::cell::RefCell;
-use std::ops::Deref;
 use std::rc::{Rc, Weak};
 
 pub type NodeWeakRef = Option<Weak<RefCell<RuleNode>>>;
@@ -27,62 +23,6 @@ pub enum StyleNodeJson {
   Comment(CommentNode),
   Var(VarRuleNode),
   Rule(RuleNodeJson),
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub enum SelectorNode {
-  Select(Selector),
-  Media(MediaQuery),
-}
-
-///
-/// 创建 选择器 混合节点
-///
-impl SelectorNode {
-  ///
-  /// 初始化方法
-  ///
-  pub fn new(txt: String, loc: &mut Option<Loc>, parent: NodeWeakRef) -> Result<Self, String> {
-    let mut map: Option<LocMap> = None;
-    match parent.unwrap().upgrade() {
-      None => {}
-      Some(p) => {
-        if p.deref().borrow().get_options().sourcemap {
-          let (calcmap, end) = LocMap::merge(loc.as_ref().unwrap(), &txt);
-          *loc = Some(end);
-          map = Some(calcmap);
-        }
-      }
-    }
-    // 处理 media
-    match MediaQuery::new(txt.clone(), loc.clone(), map.clone()) {
-      HandleResult::Success(obj) => {
-        return Ok(SelectorNode::Media(obj));
-      }
-      HandleResult::Fail(msg) => {
-        return Err(msg);
-      }
-      HandleResult::Swtich => {}
-    };
-    // 处理 select
-    match Selector::new(txt.clone(), loc.clone(), map) {
-      HandleResult::Success(obj) => {
-        return Ok(SelectorNode::Select(obj));
-      }
-      HandleResult::Fail(msg) => {
-        return Err(msg);
-      }
-      HandleResult::Swtich => {}
-    };
-    Err(format!("nothing node match the txt -> {}", txt))
-  }
-
-  pub fn value(&self) -> String {
-    match self {
-      SelectorNode::Select(obj) => obj.value(),
-      SelectorNode::Media(obj) => obj.value(),
-    }
-  }
 }
 
 ///
