@@ -4,6 +4,7 @@ use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::option::OptionExtend;
 use crate::new_less::select::Selector;
 use serde::Serialize;
+use std::borrow::Borrow;
 use std::ops::Deref;
 
 #[derive(Debug, Clone, Serialize)]
@@ -61,14 +62,37 @@ impl SelectorNode {
     }
   }
 
-  fn code_gen(&self) -> Result<String, String> {
-    let txt: Vec<String> = vec![];
+  fn code_gen(&self, rules: Option<Vec<String>>) -> Result<String, String> {
+    let txt: Vec<String> = rules.unwrap_or(vec![]);
     match self {
       SelectorNode::Select(select) => {
         let list = select
           .single_select_txt
           .iter()
-          .map(|x| x.clone())
+          .map(|x| {
+            let rule_parent = select
+              .parent
+              .unwrap()
+              .upgrade()
+              .unwrap()
+              .deref()
+              .borrow()
+              .parent
+              .clone();
+            if rule_parent.is_none() {
+              x.clone()
+            } else {
+              rule_parent
+                .unwrap()
+                .upgrade()
+                .unwrap()
+                .deref()
+                .borrow()
+                .selector
+                .unwrap()
+                .code_gen()
+            }
+          })
           .collect::<Vec<String>>();
       }
       SelectorNode::Media(media) => {}
