@@ -190,6 +190,9 @@ impl RuleNode {
       SelectorNode::Select(se) => se.origin_txt.clone(),
       SelectorNode::Media(me) => me.origin_txt.clone(),
     };
+    let txt = self.selector.as_ref().unwrap().code_gen().unwrap();
+    println!("{}", txt);
+
     let stylerules = self
       .get_style_rule()
       .iter()

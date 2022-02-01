@@ -34,7 +34,7 @@ impl MediaQuery {
   ///
   /// 初始化方法
   ///
-  pub fn new(txt: String, loc: Option<Loc>, map: Option<LocMap>) -> HandleResult<Self> {
+  pub fn new(txt: String, loc: Option<Loc>, map: Option<LocMap>, parent: NodeWeakRef) -> HandleResult<Self> {
     let obj = Self {
       origin_txt: txt.clone(),
       loc,
@@ -42,7 +42,7 @@ impl MediaQuery {
         LocMap::new(txt.clone())
       }),
       charlist: txt.trim().to_string().tocharlist(),
-      parent: None,
+      parent,
     };
     match obj.parse() {
       Ok(_) => HandleResult::Success(obj),

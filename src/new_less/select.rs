@@ -55,14 +55,14 @@ impl Selector {
   ///
   /// 初始化方法
   ///
-  pub fn new(txt: String, loc: Option<Loc>, map: Option<LocMap>) -> HandleResult<Self> {
+  pub fn new(txt: String, loc: Option<Loc>, map: Option<LocMap>, parent: NodeWeakRef) -> HandleResult<Self> {
     let mut obj = Selector {
       origin_txt: txt.trim().to_string(),
       single_select_txt: vec![],
       loc,
       map: map.unwrap_or_else(|| LocMap::new(txt.clone())),
       charlist: txt.tocharlist(),
-      parent: None,
+      parent,
     };
     match obj.parse() {
       Ok(()) => HandleResult::Success(obj),

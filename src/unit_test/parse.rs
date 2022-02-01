@@ -1,8 +1,6 @@
 use crate::extend::time::wastetime;
 use crate::new_less::file::path_resolve;
 use crate::new_less::fileinfo::FileInfo;
-use crate::new_less::option::ParseOption;
-use std::ops::Deref;
 
 #[test]
 fn test_less_parse() {

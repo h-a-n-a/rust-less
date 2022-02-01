@@ -5,7 +5,7 @@ use crate::new_less::option::OptionExtend;
 use crate::new_less::select::Selector;
 use serde::Serialize;
 use std::borrow::Borrow;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, Clone, Serialize)]
 pub enum SelectorNode {
@@ -22,7 +22,7 @@ impl SelectorNode {
   ///
   pub fn new(txt: String, loc: &mut Option<Loc>, parent: NodeWeakRef) -> Result<Self, String> {
     let mut map: Option<LocMap> = None;
-    match parent.unwrap().upgrade() {
+    match parent.as_ref().unwrap().upgrade() {
       None => {}
       Some(p) => {
         if p.deref().borrow().get_options().sourcemap {
@@ -33,7 +33,7 @@ impl SelectorNode {
       }
     }
     // 处理 media
-    match MediaQuery::new(txt.clone(), loc.clone(), map.clone()) {
+    match MediaQuery::new(txt.clone(), loc.clone(), map.clone(), parent.clone()) {
       HandleResult::Success(obj) => {
         return Ok(SelectorNode::Media(obj));
       }
@@ -43,7 +43,7 @@ impl SelectorNode {
       HandleResult::Swtich => {}
     };
     // 处理 select
-    match Selector::new(txt.clone(), loc.clone(), map) {
+    match Selector::new(txt.clone(), loc.clone(), map, parent.clone()) {
       HandleResult::Success(obj) => {
         return Ok(SelectorNode::Select(obj));
       }
@@ -62,42 +62,37 @@ impl SelectorNode {
     }
   }
 
-  fn code_gen(&self, rules: Option<Vec<String>>) -> Result<String, String> {
-    let txt: Vec<String> = rules.unwrap_or(vec![]);
+  ///
+  /// 递归收集方法 向上查找
+  /// 如果是 media 就放在 第一个 0 位置 数组中
+  /// 如果是 select 就放在 第二个 1 位置  数组中
+  ///
+  fn collect(&self, mut tuple: &mut (&mut Vec<String>, &mut Vec<Vec<String>>)) {
     match self {
       SelectorNode::Select(select) => {
-        let list = select
-          .single_select_txt
-          .iter()
-          .map(|x| {
-            let rule_parent = select
-              .parent
-              .unwrap()
-              .upgrade()
-              .unwrap()
-              .deref()
-              .borrow()
-              .parent
-              .clone();
-            if rule_parent.is_none() {
-              x.clone()
-            } else {
-              rule_parent
-                .unwrap()
-                .upgrade()
-                .unwrap()
-                .deref()
-                .borrow()
-                .selector
-                .unwrap()
-                .code_gen()
-            }
-          })
-          .collect::<Vec<String>>();
+        tuple.deref_mut().1.push(select.single_select_txt.clone());
+        let rule = select.parent.as_ref().unwrap().upgrade().unwrap();
+        if rule.deref().borrow().parent.is_some() {
+          let parent_rule = rule.deref().borrow().parent.as_ref().unwrap().upgrade().unwrap();
+          parent_rule.deref().borrow().selector.as_ref().unwrap().collect(tuple);
+        }
       }
-      SelectorNode::Media(media) => {}
-    }
+      SelectorNode::Media(media) => {
+        tuple.0.push(media.origin_txt.clone());
+        let rule = media.parent.as_ref().unwrap().upgrade().unwrap();
+        if rule.deref().borrow().parent.is_some() {
+          let parent_rule = rule.deref().borrow().parent.as_ref().unwrap().upgrade().unwrap();
+          parent_rule.deref().borrow().selector.as_ref().unwrap().collect(tuple);
+        }
+      }
+    };
+  }
 
+  pub fn code_gen(&self) -> Result<String, String> {
+    let mut media_rules: Vec<String> = vec![];
+    let mut select_rules: Vec<Vec<String>> = vec![];
+    let mut tuple = (&mut media_rules, &mut select_rules);
+    self.collect(&mut tuple);
     Ok("".to_string())
   }
 }
