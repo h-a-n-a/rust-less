@@ -186,21 +186,42 @@ impl RuleNode {
   }
 
   pub fn code_gen(&self, content: &mut String) {
-    let select_txt = match self.selector.as_ref().unwrap() {
-      SelectorNode::Select(se) => se.origin_txt.clone(),
-      SelectorNode::Media(me) => me.origin_txt.clone(),
-    };
-    let txt = self.selector.as_ref().unwrap().code_gen().unwrap();
-    println!("{}", txt);
+    let rules = self.get_style_rule();
 
-    let stylerules = self
-      .get_style_rule()
-      .iter()
-      .map(|x| x.content.clone())
-      .collect::<Vec<String>>()
-      .join("\n");
+    if !rules.is_empty() {
+      let (select_txt, media_txt) = self.selector.as_ref().unwrap().code_gen().unwrap();
 
-    *content += format!("\n{}{}\n{}\n{}", select_txt, "{", stylerules, "}").as_ref();
+      let mut tab: String = "".to_string();
+      let mut index = 0;
+      while index < self.get_options().tabspaces {
+        tab += " ";
+        index += 1;
+      }
+
+      let create_rules = |tab: String| {
+        rules
+          .iter()
+          .map(|x| tab.clone() + &x.content.clone())
+          .collect::<Vec<String>>()
+          .join("\n")
+      };
+
+      if media_txt.is_empty() {
+        *content += format!("\n{}{}\n{}\n{}\n", select_txt, "{", create_rules(tab), "}").as_ref();
+      } else {
+        *content += format!(
+          "\n{}{}\n{}{}\n{}\n{}\n{}",
+          media_txt,
+          "{",
+          tab.clone() + &select_txt,
+          "{",
+          create_rules(tab.clone() + &tab.clone()),
+          "  }",
+          "}"
+        )
+        .as_ref();
+      }
+    }
 
     self.getrules().iter().for_each(|x| {
       x.deref().borrow().code_gen(content);

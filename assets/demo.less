@@ -34,3 +34,12 @@ textarea {
     font-size: @font_size;
   }
 }
+
+@media screen and ( min-width: 900px) {
+  .xyz {
+    font-size: @font_size;
+    @media screen and ( max-width: 900px) {
+      color: red;
+    }
+  }
+}

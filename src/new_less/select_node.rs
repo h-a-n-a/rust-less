@@ -113,7 +113,7 @@ impl SelectorNode {
     };
   }
 
-  pub fn code_gen(&self) -> Result<String, String> {
+  pub fn code_gen(&self) -> Result<(String, String), String> {
     let mut media_rules: Vec<String> = vec![];
     let mut select_rules: Vec<Vec<String>> = vec![];
     let mut tuple = (&mut media_rules, &mut select_rules);
@@ -136,6 +136,17 @@ impl SelectorNode {
       }
     }
 
-    Ok("".to_string())
+    // 处理收集的 media 字符串
+    let mut media_txt: Vec<String> = vec![];
+    media_rules.reverse();
+    for media_word in media_rules {
+      if media_txt.is_empty() {
+        media_txt.push(media_word);
+      } else {
+        media_txt.push(media_word[6..].to_string())
+      }
+    }
+    let res = (select_txt.join(","), media_txt.join(" and "));
+    Ok(res)
   }
 }

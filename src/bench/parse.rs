@@ -1,7 +1,7 @@
-use test::Bencher;
 use crate::new_less::file::path_resolve;
 use crate::new_less::fileinfo::FileInfo;
 use crate::new_less::option::ParseOption;
+use test::Bencher;
 
 #[bench]
 fn parse_less_bench(bench: &mut Bencher) {
@@ -22,8 +22,9 @@ fn parse_less_bench_without_sourcemap(bench: &mut Bencher) {
       ParseOption {
         include_path: None,
         sourcemap: false,
+        tabspaces: 4,
       },
     )
-      .unwrap();
+    .unwrap();
   });
 }

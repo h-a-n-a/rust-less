@@ -6,6 +6,7 @@ use std::ops::Deref;
 pub struct ParseOption {
   pub include_path: Option<Vec<String>>,
   pub sourcemap: bool,
+  pub tabspaces: usize,
 }
 
 impl Default for ParseOption {
@@ -13,6 +14,7 @@ impl Default for ParseOption {
     ParseOption {
       include_path: None,
       sourcemap: true,
+      tabspaces: 2,
     }
   }
 }
