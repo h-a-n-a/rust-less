@@ -4,7 +4,6 @@ use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::option::OptionExtend;
 use crate::new_less::select::Selector;
 use serde::Serialize;
-use std::borrow::Borrow;
 use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, Clone, Serialize)]
@@ -73,16 +72,42 @@ impl SelectorNode {
         tuple.deref_mut().1.push(select.single_select_txt.clone());
         let rule = select.parent.as_ref().unwrap().upgrade().unwrap();
         if rule.deref().borrow().parent.is_some() {
-          let parent_rule = rule.deref().borrow().parent.as_ref().unwrap().upgrade().unwrap();
-          parent_rule.deref().borrow().selector.as_ref().unwrap().collect(tuple);
+          let parent_rule = rule
+            .deref()
+            .borrow()
+            .parent
+            .as_ref()
+            .unwrap()
+            .upgrade()
+            .unwrap();
+          parent_rule
+            .deref()
+            .borrow()
+            .selector
+            .as_ref()
+            .unwrap()
+            .collect(tuple);
         }
       }
       SelectorNode::Media(media) => {
         tuple.0.push(media.origin_txt.clone());
         let rule = media.parent.as_ref().unwrap().upgrade().unwrap();
         if rule.deref().borrow().parent.is_some() {
-          let parent_rule = rule.deref().borrow().parent.as_ref().unwrap().upgrade().unwrap();
-          parent_rule.deref().borrow().selector.as_ref().unwrap().collect(tuple);
+          let parent_rule = rule
+            .deref()
+            .borrow()
+            .parent
+            .as_ref()
+            .unwrap()
+            .upgrade()
+            .unwrap();
+          parent_rule
+            .deref()
+            .borrow()
+            .selector
+            .as_ref()
+            .unwrap()
+            .collect(tuple);
         }
       }
     };
@@ -93,6 +118,24 @@ impl SelectorNode {
     let mut select_rules: Vec<Vec<String>> = vec![];
     let mut tuple = (&mut media_rules, &mut select_rules);
     self.collect(&mut tuple);
+    // 处理收集的 select 字符串
+    let mut select_txt: Vec<String> = vec![];
+    select_rules.reverse();
+    for word_groups in select_rules {
+      if select_txt.is_empty() {
+        select_txt.append(&mut word_groups.clone());
+      } else {
+        let mut new_list: Vec<String> = vec![];
+        // 交叉相乘
+        for origin in select_txt {
+          for item in &word_groups {
+            new_list.push(format!("{} {}", origin, item));
+          }
+        }
+        select_txt = new_list;
+      }
+    }
+
     Ok("".to_string())
   }
 }
