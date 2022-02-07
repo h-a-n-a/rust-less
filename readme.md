@@ -92,8 +92,8 @@
     <td>支持</td>
 </tr>
 <tr>
-    <td>混合生成</td>
-    <td>0%</td>
+    <td>生成</td>
+    <td>30% (开发中)</td>
     <td>支持</td>
 </tr>
 </table>
