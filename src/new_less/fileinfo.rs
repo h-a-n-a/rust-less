@@ -225,9 +225,11 @@ impl FileInfo {
 
   pub fn getrules(&self) -> Vec<NodeRef> {
     let mut list = vec![];
-    self.block_node.iter().for_each(|x| match x {
-      StyleNode::Rule(rule) => list.push(rule.clone()),
-      _ => {}
+
+    self.block_node.iter().for_each(|x| {
+      if let StyleNode::Rule(rule) = x {
+        list.push(rule.clone())
+      }
     });
     list
   }

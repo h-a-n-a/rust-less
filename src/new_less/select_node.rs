@@ -42,7 +42,7 @@ impl SelectorNode {
       HandleResult::Swtich => {}
     };
     // 处理 select
-    match Selector::new(txt.clone(), loc.clone(), map, parent.clone()) {
+    match Selector::new(txt.clone(), loc.clone(), map, parent) {
       HandleResult::Success(obj) => {
         return Ok(SelectorNode::Select(obj));
       }

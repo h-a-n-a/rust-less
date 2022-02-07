@@ -126,21 +126,21 @@ impl RuleNode {
 
   pub fn getrules(&self) -> Vec<NodeRef> {
     let mut list = vec![];
-    self.block_node.iter().for_each(|x| match x {
-      StyleNode::Rule(rule) => list.push(rule.clone()),
-      _ => {}
+
+    self.block_node.iter().for_each(|x| {
+      if let StyleNode::Rule(rule) = x {
+        list.push(rule.clone());
+      }
     });
     list
   }
 
   pub fn get_style_rule(&self) -> Vec<StyleRuleNode> {
     let mut list = vec![];
-    self.block_node.iter().for_each(|x| match x {
-      StyleNode::Var(var) => match var {
-        VarRuleNode::StyleRule(style) => list.push(style.clone()),
-        _ => {}
-      },
-      _ => {}
+    self.block_node.iter().for_each(|x| {
+      if let StyleNode::Var(VarRuleNode::StyleRule(style)) = x {
+        list.push(style.clone());
+      }
     });
     list
   }
