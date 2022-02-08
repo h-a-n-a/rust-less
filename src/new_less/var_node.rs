@@ -1,6 +1,7 @@
 use crate::extend::enum_extend::EnumExtend;
 use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
+use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::option::ParseOption;
@@ -9,7 +10,6 @@ use crate::new_less::token::lib::Token;
 use crate::new_less::token::var::{TokenVarKeyAllow, TokenVarValue};
 use serde::Serialize;
 use std::ops::Deref;
-use crate::extend::vec_str::VecStrExtend;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct VarNode {
@@ -67,6 +67,9 @@ impl VarNode {
     }
   }
 
+  ///
+  /// 判断是否是 顶层 节点 下的变量
+  ///
   pub fn is_top(&self) -> bool {
     self.parent.is_none()
   }
@@ -152,33 +155,35 @@ impl VarNode {
     let end = self.charlist.len() - 1;
     let c = self.charlist[*start..end].poly().trim().to_string();
     let charlist = &c.tocharlist();
-    match traversal(None, charlist, &mut (|arg, charword| {
-      let ScanArg {
-        mut temp,
-        index,
-        hasend,
-      } = arg;
-      let (_, char, _) = charword;
-      //todo! 目前是简单计算 后续需要修改加强 value 的 parse 过程
-      if Token::is_token(&char) {
-        if TokenVarValue::is(&char) {
-          temp += &char;
+    match traversal(
+      None,
+      charlist,
+      &mut (|arg, charword| {
+        let ScanArg {
+          mut temp,
+          index,
+          hasend,
+        } = arg;
+        let (_, char, _) = charword;
+        //todo! 目前是简单计算 后续需要修改加强 value 的 parse 过程
+        if Token::is_token(&char) {
+          if TokenVarValue::is(&char) {
+            temp += &char;
+          } else {
+            return Err(self.error_msg(&(index - 1)));
+          }
         } else {
-          return Err(self.error_msg(&(index - 1)));
+          temp += &char;
         }
-      } else {
-        temp += &char;
-      }
-      let new_arg = ScanArg {
-        index,
-        temp,
-        hasend,
-      };
-      Ok(ScanResult::Arg(new_arg))
-    })) {
-      Ok(obj) => Ok(
-        (obj.0, self.charlist.len() - 1)
-      ),
+        let new_arg = ScanArg {
+          index,
+          temp,
+          hasend,
+        };
+        Ok(ScanResult::Arg(new_arg))
+      }),
+    ) {
+      Ok(obj) => Ok((obj.0, self.charlist.len() - 1)),
       Err(msg) => Err(msg),
     }
   }

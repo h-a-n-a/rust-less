@@ -1,6 +1,7 @@
 use crate::extend::string::StringExtend;
-use crate::new_less::loc::Loc;
+use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{HandleResult, NodeWeakRef};
+use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use serde::Serialize;
 
 ///
@@ -13,6 +14,10 @@ pub struct ImportNode {
 
   // 节点坐标
   pub loc: Option<Loc>,
+
+  // 内部处理 地图
+  #[serde(skip_serializing)]
+  map: LocMap,
 
   // 自身 Rule 的弱引用
   #[serde(skip_serializing)]
@@ -28,39 +33,76 @@ impl ImportNode {
   /// 初始化方法
   ///
   pub fn new(txt: String, loc: Option<Loc>, parent: NodeWeakRef) -> HandleResult<Self> {
-    let _obj = Self {
+    let map = if loc.is_none() {
+      LocMap::new(txt.clone())
+    } else {
+      LocMap::merge(loc.as_ref().unwrap(), &txt).0
+    };
+    let obj = Self {
       origin_txt: txt.to_string(),
       loc,
+      map,
       parent,
       charlist: txt.trim().to_string().tocharlist(),
     };
-    // match obj.parse() {
-    //   Ok(()) => HandleResult::Success(obj),
-    //   Err(msg) => HandleResult::Fail(msg),
-    // }
-    HandleResult::Swtich
+    if obj.origin_txt.len() < 7 {
+      return HandleResult::Swtich;
+    } else if &obj.origin_txt[0..7] != "@import" {
+      return HandleResult::Swtich;
+    }
+    match obj.parse() {
+      Ok(_) => HandleResult::Success(obj),
+      Err(msg) => HandleResult::Fail(msg),
+    }
+  }
+
+  ///
+  /// 判断是否是 顶层 节点 下的变量
+  ///
+  pub fn is_top(&self) -> bool {
+    self.parent.is_none()
+  }
+
+  ///
+  /// 报错信息
+  ///
+  pub fn error_msg(&self, index: &usize) -> String {
+    let error_loc = self.map.get(index).unwrap();
+    let char = self.charlist.get(*index).unwrap().to_string();
+    format!(
+      "text {}, char {} is not allow, line is {} col is {}",
+      &self.origin_txt, char, error_loc.line, error_loc.col
+    )
   }
 
   ///
   /// 解析 字符串
   ///
   fn parse(&self) -> Result<(), String> {
-    // let charlist = &self.charlist;
-    //
-    // let length = charlist.len();
-    //
-    // if length < 7
-    //   || (length == 7 && charlist[0..7].poly().as_str() != "@import")
-    //   || (length > 7 && charlist[0..8].poly().as_str() != "@import")
-    // {
-    //   return Err("select_txt not match import".to_string());
-    // }
-    //
-    // let index = 7;
-    //
-    // while index < charlist.len() {
-    //   // let char = charlist.get(index).unwrap().to_string();
-    // }
+    let charlist = &self.charlist.clone();
+    let index = 7;
+    match traversal(
+      Some(index),
+      charlist,
+      &mut (|arg, _| {
+        let ScanArg {
+          index,
+          temp,
+          hasend,
+        } = arg;
+
+        Ok(ScanResult::Arg(ScanArg {
+          index,
+          temp,
+          hasend,
+        }))
+      }),
+    ) {
+      Ok(res) => {}
+      Err(msg) => {
+        return Err(msg);
+      }
+    };
     Ok(())
   }
 }

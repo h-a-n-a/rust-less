@@ -1,4 +1,6 @@
 use crate::new_less::file_manger::FileManger;
+use crate::new_less::import::ImportNode;
+use crate::new_less::node::HandleResult;
 
 #[test]
 fn test_rel_path() {
@@ -8,4 +10,28 @@ fn test_rel_path() {
   assert_eq!(FileManger::is_relative_path(&a), true);
   assert_eq!(FileManger::is_relative_path(&b), true);
   assert_eq!(FileManger::is_relative_path(&c), true);
+}
+
+#[test]
+fn test_import_parse() {
+  let import_list = vec![r#"@width:400px;"#.to_string()];
+  let mut haserror = 0;
+  vars_list
+    .into_iter()
+    .for_each(|tt| match ImportNode::new(tt, None, None) {
+      HandleResult::Success(obj) => {
+        haserror += 0;
+        let json = serde_json::to_string_pretty(&obj).unwrap();
+        println!("{}", json);
+      }
+      HandleResult::Fail(msg) => {
+        haserror += 1;
+        println!("{:?}", msg);
+      }
+      HandleResult::Swtich => {
+        haserror += 1;
+        println!("{:?}", "swtich case ....");
+      }
+    });
+  assert_eq!(haserror, 0);
 }
