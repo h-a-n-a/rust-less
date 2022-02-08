@@ -1,3 +1,4 @@
+use crate::extend::string::StringExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::media::MediaQuery;
 use crate::new_less::node::{HandleResult, NodeWeakRef};
@@ -121,18 +122,28 @@ impl SelectorNode {
     let mut select_rules: Vec<Vec<String>> = vec![];
     let mut tuple = (&mut media_rules, &mut select_rules);
     self.collect(&mut tuple);
+
     // 处理收集的 select 字符串
     let mut select_txt: Vec<String> = vec![];
     select_rules.reverse();
     for word_groups in select_rules {
       if select_txt.is_empty() {
-        select_txt.append(&mut word_groups.clone());
+        select_txt.append(
+          &mut word_groups
+            .iter()
+            .map(|x| x.replace("$(&)", "").to_string())
+            .collect::<Vec<String>>(),
+        );
       } else {
         let mut new_list: Vec<String> = vec![];
         // 交叉相乘
         for origin in select_txt {
           for item in &word_groups {
-            new_list.push(format!("{} {}", origin, item));
+            if item.indexOf("$(&)", None) > -1 {
+              new_list.push(item.replace("$(&)", &origin).to_string());
+            } else {
+              new_list.push(format!("{} {}", origin, item));
+            }
           }
         }
         select_txt = new_list;
