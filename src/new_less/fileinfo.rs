@@ -7,12 +7,14 @@ use crate::new_less::node::{NodeRef, StyleNode, StyleNodeJson};
 use crate::new_less::option::ParseOption;
 use crate::new_less::rule::Rule;
 use crate::new_less::var::Var;
+use derivative::Derivative;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::{Rc, Weak};
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct FileInfo {
   // 文件的磁盘位置
   pub disk_location: Option<std::string::String>,

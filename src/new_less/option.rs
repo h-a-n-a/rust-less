@@ -1,12 +1,18 @@
 use crate::new_less::fileinfo::FileInfo;
+use crate::new_less::hooks::ParseHooks;
 use crate::new_less::parse::RuleNode;
+use derivative::Derivative;
 use std::ops::Deref;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Derivative)]
+#[derivative(Debug, PartialEq)]
+#[derive(Clone)]
 pub struct ParseOption {
   pub include_path: Option<Vec<String>>,
   pub sourcemap: bool,
   pub tabspaces: usize,
+  #[derivative(Debug = "ignore", PartialEq = "ignore")]
+  pub hooks: ParseHooks,
 }
 
 impl Default for ParseOption {
@@ -15,6 +21,7 @@ impl Default for ParseOption {
       include_path: None,
       sourcemap: true,
       tabspaces: 2,
+      hooks: Default::default(),
     }
   }
 }

@@ -10,6 +10,7 @@ use serde::Serialize;
 #[derive(Debug, Clone, Serialize)]
 pub struct ImportNode {
   // 原始字符
+  #[serde(rename(serialize = "content"))]
   pub origin_txt: String,
 
   // 节点坐标
@@ -26,6 +27,10 @@ pub struct ImportNode {
   // 内部快速扫词 字符串 数组
   #[serde(skip_serializing)]
   charlist: Vec<String>,
+
+  // 经常 插件 hook 的 计算完的 文件地址
+  #[serde(rename(serialize = "path"))]
+  parse_hook_url: String,
 }
 
 impl ImportNode {
@@ -44,6 +49,7 @@ impl ImportNode {
       map,
       parent,
       charlist: txt.trim().to_string().tocharlist(),
+      parse_hook_url: "".to_string(),
     };
     if obj.origin_txt.len() < 7 {
       return HandleResult::Swtich;
@@ -81,10 +87,13 @@ impl ImportNode {
   fn parse(&self) -> Result<(), String> {
     let charlist = &self.charlist.clone();
     let index = 7;
+    let has_apost = false;
+    let has_quote = false;
+
     match traversal(
       Some(index),
       charlist,
-      &mut (|arg, _| {
+      &mut (|arg, (_, char, _)| {
         let ScanArg {
           index,
           temp,

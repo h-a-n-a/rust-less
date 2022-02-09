@@ -2,6 +2,7 @@ pub mod comment;
 pub mod file;
 pub mod file_manger;
 pub mod fileinfo;
+pub mod hooks;
 pub mod import;
 pub mod loc;
 pub mod media;
