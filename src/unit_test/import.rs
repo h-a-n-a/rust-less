@@ -14,9 +14,9 @@ fn test_rel_path() {
 
 #[test]
 fn test_import_parse() {
-  let import_list = vec![r#"@width:400px;"#.to_string()];
+  let import_list = vec![r#"@import './a.less';"#.to_string()];
   let mut haserror = 0;
-  vars_list
+  import_list
     .into_iter()
     .for_each(|tt| match ImportNode::new(tt, None, None) {
       HandleResult::Success(obj) => {

@@ -1,3 +1,6 @@
+use crate::extend::enum_extend::EnumExtend;
+use crate::extend::str_into::StringInto;
+
 ///
 /// Select 合词字符串
 ///
@@ -9,3 +12,7 @@ pub enum TokenImport {
   #[strum(serialize = r#"""#)]
   Quote,
 }
+
+impl EnumExtend for TokenImport {}
+
+impl StringInto for TokenImport {}

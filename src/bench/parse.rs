@@ -23,6 +23,7 @@ fn parse_less_bench_without_sourcemap(bench: &mut Bencher) {
         include_path: None,
         sourcemap: false,
         tabspaces: 4,
+        hooks: Default::default(),
       },
     )
     .unwrap();
