@@ -46,7 +46,7 @@ impl ImportNode {
     } else {
       LocMap::merge(loc.as_ref().unwrap(), &txt).0
     };
-    let obj = Self {
+    let mut obj = Self {
       origin_txt: txt.to_string(),
       loc,
       map,
@@ -87,7 +87,7 @@ impl ImportNode {
   ///
   /// 解析 字符串
   ///
-  fn parse(&self) -> Result<(), String> {
+  fn parse(&mut self) -> Result<(), String> {
     let charlist = &self.charlist.clone();
     let index = 7;
     let mut has_apost = false;
@@ -147,7 +147,7 @@ impl ImportNode {
         return Err(msg);
       }
     };
-
+    self.parse_hook_url = path;
     Ok(())
   }
 }
