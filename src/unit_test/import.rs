@@ -42,7 +42,7 @@ fn test_import_parse() {
 #[test]
 fn test_import_error_parse() {
   let mut haserror = 0;
-  let import_list = vec![r#"@import './a.less';"#.to_string()];
+  let import_list = vec![r#"@import './a.less";"#.to_string()];
   import_list.into_iter().for_each(|tt| {
     match ImportNode::new(tt, None, None) {
       HandleResult::Success(_) => {

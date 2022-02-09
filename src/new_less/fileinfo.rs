@@ -92,12 +92,30 @@ impl FileInfo {
     LocMap::new(content.to_string())
   }
 
-  pub fn resolve_disklocation(filepath: String, option: ParseOption) -> Result<Self, String> {
+  ///
+  /// 根据文件路径 转换 文件
+  ///
+  pub fn create_disklocation(filepath: String, option: ParseOption) -> Result<String, String> {
+    let obj_heap = Self::create_disklocation_parse(filepath, option)?;
+    let res = match obj_heap.deref().borrow().code_gen() {
+      Ok(res) => Ok(res),
+      Err(msg) => Err(msg),
+    };
+    res
+  }
+
+  ///
+  /// 根据文件路径 解析 文件
+  ///
+  pub fn create_disklocation_parse(
+    filepath: String,
+    option: ParseOption,
+  ) -> Result<FileRef, String> {
     let abs_path: String;
     let text_content: String;
     let charlist: Vec<String>;
     let mut locmap: Option<LocMap> = None;
-    match FileManger::resolve(filepath, option.include_path.clone()) {
+    let obj = match FileManger::resolve(filepath, option.include_path.clone()) {
       Ok((calc_path, content)) => {
         abs_path = calc_path;
         text_content = content.clone();
@@ -115,39 +133,12 @@ impl FileInfo {
           import_file: vec![],
           self_weak: None,
         };
-        Ok(obj)
+        obj
       }
-      Err(msg) => Err(msg),
-    }
-  }
-
-  ///
-  /// 根据文件路径 转换 文件
-  ///
-  pub fn create_disklocation(filepath: String, option: ParseOption) -> Result<String, String> {
-    let obj = Self::resolve_disklocation(filepath, option)?;
-    let obj_heap = obj.toheap();
-    match Self::parse_heap(obj_heap.clone()) {
-      Ok(_) => {}
       Err(msg) => {
         return Err(msg);
       }
-    }
-    let res = match obj_heap.deref().borrow().code_gen() {
-      Ok(res) => Ok(res),
-      Err(msg) => Err(msg),
     };
-    res
-  }
-
-  ///
-  /// 根据文件路径 解析 文件
-  ///
-  pub fn create_disklocation_parse(
-    filepath: String,
-    option: ParseOption,
-  ) -> Result<FileRef, String> {
-    let obj = Self::resolve_disklocation(filepath, option)?;
     let obj_heap = obj.toheap();
     Self::parse_heap(obj_heap.clone())?;
     Ok(obj_heap)
@@ -156,7 +147,7 @@ impl FileInfo {
   ///
   /// 根据文件内容 解析文件
   ///
-  pub fn create_txt_content(
+  pub fn create_txt_content_parse(
     content: String,
     option: ParseOption,
     filename: Option<String>,
@@ -189,6 +180,19 @@ impl FileInfo {
       }
     }
     Ok(obj_heap)
+  }
+
+  pub fn create_txt_content(
+    content: String,
+    option: ParseOption,
+    filename: Option<String>,
+  ) -> Result<String, String> {
+    let obj = Self::create_txt_content_parse(content, option, filename)?;
+    let res = match obj.deref().borrow().code_gen() {
+      Ok(res) => Ok(res),
+      Err(msg) => Err(msg),
+    };
+    res
   }
 
   pub fn parse_heap(obj: FileRef) -> Result<(), String> {

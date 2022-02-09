@@ -1,6 +1,8 @@
 use crate::new_less::loc::Loc;
 use crate::new_less::node::{HandleResult, NodeWeakRef};
+use crate::new_less::option::ParseOption;
 use serde::Serialize;
+use std::ops::Deref;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct StyleRuleNode {
@@ -22,5 +24,18 @@ impl StyleRuleNode {
       parent,
     };
     HandleResult::Success(obj)
+  }
+
+  ///
+  /// 获取选项
+  ///
+  pub fn get_options(&self) -> ParseOption {
+    match self.parent.clone() {
+      None => Default::default(),
+      Some(pr) => match pr.upgrade().unwrap().deref().borrow().file_info.clone() {
+        None => Default::default(),
+        Some(file) => file.upgrade().unwrap().deref().borrow().option.clone(),
+      },
+    }
   }
 }

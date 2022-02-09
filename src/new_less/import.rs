@@ -2,10 +2,12 @@ use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{HandleResult, NodeWeakRef};
+use crate::new_less::option::ParseOption;
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::import::TokenImport;
 use crate::new_less::token::lib::Token;
 use serde::Serialize;
+use std::ops::Deref;
 
 ///
 /// import 处理
@@ -111,6 +113,8 @@ impl ImportNode {
               if index != charlist.len() - 2 {
                 return Err(self.error_msg(&index));
               } else {
+                has_apost = false;
+                has_quote = false;
                 hasend = true
               }
             } else {
@@ -147,7 +151,30 @@ impl ImportNode {
         return Err(msg);
       }
     };
-    self.parse_hook_url = path;
+    if has_apost || has_apost {
+      return Err(self.error_msg(&(self.charlist.len() - 2)));
+    }
+    let options = self.get_options();
+    if options.hooks.import_alias.is_some() {
+      let convert = options.hooks.import_alias.unwrap();
+      self.parse_hook_url = convert(path);
+    } else {
+      self.parse_hook_url = path;
+    }
+
     Ok(())
+  }
+
+  ///
+  /// 获取选项
+  ///
+  pub fn get_options(&self) -> ParseOption {
+    match self.parent.clone() {
+      None => Default::default(),
+      Some(pr) => match pr.upgrade().unwrap().deref().borrow().file_info.clone() {
+        None => Default::default(),
+        Some(file) => file.upgrade().unwrap().deref().borrow().option.clone(),
+      },
+    }
   }
 }

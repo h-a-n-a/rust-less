@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 #[derive(Clone)]
 pub struct ParseHooks {
-  import_alias: Option<Rc<dyn Fn(String) -> String>>,
+  pub import_alias: Option<Rc<dyn Fn(String) -> String>>,
 }
 
 impl Default for ParseHooks {
