@@ -1,7 +1,7 @@
 use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
 use crate::new_less::file_manger::FileManger;
-use crate::new_less::fileinfo::{FileInfo, FileRef};
+use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::option::ParseOption;
@@ -31,6 +31,10 @@ pub struct ImportNode {
   #[serde(skip_serializing)]
   parent: NodeWeakRef,
 
+  // 文件信息
+  #[serde(skip_serializing)]
+  pub fileinfo: FileWeakRef,
+
   // 内部快速扫词 字符串 数组
   #[serde(skip_serializing)]
   charlist: Vec<String>,
@@ -38,13 +42,17 @@ pub struct ImportNode {
   // 经常 插件 hook 的 计算完的 文件地址
   #[serde(rename(serialize = "path"))]
   parse_hook_url: String,
+
+  // 用来 暂存 引用文件
+  #[serde(skip_serializing)]
+  pub import_file: Option<FileRef>,
 }
 
 impl ImportNode {
   ///
   /// 初始化方法
   ///
-  pub fn new(txt: String, loc: Option<Loc>, parent: NodeWeakRef) -> HandleResult<Self> {
+  pub fn new(txt: String, loc: Option<Loc>, parent: NodeWeakRef, fileinfo: FileWeakRef) -> HandleResult<Self> {
     let map = if loc.is_none() {
       LocMap::new(txt.clone())
     } else {
@@ -55,8 +63,10 @@ impl ImportNode {
       loc,
       map,
       parent,
+      fileinfo,
       charlist: txt.trim().to_string().tocharlist(),
       parse_hook_url: "".to_string(),
+      import_file: None,
     };
     if obj.origin_txt.len() < 7 || &obj.origin_txt[0..7] != "@import" {
       return HandleResult::Swtich;
@@ -161,10 +171,10 @@ impl ImportNode {
     } else {
       self.parse_hook_url = path;
     }
-
     // 处理递归解析 若节点不存在 则 不进行处理
-    self.visit_fileinfo_mut(Box::new(|fileinfo_rc| {
-      let mut fileinfo = fileinfo_rc.deref().borrow_mut();
+    if self.fileinfo.is_some() {
+      let fileinfo_rc = self.fileinfo.as_ref().unwrap().upgrade().unwrap();
+      let fileinfo = fileinfo_rc.deref().borrow();
       let mut has_include = false;
       let file_path = self.parse_hook_url.clone();
       let include_path = self.get_options().include_path;
@@ -187,18 +197,17 @@ impl ImportNode {
       if !has_include {
         let weak_file_ref_option = fileinfo.get_cache(abs_path.as_str());
         if let Some(weak_file_ref) = weak_file_ref_option {
-          fileinfo.import_file.push(weak_file_ref.upgrade().unwrap());
+          self.import_file = Some(weak_file_ref.upgrade().unwrap());
         } else {
           let heap_obj = FileInfo::create_disklocation_parse(
             abs_path,
             self.get_options(),
             Some(fileinfo.filecache.clone()),
           )?;
-          fileinfo.import_file.push(heap_obj);
+          self.import_file = Some(heap_obj);
         }
       }
-      Ok(())
-    }))?;
+    }
 
     Ok(())
   }
@@ -207,39 +216,11 @@ impl ImportNode {
   /// 获取选项
   ///
   pub fn get_options(&self) -> ParseOption {
-    match self.parent.clone() {
+    match self.fileinfo.clone() {
       None => Default::default(),
-      Some(pr) => match pr.upgrade().unwrap().deref().borrow().file_info.clone() {
-        None => Default::default(),
-        Some(file) => file.upgrade().unwrap().deref().borrow().option.clone(),
-      },
-    }
-  }
-
-  ///
-  /// 访问 节点上 fileinfo
-  ///
-  pub fn visit_fileinfo_mut<'a>(
-    &'a self,
-    visit_mut: Box<dyn Fn(FileRef) -> Result<(), String> + 'a>,
-  ) -> Result<(), String> {
-    if self.parent.is_some() {
-      let p_file_info = self
-        .parent
-        .as_ref()
-        .unwrap()
-        .upgrade()
-        .unwrap()
-        .borrow_mut()
-        .file_info
-        .clone();
-      if let Some(file_info) = p_file_info {
-        let mut_fileinfo_obj = file_info.upgrade().unwrap();
-        if let Err(msg) = visit_mut(mut_fileinfo_obj) {
-          return Err(msg);
-        }
+      Some(file) => {
+        file.upgrade().unwrap().deref().borrow().option.clone()
       }
     }
-    Ok(())
   }
 }

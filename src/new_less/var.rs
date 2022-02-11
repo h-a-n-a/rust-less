@@ -1,6 +1,6 @@
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::comment::skip_comment;
-use crate::new_less::fileinfo::FileInfo;
+use crate::new_less::fileinfo::{FileInfo, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{NodeWeakRef, VarRuleNode};
 use crate::new_less::option::{OptionExtend, ParseOption};
@@ -12,7 +12,7 @@ pub trait Var {
 
 impl Var for FileInfo {
   fn parse_var(&self) -> Result<Vec<VarRuleNode>, String> {
-    parse_var(&self.option, &self.origin_charlist, &self.locmap, None)
+    parse_var(&self.option, &self.origin_charlist, &self.locmap, None, self.self_weak.clone())
   }
 }
 
@@ -23,6 +23,7 @@ impl Var for RuleNode {
       &self.origin_charlist,
       &self.locmap,
       self.weak_self.clone(),
+      self.file_info.clone(),
     )
   }
 }
@@ -35,6 +36,7 @@ fn parse_var(
   origin_charlist: &[String],
   locmap: &Option<LocMap>,
   parent: NodeWeakRef,
+  fileinfo: FileWeakRef,
 ) -> Result<Vec<VarRuleNode>, String> {
   let mut blocklist: Vec<VarRuleNode> = vec![];
   let mut templist: Vec<String> = vec![];
@@ -73,6 +75,7 @@ fn parse_var(
         templist.poly().trim().to_string(),
         record_loc,
         parent.clone(),
+        fileinfo.clone(),
       ) {
         Ok(obj) => obj,
         Err(msg) => {

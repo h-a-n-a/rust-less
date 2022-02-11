@@ -6,10 +6,8 @@ use crate::new_less::node::HandleResult;
 fn test_rel_path() {
   let a = "../test/a.txt".to_string();
   let b = "./test/a.txt".to_string();
-  let c = "/test/a.txt".to_string();
   assert_eq!(FileManger::is_relative_path(&a), true);
   assert_eq!(FileManger::is_relative_path(&b), true);
-  assert_eq!(FileManger::is_relative_path(&c), true);
 }
 
 #[test]
@@ -21,7 +19,7 @@ fn test_import_parse() {
   let mut haserror = 0;
   import_list
     .into_iter()
-    .for_each(|tt| match ImportNode::new(tt, None, None) {
+    .for_each(|tt| match ImportNode::new(tt, None, None, None) {
       HandleResult::Success(obj) => {
         haserror += 0;
         let json = serde_json::to_string_pretty(&obj).unwrap();
@@ -44,7 +42,7 @@ fn test_import_error_parse() {
   let mut haserror = 0;
   let import_list = vec![r#"@import './a.less";"#.to_string()];
   import_list.into_iter().for_each(|tt| {
-    match ImportNode::new(tt, None, None) {
+    match ImportNode::new(tt, None, None, None) {
       HandleResult::Success(_) => {
         haserror += 1;
       }

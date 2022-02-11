@@ -116,16 +116,21 @@ impl FileInfo {
   ///
   pub fn create_disklocation_parse(
     filepath: String,
-    option: ParseOption,
+    mut option: ParseOption,
     filecache: Option<ParseCacheMap>,
   ) -> Result<FileRef, String> {
-    let abs_path: String;
     let text_content: String;
     let charlist: Vec<String>;
     let mut locmap: Option<LocMap> = None;
     let obj = match FileManger::resolve(filepath, option.include_path.clone()) {
-      Ok((calc_path, content)) => {
-        abs_path = calc_path;
+      Ok((abs_path, content)) => {
+        if option.include_path.is_none() {
+          option.include_path = Some(vec![FileManger::get_dir(&abs_path)?]);
+        } else {
+          let mut origin_include_path = option.include_path.as_ref().unwrap().clone();
+          origin_include_path.push(FileManger::get_dir(&abs_path)?);
+          option.include_path = Some(origin_include_path);
+        }
         text_content = content.clone();
         if option.sourcemap {
           locmap = Some(FileInfo::get_loc_by_content(content.as_str()));
@@ -157,7 +162,7 @@ impl FileInfo {
   ///
   pub fn create_txt_content_parse(
     content: String,
-    option: ParseOption,
+    mut option: ParseOption,
     filename: Option<String>,
     filecache: Option<ParseCacheMap>,
   ) -> Result<FileRef, String> {
@@ -171,6 +176,13 @@ impl FileInfo {
       None => cmd_path_resolve("_virtual.less"),
       Some(path_val) => path_val,
     };
+    if option.include_path.is_none() {
+      option.include_path = Some(vec![FileManger::get_dir(&abs_path)?]);
+    } else {
+      let mut origin_include_path = option.include_path.as_ref().unwrap().clone();
+      origin_include_path.push(FileManger::get_dir(&abs_path)?);
+      option.include_path = Some(origin_include_path);
+    }
     let obj = FileInfo {
       disk_location: Some(abs_path),
       block_node: vec![],
@@ -205,6 +217,9 @@ impl FileInfo {
     res
   }
 
+  ///
+  /// 转化 AST
+  ///
   pub fn parse_heap(obj: FileRef) -> Result<(), String> {
     // 把当前 节点 的 对象 指针 放到 节点上 缓存中
     let disk_location_path = obj.borrow().disk_location.clone().unwrap();
@@ -213,7 +228,7 @@ impl FileInfo {
       .borrow()
       .set_cache(disk_location_path.as_str(), obj.borrow().self_weak.clone());
     // 开始转换
-    let mut comments = match obj.borrow().parse_comment() {
+    let mut comments = match obj.deref().borrow().parse_comment() {
       Ok(blocks) => blocks
         .into_iter()
         .map(StyleNode::Comment)
@@ -223,7 +238,7 @@ impl FileInfo {
       }
     };
     obj.borrow_mut().block_node.append(&mut comments);
-    let mut vars = match obj.borrow().parse_var() {
+    let mut vars = match obj.deref().borrow().parse_var() {
       Ok(blocks) => blocks
         .into_iter()
         .map(StyleNode::Var)
@@ -232,8 +247,9 @@ impl FileInfo {
         return Err(msg);
       }
     };
+
     obj.borrow_mut().block_node.append(&mut vars);
-    let mut rules = match obj.borrow().parse_rule() {
+    let mut rules = match obj.deref().borrow().parse_rule() {
       Ok(blocks) => blocks
         .into_iter()
         .map(StyleNode::Rule)

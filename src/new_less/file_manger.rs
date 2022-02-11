@@ -1,4 +1,4 @@
-use crate::new_less::file::{cmd_path, cmd_path_resolve, path_join, readfile};
+use crate::new_less::file::{cmd_path_resolve, path_join, readfile};
 use std::path::Path;
 
 pub struct FileManger {}
@@ -27,8 +27,7 @@ impl FileManger {
     // 相对路径 和 绝对路径 分开计算
     return if FileManger::is_relative_path(&filepath) {
       // 相对路径的情况
-      if let Some(mut paths) = include_path {
-        paths.insert(0, cmd_path());
+      if let Some(paths) = include_path {
         let mut abs_path: Option<String> = None;
         let mut failpath = vec![];
         for basepath in paths {
@@ -76,13 +75,18 @@ impl FileManger {
   }
 
   pub fn is_relative_path(txt: &str) -> bool {
-    let mut matched = false;
-    if (!txt.is_empty() && &txt[0..1] == "/")
-      || (txt.len() >= 2 && &txt[0..2] == "./")
-      || (txt.len() >= 3 && &txt[0..3] == "../")
-    {
-      matched = true
+    let path = Path::new(txt);
+    path.is_relative()
+  }
+
+  pub fn get_dir(path_value: &str) -> Result<String, String> {
+    let path = Path::new(path_value);
+    if path.is_file() {
+      Ok(path.parent().unwrap().to_str().unwrap().to_string())
+    } else if path.is_dir() {
+      Ok(path_value.to_string())
+    } else {
+      Err(format!("path type is file or dir please check {}", path_value))
     }
-    matched
   }
 }

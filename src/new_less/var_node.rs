@@ -10,6 +10,7 @@ use crate::new_less::token::lib::Token;
 use crate::new_less::token::var::{TokenVarKeyAllow, TokenVarValue};
 use serde::Serialize;
 use std::ops::Deref;
+use crate::new_less::fileinfo::FileWeakRef;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct VarNode {
@@ -30,6 +31,10 @@ pub struct VarNode {
   #[serde(skip_serializing)]
   pub parent: NodeWeakRef,
 
+  // 文件信息
+  #[serde(skip_serializing)]
+  pub fileinfo: FileWeakRef,
+
   pub key: Option<String>,
 
   pub value: Option<String>,
@@ -39,7 +44,7 @@ impl VarNode {
   ///
   /// 初始化
   ///
-  pub fn new(txt: String, loc: Option<Loc>, parent: NodeWeakRef) -> HandleResult<Self> {
+  pub fn new(txt: String, loc: Option<Loc>, parent: NodeWeakRef, fileinfo: FileWeakRef) -> HandleResult<Self> {
     let map = if loc.is_none() {
       LocMap::new(txt.clone())
     } else {
@@ -51,6 +56,7 @@ impl VarNode {
       map,
       charlist: txt.tocharlist(),
       parent,
+      fileinfo,
       key: None,
       value: None,
     };
@@ -78,12 +84,11 @@ impl VarNode {
   /// 获取选项
   ///
   pub fn get_options(&self) -> ParseOption {
-    match self.parent.clone() {
+    match self.fileinfo.clone() {
       None => Default::default(),
-      Some(pr) => match pr.upgrade().unwrap().deref().borrow().file_info.clone() {
-        None => Default::default(),
-        Some(file) => file.upgrade().unwrap().deref().borrow().option.clone(),
-      },
+      Some(file) => {
+        file.upgrade().unwrap().deref().borrow().option.clone()
+      }
     }
   }
 

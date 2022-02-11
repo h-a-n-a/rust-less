@@ -1,17 +1,17 @@
 use crate::extend::string::StringExtend;
-use crate::new_less::comment::Comment;
 use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{NodeRef, NodeWeakRef, StyleNode, StyleNodeJson, VarRuleNode};
 use crate::new_less::option::OptionExtend;
-use crate::new_less::rule::Rule;
 use crate::new_less::select_node::SelectorNode;
 use crate::new_less::style_rule::StyleRuleNode;
-use crate::new_less::var::Var;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::Rc;
+use crate::new_less::comment::Comment;
+use crate::new_less::rule::Rule;
+use crate::new_less::var::Var;
 
 #[derive(Debug, Clone)]
 pub struct RuleNode {
@@ -110,7 +110,7 @@ impl RuleNode {
       }
     };
     heapobj.borrow_mut().selector = Some(selector);
-    if heapobj.borrow().get_options().sourcemap {
+    if heapobj.deref().borrow().get_options().sourcemap {
       let (calcmap, _) = LocMap::merge(change_loc.as_ref().unwrap(), &content);
       heapobj.borrow_mut().locmap = Some(calcmap);
     }
@@ -146,7 +146,7 @@ impl RuleNode {
   }
 
   pub fn parse_heap(obj: NodeRef) -> Result<(), String> {
-    let mut comments = match obj.borrow().parse_comment() {
+    let mut comments = match obj.deref().borrow().parse_comment() {
       Ok(blocks) => blocks
         .into_iter()
         .map(StyleNode::Comment)
@@ -156,7 +156,7 @@ impl RuleNode {
       }
     };
     obj.borrow_mut().block_node.append(&mut comments);
-    let mut vars = match obj.borrow().parse_var() {
+    let mut vars = match obj.deref().borrow().parse_var() {
       Ok(blocks) => blocks
         .into_iter()
         .map(StyleNode::Var)
@@ -166,7 +166,7 @@ impl RuleNode {
       }
     };
     obj.borrow_mut().block_node.append(&mut vars);
-    let mut enum_rule = match obj.borrow().parse_rule() {
+    let mut enum_rule = match obj.deref().borrow().parse_rule() {
       Ok(blocks) => {
         for node in blocks.clone() {
           let mut node_value = node.borrow_mut();
