@@ -11,6 +11,7 @@ impl FileManger {
     filepath: String,
     include_path: Option<Vec<String>>,
   ) -> Result<(String, String), String> {
+    // 检查文件是否 存在 闭包方法 被 下方 调用
     let checkpath = |path_target: &Path| -> Result<(), String> {
       if !path_target.exists() {
         return Err(format!("file is not exists filepath is {}", filepath));
@@ -23,7 +24,7 @@ impl FileManger {
       }
       Ok(())
     };
-
+    // 相对路径 和 绝对路径 分开计算
     return if FileManger::is_relative_path(&filepath) {
       // 相对路径的情况
       if let Some(mut paths) = include_path {

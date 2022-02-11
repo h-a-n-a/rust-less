@@ -52,8 +52,8 @@ impl LocMap {
     obj
   }
 
-  pub fn get(&self, index: usize) -> Option<Loc> {
-    self.data.get(&index).cloned()
+  pub fn get(&self, index: &usize) -> Option<Loc> {
+    self.data.get(index).cloned()
   }
 
   pub fn getloc(&self, line: usize, col: usize) -> Option<Loc> {

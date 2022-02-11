@@ -1,33 +1,38 @@
 use crate::extend::string::StringExtend;
 use crate::new_less::comment::Comment;
+use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{ParentRef, SelectorNode, StyleNode, StyleNodeJson};
-use crate::new_less::option::ParseOption;
+use crate::new_less::node::{NodeRef, NodeWeakRef, StyleNode, StyleNodeJson, VarRuleNode};
+use crate::new_less::option::OptionExtend;
 use crate::new_less::rule::Rule;
+use crate::new_less::select_node::SelectorNode;
+use crate::new_less::style_rule::StyleRuleNode;
 use crate::new_less::var::Var;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::ops::Deref;
-use std::rc::{Rc};
+use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub struct RuleNode {
   // 节点内容
   pub content: String,
   // 选择器 文字
-  pub selector: SelectorNode,
+  pub selector: Option<SelectorNode>,
   // 根据 原始内容 -> 转化的 字符数组
   pub origin_charlist: Vec<String>,
   // 节点坐标
   pub loc: Option<Loc>,
   // 当前所有 索引 对应的 坐标行列 -> 用于执行 sourcemap
   pub locmap: Option<LocMap>,
-  // 内部调用方式时 需要拿到对应的 转化配置
-  pub option: ParseOption,
   // 节点 父节点
-  pub parent: ParentRef,
+  pub parent: NodeWeakRef,
+  // 自己的引用关系
+  pub weak_self: NodeWeakRef,
   // 节点 子节点
   pub block_node: Vec<StyleNode>,
+  // 文件弱引用
+  pub file_info: FileWeakRef,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -65,12 +70,9 @@ impl RuleNode {
         }
       });
     RuleNodeJson {
-      selector_txt: self.selector.value(),
+      selector_txt: self.selector.as_ref().unwrap().value(),
       content: self.content.clone(),
-      loc: match &self.loc {
-        None => None,
-        Some(l) => Some(l.clone()),
-      },
+      loc: self.loc.as_ref().cloned(),
       block_node,
     }
   }
@@ -82,83 +84,93 @@ impl RuleNode {
     content: String,
     selector_txt: String,
     loc: Option<Loc>,
-    option: ParseOption,
-  ) -> Result<Rc<RefCell<RuleNode>>, String> {
+    file_info: FileWeakRef,
+  ) -> Result<NodeRef, String> {
     let origin_charlist = content.tocharlist();
-    let mut locmap: Option<LocMap> = None;
-    let mut change_loc: Option<Loc> = loc;
-    let selector = match SelectorNode::new(selector_txt, &mut change_loc, &option) {
+    let mut change_loc: Option<Loc> = loc.clone();
+    let obj = RuleNode {
+      content: content.clone(),
+      selector: None,
+      origin_charlist,
+      loc,
+      locmap: None,
+      block_node: vec![],
+      parent: None,
+      weak_self: None,
+      file_info,
+    };
+    let heapobj = Rc::new(RefCell::new(obj));
+    let wek_self = Rc::downgrade(&heapobj);
+    heapobj.borrow_mut().weak_self = Some(wek_self.clone());
+
+    let selector = match SelectorNode::new(selector_txt, &mut change_loc, Some(wek_self)) {
       Ok(result) => result,
       Err(msg) => {
         return Err(msg);
       }
     };
-    if option.sourcemap {
-      let (calcmap, _) = LocMap::merge(&change_loc.as_ref().unwrap(), &content);
-      locmap = Some(calcmap);
+    heapobj.borrow_mut().selector = Some(selector);
+    if heapobj.borrow().get_options().sourcemap {
+      let (calcmap, _) = LocMap::merge(change_loc.as_ref().unwrap(), &content);
+      heapobj.borrow_mut().locmap = Some(calcmap);
     }
-    let obj = RuleNode {
-      content,
-      selector,
-      origin_charlist,
-      loc: change_loc,
-      locmap,
-      option,
-      block_node: vec![],
-      parent: None,
-    };
-    match obj.parse() {
-      Ok(obj) => {
-        let parent = Rc::downgrade(&obj);
-        obj.borrow_mut()
-          .selector
-          .set_parent(Some(parent.clone()));
-        obj.borrow_mut().block_node.iter().for_each(|x| {
-          match x {
-            StyleNode::Var(var) => {
-              var.to_owned().set_parent(Some(parent.clone()));
-            }
-            _ => {}
-          }
-        });
 
-        Ok(obj)
+    match Self::parse_heap(heapobj.clone()) {
+      Ok(_) => {}
+      Err(msg) => {
+        return Err(msg);
       }
-      Err(msg) => Err(msg),
     }
+    Ok(heapobj)
   }
 
-  pub fn parse(mut self) -> Result<Rc<RefCell<RuleNode>>, String> {
-    match self.parse_comment() {
-      Ok(blocks) => {
-        let mut enum_cc = blocks
-          .into_iter()
-          .map(StyleNode::Comment)
-          .collect::<Vec<StyleNode>>();
-        self.block_node.append(&mut enum_cc);
+  pub fn getrules(&self) -> Vec<NodeRef> {
+    let mut list = vec![];
+
+    self.block_node.iter().for_each(|x| {
+      if let StyleNode::Rule(rule) = x {
+        list.push(rule.clone());
       }
+    });
+    list
+  }
+
+  pub fn get_style_rule(&self) -> Vec<StyleRuleNode> {
+    let mut list = vec![];
+    self.block_node.iter().for_each(|x| {
+      if let StyleNode::Var(VarRuleNode::StyleRule(style)) = x {
+        list.push(style.clone());
+      }
+    });
+    list
+  }
+
+  pub fn parse_heap(obj: NodeRef) -> Result<(), String> {
+    let mut comments = match obj.borrow().parse_comment() {
+      Ok(blocks) => blocks
+        .into_iter()
+        .map(StyleNode::Comment)
+        .collect::<Vec<StyleNode>>(),
       Err(msg) => {
         return Err(msg);
       }
-    }
-    match self.parse_var() {
-      Ok(blocks) => {
-        let mut enum_var = blocks
-          .into_iter()
-          .map(StyleNode::Var)
-          .collect::<Vec<StyleNode>>();
-        self.block_node.append(&mut enum_var);
-      }
+    };
+    obj.borrow_mut().block_node.append(&mut comments);
+    let mut vars = match obj.borrow().parse_var() {
+      Ok(blocks) => blocks
+        .into_iter()
+        .map(StyleNode::Var)
+        .collect::<Vec<StyleNode>>(),
       Err(msg) => {
         return Err(msg);
       }
-    }
-    let parent = Rc::new(RefCell::new(self));
-    let mut enum_rule = match parent.borrow().parse_rule() {
+    };
+    obj.borrow_mut().block_node.append(&mut vars);
+    let mut enum_rule = match obj.borrow().parse_rule() {
       Ok(blocks) => {
         for node in blocks.clone() {
           let mut node_value = node.borrow_mut();
-          node_value.parent = Some(Rc::downgrade(&parent));
+          node_value.parent = Some(Rc::downgrade(&obj));
         }
         blocks
           .into_iter()
@@ -169,7 +181,50 @@ impl RuleNode {
         return Err(msg);
       }
     };
-    parent.borrow_mut().block_node.append(&mut enum_rule);
-    Ok(parent)
+    obj.borrow_mut().block_node.append(&mut enum_rule);
+    Ok(())
+  }
+
+  pub fn code_gen(&self, content: &mut String) {
+    let rules = self.get_style_rule();
+
+    if !rules.is_empty() {
+      let (select_txt, media_txt) = self.selector.as_ref().unwrap().code_gen().unwrap();
+
+      let mut tab: String = "".to_string();
+      let mut index = 0;
+      while index < self.get_options().tabspaces {
+        tab += " ";
+        index += 1;
+      }
+
+      let create_rules = |tab: String| {
+        rules
+          .iter()
+          .map(|x| tab.clone() + &x.content.clone())
+          .collect::<Vec<String>>()
+          .join("\n")
+      };
+
+      if media_txt.is_empty() {
+        *content += format!("\n{}{}\n{}\n{}\n", select_txt, "{", create_rules(tab), "}").as_ref();
+      } else {
+        *content += format!(
+          "\n{}{}\n{}{}\n{}\n{}\n{}",
+          media_txt,
+          "{",
+          tab.clone() + &select_txt,
+          "{",
+          create_rules(tab.clone() + &tab.clone()),
+          "  }",
+          "}"
+        )
+        .as_ref();
+      }
+    }
+
+    self.getrules().iter().for_each(|x| {
+      x.deref().borrow().code_gen(content);
+    });
   }
 }

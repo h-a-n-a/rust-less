@@ -9,8 +9,8 @@ use crate::new_less::fileinfo::FileInfo;
 fn test_comment_remove() {
   let record = wastetime("test_less");
   let filepath = path_resolve("assets/demo.less");
-  let info = FileInfo::create_disklocation(filepath, Default::default()).unwrap();
-  let content = info.rm_comment();
+  let info = FileInfo::create_disklocation_parse(filepath, Default::default(), None).unwrap();
+  let content = info.borrow().rm_comment();
   record();
   let target = r#"
 @width: 400px;
@@ -37,11 +37,27 @@ textarea {
 }
 
 
-a {
+.a {
   font-size: @font_size;
 
   @media screen and ( max-width: 900px) {
     font-size: @font_size;
+  }
+}
+
+@media screen and ( min-width: 900px) {
+  .xyz {
+    font-size: @font_size;
+    @media screen and ( max-width: 900px) {
+      color: red;
+    }
+  }
+}
+
+.ace{
+  font-size: 10px;
+  & .b{
+    font-size: 20px;
   }
 }
     "#;

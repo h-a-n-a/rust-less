@@ -1,10 +1,9 @@
-use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::comment::skip_comment;
 use crate::new_less::fileinfo::FileInfo;
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::VarRuleNode;
-use crate::new_less::option::ParseOption;
+use crate::new_less::node::{NodeWeakRef, VarRuleNode};
+use crate::new_less::option::{OptionExtend, ParseOption};
 use crate::new_less::parse::RuleNode;
 
 pub trait Var {
@@ -13,13 +12,18 @@ pub trait Var {
 
 impl Var for FileInfo {
   fn parse_var(&self) -> Result<Vec<VarRuleNode>, String> {
-    parse_var(&self.option, &self.origin_charlist, &self.locmap)
+    parse_var(&self.option, &self.origin_charlist, &self.locmap, None)
   }
 }
 
 impl Var for RuleNode {
   fn parse_var(&self) -> Result<Vec<VarRuleNode>, String> {
-    parse_var(&self.option, &self.origin_charlist, &self.locmap)
+    parse_var(
+      &self.get_options(),
+      &self.origin_charlist,
+      &self.locmap,
+      self.weak_self.clone(),
+    )
   }
 }
 
@@ -30,6 +34,7 @@ fn parse_var(
   options: &ParseOption,
   origin_charlist: &[String],
   locmap: &Option<LocMap>,
+  parent: NodeWeakRef,
 ) -> Result<Vec<VarRuleNode>, String> {
   let mut blocklist: Vec<VarRuleNode> = vec![];
   let mut templist: Vec<String> = vec![];
@@ -59,13 +64,16 @@ fn parse_var(
 
     // 记录第一个非空字符 起始位置
     if options.sourcemap && char != " " && char != "\r" && char != "\n" && record_loc.is_none() {
-      record_loc = Some(locmap.as_ref().unwrap().get(index).unwrap());
+      record_loc = Some(locmap.as_ref().unwrap().get(&index).unwrap());
     }
 
     templist.push(char.clone());
     if char == endqueto && braces_level == 0 {
-      let pure_text = templist.join("").trim().to_string().tocharlist();
-      let style_var = match VarRuleNode::new(pure_text.poly(), record_loc,options) {
+      let style_var = match VarRuleNode::new(
+        templist.poly().trim().to_string(),
+        record_loc,
+        parent.clone(),
+      ) {
         Ok(obj) => obj,
         Err(msg) => {
           return Err(msg);

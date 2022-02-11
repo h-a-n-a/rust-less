@@ -27,10 +27,26 @@ textarea {
 }
 
 
-a {
+.a {
   font-size: @font_size;
 
   @media screen and ( max-width: 900px) {
     font-size: @font_size;
+  }
+}
+
+@media screen and ( min-width: 900px) {
+  .xyz {
+    font-size: @font_size;
+    @media screen and ( max-width: 900px) {
+      color: red;
+    }
+  }
+}
+
+.ace{
+  font-size: 10px;
+  & .b{
+    font-size: 20px;
   }
 }

@@ -61,12 +61,12 @@ selector:pseudo-class
   "#;
   let mut base = "".to_string();
   demo_select_list.into_iter().for_each(|tt| {
-    let ss = match Selector::new(tt, None, None) {
+    let ss = match Selector::new(tt, None, None, None) {
       HandleResult::Success(obj) => Some(obj),
       HandleResult::Fail(_) => None,
       HandleResult::Swtich => None,
     }
-    .unwrap();
+      .unwrap();
     let value;
     if ss.single_select_txt.len() < 2 {
       value = ss.single_select_txt.poly();
@@ -83,6 +83,8 @@ selector:pseudo-class
 fn test_select_error_parse() {
   let mut haserror = 0;
   let demo_select_list = vec![
+    r#""#.to_string(),
+    r#" "#.to_string(),
     r#"."#.to_string(),
     r#"$"#.to_string(),
     r#".b > > a"#.to_string(),
@@ -99,7 +101,7 @@ fn test_select_error_parse() {
     r#"(id>.c"#.to_string(),
   ];
   demo_select_list.into_iter().for_each(|tt| {
-    match Selector::new(tt, None, None) {
+    match Selector::new(tt, None, None, None) {
       HandleResult::Success(_) => {
         haserror += 1;
       }

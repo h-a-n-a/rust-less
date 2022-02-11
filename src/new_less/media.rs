@@ -3,7 +3,7 @@ use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{HandleResult, ParentRef};
+use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::media::{
@@ -21,26 +21,28 @@ pub struct MediaQuery {
   pub loc: Option<Loc>,
 
   #[serde(skip_serializing)]
-  map: Option<LocMap>,
+  map: LocMap,
 
   #[serde(skip_serializing)]
   charlist: Vec<String>,
 
   #[serde(skip_serializing)]
-  pub parent: ParentRef,
+  pub parent: NodeWeakRef,
 }
 
 impl MediaQuery {
   ///
   /// 初始化方法
   ///
-  pub fn new(txt: String, loc: Option<Loc>, map: Option<LocMap>) -> HandleResult<Self> {
+  pub fn new(txt: String, loc: Option<Loc>, map: Option<LocMap>, parent: NodeWeakRef) -> HandleResult<Self> {
     let obj = Self {
       origin_txt: txt.clone(),
       loc,
-      map,
+      map: map.unwrap_or_else(|| {
+        LocMap::new(txt.clone())
+      }),
       charlist: txt.trim().to_string().tocharlist(),
-      parent: None,
+      parent,
     };
     match obj.parse() {
       Ok(_) => HandleResult::Success(obj),
@@ -59,18 +61,15 @@ impl MediaQuery {
   ///
   pub fn errormsg(&self, index: &usize) -> Result<(), String> {
     let char = self.charlist.get(*index).unwrap().clone();
+    let error_loc = self.map.get(index).unwrap();
     Err(format!(
-      "select text {}, char {} is not allow,index is {}",
-      self.origin_txt, char, index
+      "select text {}, char {} is not allow,line is {} col is {}",
+      self.origin_txt, char, error_loc.line, error_loc.col
     ))
   }
 
   pub fn value(&self) -> String {
     self.origin_txt.clone()
-  }
-
-  pub fn map(&self) -> Option<LocMap> {
-    self.map.clone()
   }
 
   ///
@@ -247,6 +246,9 @@ impl MediaQuery {
 
   pub fn parse(&self) -> Result<(), String> {
     let charlist = &self.charlist;
+    if charlist.is_empty() {
+      return Err("media query text is empty".to_string());
+    }
     if charlist.len() < 6
       || (charlist.len() == 6 && charlist[0..6].poly().as_str() != "@media")
       || (charlist.len() > 6 && charlist[0..7].poly().as_str() != "@media ")

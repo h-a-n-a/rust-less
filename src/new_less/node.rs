@@ -1,23 +1,21 @@
 use crate::new_less::comment::CommentNode;
 use crate::new_less::import::ImportNode;
-use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::media::MediaQuery;
-use crate::new_less::option::ParseOption;
+use crate::new_less::loc::Loc;
 use crate::new_less::parse::{RuleNode, RuleNodeJson};
-use crate::new_less::select::Selector;
 use crate::new_less::style_rule::StyleRuleNode;
 use crate::new_less::var_node::VarNode;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-pub type ParentRef = Option<Weak<RefCell<RuleNode>>>;
+pub type NodeWeakRef = Option<Weak<RefCell<RuleNode>>>;
+pub type NodeRef = Rc<RefCell<RuleNode>>;
 
 #[derive(Debug, Clone)]
 pub enum StyleNode {
   Comment(CommentNode),
   Var(VarRuleNode),
-  Rule(Rc<RefCell<RuleNode>>),
+  Rule(NodeRef),
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -25,69 +23,6 @@ pub enum StyleNodeJson {
   Comment(CommentNode),
   Var(VarRuleNode),
   Rule(RuleNodeJson),
-}
-
-
-#[derive(Debug, Clone, Serialize)]
-pub enum SelectorNode {
-  Select(Selector),
-  Media(MediaQuery),
-}
-
-///
-/// 创建 选择器 混合节点
-///
-impl SelectorNode {
-  ///
-  /// 初始化方法
-  ///
-  pub fn new(txt: String, loc: &mut Option<Loc>, option: &ParseOption) -> Result<Self, String> {
-    let mut map: Option<LocMap> = None;
-    if option.sourcemap {
-      let (calcmap, end) = LocMap::merge(&loc.as_ref().unwrap(), &txt);
-      *loc = Some(end);
-      map = Some(calcmap);
-    }
-    // 处理 media
-    match MediaQuery::new(txt.clone(), loc.clone(), map.clone()) {
-      HandleResult::Success(obj) => {
-        return Ok(SelectorNode::Media(obj));
-      }
-      HandleResult::Fail(msg) => {
-        return Err(msg);
-      }
-      HandleResult::Swtich => {}
-    };
-    // 处理 select
-    match Selector::new(txt.clone(), loc.clone(), map) {
-      HandleResult::Success(obj) => {
-        return Ok(SelectorNode::Select(obj));
-      }
-      HandleResult::Fail(msg) => {
-        return Err(msg);
-      }
-      HandleResult::Swtich => {}
-    };
-    Err(format!("nothing node match the txt -> {}", txt))
-  }
-
-  pub fn set_parent(&mut self, parent: ParentRef) {
-    match self {
-      SelectorNode::Select(obj) => {
-        obj.parent = parent;
-      }
-      SelectorNode::Media(obj) => {
-        obj.parent = parent;
-      }
-    }
-  }
-
-  pub fn value(&self) -> String {
-    match self {
-      SelectorNode::Select(obj) => obj.value(),
-      SelectorNode::Media(obj) => obj.value(),
-    }
-  }
 }
 
 ///
@@ -116,7 +51,7 @@ pub enum VarRuleNode {
   Var(VarNode),
 
   /// 样式规则
-  Rule(StyleRuleNode),
+  StyleRule(StyleRuleNode),
 }
 
 ///
@@ -126,9 +61,9 @@ impl VarRuleNode {
   ///
   /// 初始化
   ///
-  pub fn new(txt: String, loc: Option<Loc>, option: &ParseOption) -> Result<Self, String> {
+  pub fn new(txt: String, loc: Option<Loc>, parent: NodeWeakRef) -> Result<Self, String> {
     // 处理 导入
-    match ImportNode::new(txt.clone(), loc.clone(), option.clone()) {
+    match ImportNode::new(txt.clone(), loc.clone(), parent.clone()) {
       HandleResult::Success(obj) => return Ok(VarRuleNode::Import(obj)),
       HandleResult::Fail(msg) => {
         return Err(msg);
@@ -136,7 +71,7 @@ impl VarRuleNode {
       HandleResult::Swtich => {}
     };
     // 处理 变量声明
-    match VarNode::new(txt.clone(), loc.clone(), option.clone()) {
+    match VarNode::new(txt.clone(), loc.clone(), parent.clone()) {
       HandleResult::Success(obj) => return Ok(VarRuleNode::Var(obj)),
       HandleResult::Fail(msg) => {
         return Err(msg);
@@ -144,23 +79,13 @@ impl VarRuleNode {
       HandleResult::Swtich => {}
     };
     // 处理 规则
-    match StyleRuleNode::new(txt.clone(), loc, option.clone()) {
-      HandleResult::Success(obj) => return Ok(VarRuleNode::Rule(obj)),
+    match StyleRuleNode::new(txt.clone(), loc, parent) {
+      HandleResult::Success(obj) => return Ok(VarRuleNode::StyleRule(obj)),
       HandleResult::Fail(msg) => {
         return Err(msg);
       }
       HandleResult::Swtich => {}
     };
     Err(format!("nothing node match the txt -> {}", txt))
-  }
-
-  pub fn set_parent(&mut self, parent: ParentRef) {
-    match self {
-      VarRuleNode::Import(_) => {}
-      VarRuleNode::Var(var) => {
-        var.parent = parent
-      }
-      VarRuleNode::Rule(_) => {}
-    }
   }
 }

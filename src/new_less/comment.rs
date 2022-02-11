@@ -145,7 +145,7 @@ fn parse_comment(
     if wirte_comment {
       // 如果启用 sourcemap 则记录坐标
       if options.sourcemap && char != "\r" && char != "\n" && record_loc.is_none() {
-        record_loc = Some(locmap.as_ref().unwrap().get(index).unwrap());
+        record_loc = Some(locmap.as_ref().unwrap().get(&index).unwrap());
       }
       if start_index.is_none() {
         start_index = Some(index);

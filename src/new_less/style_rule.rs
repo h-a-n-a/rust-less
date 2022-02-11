@@ -1,7 +1,8 @@
 use crate::new_less::loc::Loc;
-use crate::new_less::node::HandleResult;
-use serde::Serialize;
+use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::option::ParseOption;
+use serde::Serialize;
+use std::ops::Deref;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct StyleRuleNode {
@@ -10,14 +11,31 @@ pub struct StyleRuleNode {
   // 节点坐标
   pub loc: Option<Loc>,
 
-  // 内部调用方式时 需要拿到对应的 转化配置
+  // 自身 Rule 的弱引用
   #[serde(skip_serializing)]
-  option: ParseOption,
+  parent: NodeWeakRef,
 }
 
 impl StyleRuleNode {
-  pub fn new(txt: String, loc: Option<Loc>, option: ParseOption) -> HandleResult<Self> {
-    let obj = Self { content: txt, loc, option };
+  pub fn new(txt: String, loc: Option<Loc>, parent: NodeWeakRef) -> HandleResult<Self> {
+    let obj = Self {
+      content: txt,
+      loc,
+      parent,
+    };
     HandleResult::Success(obj)
+  }
+
+  ///
+  /// 获取选项
+  ///
+  pub fn get_options(&self) -> ParseOption {
+    match self.parent.clone() {
+      None => Default::default(),
+      Some(pr) => match pr.upgrade().unwrap().deref().borrow().file_info.clone() {
+        None => Default::default(),
+        Some(file) => file.upgrade().unwrap().deref().borrow().option.clone(),
+      },
+    }
   }
 }

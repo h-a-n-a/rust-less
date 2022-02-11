@@ -3,16 +3,19 @@ use crate::new_less::comment::Comment;
 use crate::new_less::file::cmd_path_resolve;
 use crate::new_less::file_manger::FileManger;
 use crate::new_less::loc::LocMap;
-use crate::new_less::node::{StyleNode, StyleNodeJson};
+use crate::new_less::node::{NodeRef, StyleNode, StyleNodeJson};
 use crate::new_less::option::ParseOption;
 use crate::new_less::rule::Rule;
 use crate::new_less::var::Var;
+use derivative::Derivative;
 use serde::Serialize;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::ops::Deref;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct FileInfo {
   // 文件的磁盘位置
   pub disk_location: Option<std::string::String>,
@@ -27,7 +30,13 @@ pub struct FileInfo {
   // 内部调用方式时 需要拿到对应的 转化配置
   pub option: ParseOption,
   // 当前引用链
-  pub import_file: Vec<Rc<RefCell<FileInfo>>>,
+  pub import_file: Vec<FileRef>,
+  // 自身弱引用
+  #[derivative(Debug = "ignore")]
+  pub self_weak: FileWeakRef,
+  // 转文件 的缓存
+  #[derivative(Debug = "ignore")]
+  pub filecache: ParseCacheMap,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -36,6 +45,12 @@ pub struct FileInfoJson {
   pub block_node: Vec<StyleNodeJson>,
   pub import_file: Vec<FileInfoJson>,
 }
+
+pub type FileRef = Rc<RefCell<FileInfo>>;
+
+pub type FileWeakRef = Option<Weak<RefCell<FileInfo>>>;
+
+pub type ParseCacheMap = Rc<RefCell<HashMap<String, FileWeakRef>>>;
 
 impl FileInfo {
   ///
@@ -71,24 +86,44 @@ impl FileInfo {
   ///
   /// 转 heap 堆上对象
   ///
-  pub fn toheap(self) -> Rc<RefCell<FileInfo>> {
-    Rc::new(RefCell::new(self))
+  pub fn toheap(self) -> FileRef {
+    let heapobj = Rc::new(RefCell::new(self));
+    heapobj.borrow_mut().self_weak = Some(Rc::downgrade(&heapobj));
+    heapobj
   }
 
+  ///
+  /// 生成整个文件的 locmap 地图
+  ///
   pub fn get_loc_by_content(content: &str) -> LocMap {
     LocMap::new(content.to_string())
   }
 
   ///
+  /// 根据文件路径 转换 文件
+  ///
+  pub fn create_disklocation(filepath: String, option: ParseOption) -> Result<String, String> {
+    let obj_heap = Self::create_disklocation_parse(filepath, option, None)?;
+    let res = match obj_heap.deref().borrow().code_gen() {
+      Ok(res) => Ok(res),
+      Err(msg) => Err(msg),
+    };
+    res
+  }
+
+  ///
   /// 根据文件路径 解析 文件
   ///
-  pub fn create_disklocation(filepath: String, option: ParseOption) -> Result<FileInfo, String> {
+  pub fn create_disklocation_parse(
+    filepath: String,
+    option: ParseOption,
+    filecache: Option<ParseCacheMap>,
+  ) -> Result<FileRef, String> {
     let abs_path: String;
     let text_content: String;
     let charlist: Vec<String>;
     let mut locmap: Option<LocMap> = None;
-    let mut obj: FileInfo;
-    match FileManger::resolve(filepath, option.include_path.clone()) {
+    let obj = match FileManger::resolve(filepath, option.include_path.clone()) {
       Ok((calc_path, content)) => {
         abs_path = calc_path;
         text_content = content.clone();
@@ -96,7 +131,7 @@ impl FileInfo {
           locmap = Some(FileInfo::get_loc_by_content(content.as_str()));
         }
         charlist = content.tocharlist();
-        obj = FileInfo {
+        FileInfo {
           disk_location: Some(abs_path),
           block_node: vec![],
           origin_txt_content: text_content,
@@ -104,29 +139,28 @@ impl FileInfo {
           locmap,
           option,
           import_file: vec![],
-        };
-        match obj.parse() {
-          Ok(_) => {}
-          Err(msg) => {
-            return Err(msg);
-          }
+          self_weak: None,
+          filecache: filecache.unwrap_or_else(|| Rc::new(RefCell::new(HashMap::new()))),
         }
       }
       Err(msg) => {
         return Err(msg);
       }
-    }
-    Ok(obj)
+    };
+    let obj_heap = obj.toheap();
+    Self::parse_heap(obj_heap.clone())?;
+    Ok(obj_heap)
   }
 
   ///
   /// 根据文件内容 解析文件
   ///
-  pub fn create_txt_content(
+  pub fn create_txt_content_parse(
     content: String,
     option: ParseOption,
     filename: Option<String>,
-  ) -> Result<FileInfo, String> {
+    filecache: Option<ParseCacheMap>,
+  ) -> Result<FileRef, String> {
     let text_content: String = content.clone();
     let charlist: Vec<String> = text_content.tocharlist();
     let mut locmap: Option<LocMap> = None;
@@ -137,7 +171,7 @@ impl FileInfo {
       None => cmd_path_resolve("_virtual.less"),
       Some(path_val) => path_val,
     };
-    let mut obj = FileInfo {
+    let obj = FileInfo {
       disk_location: Some(abs_path),
       block_node: vec![],
       origin_txt_content: text_content,
@@ -145,54 +179,112 @@ impl FileInfo {
       locmap,
       option,
       import_file: vec![],
+      self_weak: None,
+      filecache: filecache.unwrap_or_else(|| Rc::new(RefCell::new(HashMap::new()))),
     };
-    match obj.parse() {
+    let obj_heap = obj.toheap();
+    match Self::parse_heap(obj_heap.clone()) {
       Ok(_) => {}
       Err(msg) => {
         return Err(msg);
       }
     }
-    Ok(obj)
+    Ok(obj_heap)
   }
 
-  fn parse(&mut self) -> Result<(), String> {
-    match self.parse_comment() {
-      Ok(blocks) => {
-        let mut enum_cc = blocks
-          .into_iter()
-          .map(StyleNode::Comment)
-          .collect::<Vec<StyleNode>>();
-        self.block_node.append(&mut enum_cc);
-      }
-      Err(msg) => {
-        return Err(msg);
-      }
-    }
-    match self.parse_var() {
-      Ok(blocks) => {
-        let mut enum_var = blocks
-          .into_iter()
-          .map(StyleNode::Var)
-          .collect::<Vec<StyleNode>>();
-        self.block_node.append(&mut enum_var);
-      }
-      Err(msg) => {
-        return Err(msg);
-      }
-    }
+  pub fn create_txt_content(
+    content: String,
+    option: ParseOption,
+    filename: Option<String>,
+  ) -> Result<String, String> {
+    let obj = Self::create_txt_content_parse(content, option, filename, None)?;
+    let res = match obj.deref().borrow().code_gen() {
+      Ok(res) => Ok(res),
+      Err(msg) => Err(msg),
+    };
+    res
+  }
 
-    match self.parse_rule() {
-      Ok(blocks) => {
-        let mut enum_rule = blocks
-          .into_iter()
-          .map(StyleNode::Rule)
-          .collect::<Vec<StyleNode>>();
-        self.block_node.append(&mut enum_rule);
-      }
+  pub fn parse_heap(obj: FileRef) -> Result<(), String> {
+    // 把当前 节点 的 对象 指针 放到 节点上 缓存中
+    let disk_location_path = obj.borrow().disk_location.clone().unwrap();
+
+    obj
+      .borrow()
+      .set_cache(disk_location_path.as_str(), obj.borrow().self_weak.clone());
+    // 开始转换
+    let mut comments = match obj.borrow().parse_comment() {
+      Ok(blocks) => blocks
+        .into_iter()
+        .map(StyleNode::Comment)
+        .collect::<Vec<StyleNode>>(),
       Err(msg) => {
         return Err(msg);
       }
-    }
+    };
+    obj.borrow_mut().block_node.append(&mut comments);
+    let mut vars = match obj.borrow().parse_var() {
+      Ok(blocks) => blocks
+        .into_iter()
+        .map(StyleNode::Var)
+        .collect::<Vec<StyleNode>>(),
+      Err(msg) => {
+        return Err(msg);
+      }
+    };
+    obj.borrow_mut().block_node.append(&mut vars);
+    let mut rules = match obj.borrow().parse_rule() {
+      Ok(blocks) => blocks
+        .into_iter()
+        .map(StyleNode::Rule)
+        .collect::<Vec<StyleNode>>(),
+      Err(msg) => {
+        return Err(msg);
+      }
+    };
+    obj.borrow_mut().block_node.append(&mut rules);
     Ok(())
+  }
+
+  pub fn getrules(&self) -> Vec<NodeRef> {
+    let mut list = vec![];
+
+    self.block_node.iter().for_each(|x| {
+      if let StyleNode::Rule(rule) = x {
+        list.push(rule.clone())
+      }
+    });
+    list
+  }
+
+  ///
+  /// 生成代码
+  ///
+  pub fn code_gen(&self) -> Result<String, String> {
+    let mut res = "".to_string();
+    for item in self.getrules() {
+      item.deref().borrow().code_gen(&mut res);
+    }
+    Ok(res)
+  }
+
+  ///
+  /// 查询 缓存上 翻译结果
+  ///
+  pub fn get_cache(&self, file_path: &str) -> FileWeakRef {
+    let map = self.filecache.deref().borrow();
+    let res = map.get(file_path);
+    res.map(|x| x.clone().as_ref().unwrap().clone())
+  }
+
+  ///
+  /// 添加 缓存上 翻译结果
+  ///
+  pub fn set_cache(&self, file_path: &str, file_weak_ref: FileWeakRef) {
+    let mut map = self.filecache.deref().borrow_mut();
+    let res = map.get(file_path);
+    if res.is_none() {
+      map.insert(file_path.to_string(), file_weak_ref);
+    }
   }
 }

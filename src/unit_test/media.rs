@@ -2,14 +2,14 @@ use crate::new_less::media::MediaQuery;
 use crate::new_less::node::HandleResult;
 
 #[test]
-fn test_select_parse() {
+fn test_media_parse() {
   let demo_select_list = vec![
     r#"@media screen and ( max-width: 900px)"#.to_string(),
     r#"@media screen and ( max-width  : 900px)"#.to_string(),
   ];
   let mut haserror = 0;
   demo_select_list.into_iter().for_each(|tt| {
-    match MediaQuery::new(tt, None, None) {
+    match MediaQuery::new(tt, None, None, None) {
       HandleResult::Success(_) => {
         haserror += 0;
       }
@@ -24,11 +24,15 @@ fn test_select_parse() {
 }
 
 #[test]
-fn test_select_error_parse() {
+fn test_media_error_parse() {
   let mut haserror = 0;
-  let demo_select_list = vec![r#"@media screen and ( a: 900px:)"#.to_string()];
+  let demo_select_list = vec![
+    r#"@media screen and ( a: 900px:)"#.to_string(),
+    r#" "#.to_string(),
+    r#""#.to_string(),
+  ];
   demo_select_list.into_iter().for_each(|tt| {
-    match MediaQuery::new(tt, None, None) {
+    match MediaQuery::new(tt, None, None, None) {
       HandleResult::Success(_) => {
         haserror += 1;
       }

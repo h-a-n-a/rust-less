@@ -2,7 +2,7 @@ use crate::extend::enum_extend::EnumExtend;
 use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{HandleResult, ParentRef};
+use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::select::{TokenAllow, TokenCombina, TokenKeyWord, TokenSelect};
 use serde::Serialize;
@@ -39,7 +39,7 @@ pub struct Selector {
 
   // 内部处理 地图
   #[serde(skip_serializing)]
-  map: Option<LocMap>,
+  map: LocMap,
 
   // 字符串 操作 序列
   #[serde(skip_serializing)]
@@ -48,21 +48,21 @@ pub struct Selector {
   // 节点 父节点
   // 延迟赋值
   #[serde(skip_serializing)]
-  pub parent: ParentRef,
+  pub parent: NodeWeakRef,
 }
 
 impl Selector {
   ///
   /// 初始化方法
   ///
-  pub fn new(txt: String, loc: Option<Loc>, map: Option<LocMap>) -> HandleResult<Self> {
+  pub fn new(txt: String, loc: Option<Loc>, map: Option<LocMap>, parent: NodeWeakRef) -> HandleResult<Self> {
     let mut obj = Selector {
       origin_txt: txt.trim().to_string(),
       single_select_txt: vec![],
       loc,
-      map,
+      map: map.unwrap_or_else(|| LocMap::new(txt.clone())),
       charlist: txt.tocharlist(),
-      parent: None,
+      parent,
     };
     match obj.parse() {
       Ok(()) => HandleResult::Success(obj),
@@ -72,10 +72,6 @@ impl Selector {
 
   pub fn value(&self) -> String {
     self.origin_txt.clone()
-  }
-
-  pub fn map(&self) -> Option<LocMap> {
-    self.map.clone()
   }
 
   ///
@@ -101,9 +97,10 @@ impl Selector {
   ///
   fn errormsg(&mut self, index: &usize) -> Result<(), String> {
     let char = self.charlist.get(*index).unwrap().clone();
+    let error_loc = self.map.get(index).unwrap();
     Err(format!(
-      "select text {}, char {} is not allow,index is {}",
-      self.origin_txt, char, index
+      "select text {}, char {} is not allow, line is {} col is {}",
+      self.origin_txt, char, error_loc.line, error_loc.col
     ))
   }
 
@@ -297,6 +294,10 @@ impl Selector {
     let mut temp: String = "".to_string();
     let mut paradigm_vec: Vec<SelectParadigm> = vec![];
     let mut has_ref_token = false;
+
+    if charlist.is_empty() {
+      return Err("select text is empty".to_string());
+    }
 
     // 循环解析
     while index < charlist.len() {
