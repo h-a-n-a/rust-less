@@ -274,4 +274,15 @@ impl FileInfo {
       None
     }
   }
+
+  ///
+  /// 添加 缓存上 翻译结果
+  ///
+  pub fn set_cache(&self, file_path: &str, file_weak_ref: FileWeakRef) {
+    let mut map = self.filecache.deref().borrow_mut();
+    let res = map.get(file_path);
+    if res.is_none() {
+      map.insert(file_path.to_string(), file_weak_ref).unwrap();
+    }
+  }
 }

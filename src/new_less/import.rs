@@ -10,6 +10,7 @@ use crate::new_less::token::import::TokenImport;
 use crate::new_less::token::lib::Token;
 use serde::Serialize;
 use std::ops::Deref;
+use std::rc::Rc;
 
 ///
 /// import 处理
@@ -198,7 +199,8 @@ impl ImportNode {
             self.get_options(),
             Some(fileinfo.filecache.clone()),
           )?;
-          fileinfo.import_file.push(heap_obj);
+          fileinfo.import_file.push(heap_obj.clone());
+          fileinfo.set_cache(abs_path.as_str(), Some(Rc::downgrade(&heap_obj)))
         }
       }
       Ok(())
