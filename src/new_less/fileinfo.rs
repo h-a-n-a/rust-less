@@ -208,6 +208,7 @@ impl FileInfo {
   pub fn parse_heap(obj: FileRef) -> Result<(), String> {
     // 把当前 节点 的 对象 指针 放到 节点上 缓存中
     let disk_location_path = obj.borrow().disk_location.clone().unwrap();
+
     obj
       .borrow()
       .set_cache(disk_location_path.as_str(), obj.borrow().self_weak.clone());
@@ -283,7 +284,7 @@ impl FileInfo {
     let mut map = self.filecache.deref().borrow_mut();
     let res = map.get(file_path);
     if res.is_none() {
-      map.insert(file_path.to_string(), file_weak_ref).unwrap();
+      map.insert(file_path.to_string(), file_weak_ref);
     }
   }
 }
