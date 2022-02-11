@@ -29,8 +29,6 @@ pub struct FileInfo {
   pub locmap: Option<LocMap>,
   // 内部调用方式时 需要拿到对应的 转化配置
   pub option: ParseOption,
-  // 当前引用链
-  pub import_file: Vec<FileRef>,
   // 自身弱引用
   #[derivative(Debug = "ignore")]
   pub self_weak: FileWeakRef,
@@ -41,9 +39,14 @@ pub struct FileInfo {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct FileInfoJson {
+  pub node: FileNodeInfoJson,
+  pub import_file: Vec<FileNodeInfoJson>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct FileNodeInfoJson {
   pub disk_location: Option<std::string::String>,
   pub block_node: Vec<StyleNodeJson>,
-  pub import_file: Vec<FileInfoJson>,
 }
 
 pub type FileRef = Rc<RefCell<FileInfo>>;
@@ -54,9 +57,9 @@ pub type ParseCacheMap = Rc<RefCell<HashMap<String, FileWeakRef>>>;
 
 impl FileInfo {
   ///
-  /// 转 json 标准化
+  /// 转节点json
   ///
-  pub fn tojson(&self) -> FileInfoJson {
+  pub fn node_to_json(&self) -> FileNodeInfoJson {
     let mut block_node = vec![];
     self
       .block_node
@@ -70,17 +73,33 @@ impl FileInfo {
           block_node.push(StyleNodeJson::Rule(futex_rule));
         }
       });
-    let import_file = self
-      .import_file
-      .clone()
-      .into_iter()
-      .map(|x| x.borrow().tojson())
-      .collect::<Vec<FileInfoJson>>();
-    FileInfoJson {
+    FileNodeInfoJson {
       disk_location: self.disk_location.clone(),
       block_node,
-      import_file,
     }
+  }
+
+  ///
+  /// 转 json 标准化
+  ///
+  pub fn tojson(&self) -> FileInfoJson {
+    let node = self.node_to_json();
+    let mut import_file = vec![];
+    for (location, heapobj) in self.filecache.deref().borrow().iter() {
+      if *location != self.disk_location.as_ref().unwrap().clone() {
+        import_file.push(
+          heapobj
+            .as_ref()
+            .unwrap()
+            .upgrade()
+            .unwrap()
+            .deref()
+            .borrow()
+            .node_to_json(),
+        );
+      }
+    }
+    FileInfoJson { node, import_file }
   }
 
   ///
@@ -143,7 +162,6 @@ impl FileInfo {
           origin_charlist: charlist,
           locmap,
           option,
-          import_file: vec![],
           self_weak: None,
           filecache: filecache.unwrap_or_else(|| Rc::new(RefCell::new(HashMap::new()))),
         }
@@ -190,7 +208,6 @@ impl FileInfo {
       origin_charlist: charlist,
       locmap,
       option,
-      import_file: vec![],
       self_weak: None,
       filecache: filecache.unwrap_or_else(|| Rc::new(RefCell::new(HashMap::new()))),
     };
@@ -222,11 +239,11 @@ impl FileInfo {
   ///
   pub fn parse_heap(obj: FileRef) -> Result<(), String> {
     // 把当前 节点 的 对象 指针 放到 节点上 缓存中
-    let disk_location_path = obj.borrow().disk_location.clone().unwrap();
-
-    obj
-      .borrow()
-      .set_cache(disk_location_path.as_str(), obj.borrow().self_weak.clone());
+    let disk_location_path = obj.deref().borrow().disk_location.clone().unwrap();
+    obj.deref().borrow().set_cache(
+      disk_location_path.as_str(),
+      obj.deref().borrow().self_weak.clone(),
+    );
     // 开始转换
     let mut comments = match obj.deref().borrow().parse_comment() {
       Ok(blocks) => blocks

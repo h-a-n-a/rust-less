@@ -13,6 +13,7 @@ fn test_comment_remove() {
   let content = info.borrow().rm_comment();
   record();
   let target = r#"
+@import "index.less";
 @width: 400px;
 @height: 300px;
 @font_size: 12px;

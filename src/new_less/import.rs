@@ -52,7 +52,12 @@ impl ImportNode {
   ///
   /// 初始化方法
   ///
-  pub fn new(txt: String, loc: Option<Loc>, parent: NodeWeakRef, fileinfo: FileWeakRef) -> HandleResult<Self> {
+  pub fn new(
+    txt: String,
+    loc: Option<Loc>,
+    parent: NodeWeakRef,
+    fileinfo: FileWeakRef,
+  ) -> HandleResult<Self> {
     let map = if loc.is_none() {
       LocMap::new(txt.clone())
     } else {
@@ -175,37 +180,18 @@ impl ImportNode {
     if self.fileinfo.is_some() {
       let fileinfo_rc = self.fileinfo.as_ref().unwrap().upgrade().unwrap();
       let fileinfo = fileinfo_rc.deref().borrow();
-      let mut has_include = false;
       let file_path = self.parse_hook_url.clone();
       let include_path = self.get_options().include_path;
       let (abs_path, _file_content) = FileManger::resolve(file_path, include_path)?;
-      // 是否曾经解析过 该文件
-      for item in &fileinfo.import_file {
-        let disk_location = item
-          .deref()
-          .borrow()
-          .disk_location
-          .as_ref()
-          .unwrap()
-          .clone();
-        if disk_location == abs_path {
-          has_include = true;
-          break;
-        }
-      }
-      // 未解析 重新解析 并且 附着 在当前 文件信息 节点 import_file 上
-      if !has_include {
-        let weak_file_ref_option = fileinfo.get_cache(abs_path.as_str());
-        if let Some(weak_file_ref) = weak_file_ref_option {
-          self.import_file = Some(weak_file_ref.upgrade().unwrap());
-        } else {
-          let heap_obj = FileInfo::create_disklocation_parse(
-            abs_path,
-            self.get_options(),
-            Some(fileinfo.filecache.clone()),
-          )?;
-          self.import_file = Some(heap_obj);
-        }
+      let weak_file_ref_option = fileinfo.get_cache(abs_path.as_str());
+      // 自动忽略已经翻译后的文件
+      if weak_file_ref_option.is_none() {
+        let heap_obj = FileInfo::create_disklocation_parse(
+          abs_path,
+          self.get_options(),
+          Some(fileinfo.filecache.clone()),
+        )?;
+        self.import_file = Some(heap_obj);
       }
     }
 
@@ -218,9 +204,7 @@ impl ImportNode {
   pub fn get_options(&self) -> ParseOption {
     match self.fileinfo.clone() {
       None => Default::default(),
-      Some(file) => {
-        file.upgrade().unwrap().deref().borrow().option.clone()
-      }
+      Some(file) => file.upgrade().unwrap().deref().borrow().option.clone(),
     }
   }
 }
