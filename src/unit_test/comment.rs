@@ -9,7 +9,7 @@ use crate::new_less::fileinfo::FileInfo;
 fn test_comment_remove() {
   let record = wastetime("test_less");
   let filepath = path_resolve("assets/demo.less");
-  let info = FileInfo::create_disklocation_parse(filepath, Default::default()).unwrap();
+  let info = FileInfo::create_disklocation_parse(filepath, Default::default(), None).unwrap();
   let content = info.borrow().rm_comment();
   record();
   let target = r#"

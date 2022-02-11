@@ -10,6 +10,7 @@ use crate::new_less::var::Var;
 use derivative::Derivative;
 use serde::Serialize;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::ops::Deref;
 use std::rc::{Rc, Weak};
 
@@ -31,7 +32,11 @@ pub struct FileInfo {
   // 当前引用链
   pub import_file: Vec<FileRef>,
   // 自身弱引用
+  #[derivative(Debug = "ignore")]
   pub self_weak: FileWeakRef,
+  // 转文件 的缓存
+  #[derivative(Debug = "ignore")]
+  pub filecache: ParseCacheMap,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -44,6 +49,8 @@ pub struct FileInfoJson {
 pub type FileRef = Rc<RefCell<FileInfo>>;
 
 pub type FileWeakRef = Option<Weak<RefCell<FileInfo>>>;
+
+pub type ParseCacheMap = Rc<RefCell<HashMap<String, FileWeakRef>>>;
 
 impl FileInfo {
   ///
@@ -96,7 +103,7 @@ impl FileInfo {
   /// 根据文件路径 转换 文件
   ///
   pub fn create_disklocation(filepath: String, option: ParseOption) -> Result<String, String> {
-    let obj_heap = Self::create_disklocation_parse(filepath, option)?;
+    let obj_heap = Self::create_disklocation_parse(filepath, option, None)?;
     let res = match obj_heap.deref().borrow().code_gen() {
       Ok(res) => Ok(res),
       Err(msg) => Err(msg),
@@ -110,6 +117,7 @@ impl FileInfo {
   pub fn create_disklocation_parse(
     filepath: String,
     option: ParseOption,
+    filecache: Option<ParseCacheMap>,
   ) -> Result<FileRef, String> {
     let abs_path: String;
     let text_content: String;
@@ -132,6 +140,7 @@ impl FileInfo {
           option,
           import_file: vec![],
           self_weak: None,
+          filecache: filecache.unwrap_or(Rc::new(RefCell::new(HashMap::new()))),
         };
         obj
       }
@@ -151,6 +160,7 @@ impl FileInfo {
     content: String,
     option: ParseOption,
     filename: Option<String>,
+    filecache: Option<ParseCacheMap>,
   ) -> Result<FileRef, String> {
     let text_content: String = content.clone();
     let charlist: Vec<String> = text_content.tocharlist();
@@ -171,6 +181,7 @@ impl FileInfo {
       option,
       import_file: vec![],
       self_weak: None,
+      filecache: filecache.unwrap_or(Rc::new(RefCell::new(HashMap::new()))),
     };
     let obj_heap = obj.toheap();
     match Self::parse_heap(obj_heap.clone()) {
@@ -187,7 +198,7 @@ impl FileInfo {
     option: ParseOption,
     filename: Option<String>,
   ) -> Result<String, String> {
-    let obj = Self::create_txt_content_parse(content, option, filename)?;
+    let obj = Self::create_txt_content_parse(content, option, filename, None)?;
     let res = match obj.deref().borrow().code_gen() {
       Ok(res) => Ok(res),
       Err(msg) => Err(msg),
@@ -249,5 +260,18 @@ impl FileInfo {
       item.deref().borrow().code_gen(&mut res);
     }
     Ok(res)
+  }
+
+  ///
+  /// 查询 缓存上 翻译结果
+  ///
+  pub fn get_cache(&self, file_path: &str) -> FileWeakRef {
+    let map = self.filecache.deref().borrow();
+    let res = map.get(file_path);
+    if res.is_some() {
+      Some(res.unwrap().clone().as_ref().unwrap().clone())
+    } else {
+      None
+    }
   }
 }

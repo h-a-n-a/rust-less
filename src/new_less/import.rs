@@ -1,5 +1,7 @@
 use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
+use crate::new_less::file_manger::FileManger;
+use crate::new_less::fileinfo::{FileInfo, FileRef};
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::option::ParseOption;
@@ -95,6 +97,7 @@ impl ImportNode {
     let mut has_apost = false;
     let mut has_quote = false;
 
+    // 遍历 扫词
     let path = match traversal(
       Some(index),
       charlist,
@@ -155,12 +158,51 @@ impl ImportNode {
       return Err(self.error_msg(&(self.charlist.len() - 2)));
     }
     let options = self.get_options();
+    // 过滤 对应 hook
     if options.hooks.import_alias.is_some() {
       let convert = options.hooks.import_alias.unwrap();
       self.parse_hook_url = convert(path);
     } else {
       self.parse_hook_url = path;
     }
+
+    // 处理递归解析 若节点不存在 则 不进行处理
+    self.visit_fileinfo_mut(Box::new(|fileinfo_rc| {
+      let mut fileinfo = fileinfo_rc.deref().borrow_mut();
+      let mut has_include = false;
+      let file_path = self.parse_hook_url.clone();
+      let include_path = self.get_options().include_path.clone();
+      let (abs_path, _file_content) = FileManger::resolve(file_path, include_path)?;
+      // 是否曾经解析过 该文件
+      for item in &fileinfo.import_file {
+        let disk_location = item
+          .deref()
+          .borrow()
+          .disk_location
+          .as_ref()
+          .unwrap()
+          .clone();
+        if disk_location == abs_path {
+          has_include = true;
+          break;
+        }
+      }
+      // 未解析 重新解析 并且 附着 在当前 文件信息 节点 import_file 上
+      if !has_include {
+        let weak_file_ref_option = fileinfo.get_cache(abs_path.as_str());
+        if let Some(weak_file_ref) = weak_file_ref_option {
+          fileinfo.import_file.push(weak_file_ref.upgrade().unwrap());
+        } else {
+          let heap_obj = FileInfo::create_disklocation_parse(
+            abs_path.clone(),
+            self.get_options(),
+            Some(fileinfo.filecache.clone()),
+          )?;
+          fileinfo.import_file.push(heap_obj);
+        }
+      }
+      Ok(())
+    }))?;
 
     Ok(())
   }
@@ -176,5 +218,35 @@ impl ImportNode {
         Some(file) => file.upgrade().unwrap().deref().borrow().option.clone(),
       },
     }
+  }
+
+  ///
+  /// 访问 节点上 fileinfo
+  ///
+  pub fn visit_fileinfo_mut<'a>(
+    &'a self,
+    visit_mut: Box<dyn Fn(FileRef) -> Result<(), String> + 'a>,
+  ) -> Result<(), String> {
+    if self.parent.is_some() {
+      let p_file_info = self
+        .parent
+        .as_ref()
+        .unwrap()
+        .upgrade()
+        .unwrap()
+        .borrow_mut()
+        .file_info
+        .clone();
+      if p_file_info.is_some() {
+        let mut_fileinfo_obj = p_file_info.unwrap().upgrade().unwrap();
+        match visit_mut(mut_fileinfo_obj) {
+          Err(msg) => {
+            return Err(msg);
+          }
+          _ => {}
+        }
+      }
+    }
+    Ok(())
   }
 }
