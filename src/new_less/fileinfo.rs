@@ -131,7 +131,7 @@ impl FileInfo {
           locmap = Some(FileInfo::get_loc_by_content(content.as_str()));
         }
         charlist = content.tocharlist();
-        let obj = FileInfo {
+        FileInfo {
           disk_location: Some(abs_path),
           block_node: vec![],
           origin_txt_content: text_content,
@@ -140,9 +140,8 @@ impl FileInfo {
           option,
           import_file: vec![],
           self_weak: None,
-          filecache: filecache.unwrap_or(Rc::new(RefCell::new(HashMap::new()))),
-        };
-        obj
+          filecache: filecache.unwrap_or_else(|| Rc::new(RefCell::new(HashMap::new()))),
+        }
       }
       Err(msg) => {
         return Err(msg);
@@ -181,7 +180,7 @@ impl FileInfo {
       option,
       import_file: vec![],
       self_weak: None,
-      filecache: filecache.unwrap_or(Rc::new(RefCell::new(HashMap::new()))),
+      filecache: filecache.unwrap_or_else(|| Rc::new(RefCell::new(HashMap::new()))),
     };
     let obj_heap = obj.toheap();
     match Self::parse_heap(obj_heap.clone()) {
@@ -207,6 +206,12 @@ impl FileInfo {
   }
 
   pub fn parse_heap(obj: FileRef) -> Result<(), String> {
+    // 把当前 节点 的 对象 指针 放到 节点上 缓存中
+    let disk_location_path = obj.borrow().disk_location.clone().unwrap();
+    obj
+      .borrow()
+      .set_cache(disk_location_path.as_str(), obj.borrow().self_weak.clone());
+    // 开始转换
     let mut comments = match obj.borrow().parse_comment() {
       Ok(blocks) => blocks
         .into_iter()
@@ -268,11 +273,7 @@ impl FileInfo {
   pub fn get_cache(&self, file_path: &str) -> FileWeakRef {
     let map = self.filecache.deref().borrow();
     let res = map.get(file_path);
-    if res.is_some() {
-      Some(res.unwrap().clone().as_ref().unwrap().clone())
-    } else {
-      None
-    }
+    res.map(|x| x.clone().as_ref().unwrap().clone())
   }
 
   ///

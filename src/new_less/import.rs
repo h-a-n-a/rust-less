@@ -10,7 +10,6 @@ use crate::new_less::token::import::TokenImport;
 use crate::new_less::token::lib::Token;
 use serde::Serialize;
 use std::ops::Deref;
-use std::rc::Rc;
 
 ///
 /// import 处理
@@ -59,9 +58,7 @@ impl ImportNode {
       charlist: txt.trim().to_string().tocharlist(),
       parse_hook_url: "".to_string(),
     };
-    if obj.origin_txt.len() < 7 {
-      return HandleResult::Swtich;
-    } else if &obj.origin_txt[0..7] != "@import" {
+    if obj.origin_txt.len() < 7 || &obj.origin_txt[0..7] != "@import" {
       return HandleResult::Swtich;
     }
     match obj.parse() {
@@ -127,20 +124,18 @@ impl ImportNode {
           } else {
             temp += &char;
           }
-        } else {
-          if Token::is_token(&char) {
-            if !Token::is_space_token(&char) {
-              if TokenImport::Apost.tostr_value() == char {
-                has_apost = true;
-              } else if TokenImport::Quote.tostr_value() == char {
-                has_quote = true;
-              } else {
-                return Err(self.error_msg(&index));
-              }
+        } else if Token::is_token(&char) {
+          if !Token::is_space_token(&char) {
+            if TokenImport::Apost.tostr_value() == char {
+              has_apost = true;
+            } else if TokenImport::Quote.tostr_value() == char {
+              has_quote = true;
+            } else {
+              return Err(self.error_msg(&index));
             }
-          } else {
-            return Err(self.error_msg(&index));
           }
+        } else {
+          return Err(self.error_msg(&index));
         }
 
         Ok(ScanResult::Arg(ScanArg {
@@ -155,7 +150,7 @@ impl ImportNode {
         return Err(msg);
       }
     };
-    if has_apost || has_apost {
+    if has_apost || has_quote {
       return Err(self.error_msg(&(self.charlist.len() - 2)));
     }
     let options = self.get_options();
@@ -172,7 +167,7 @@ impl ImportNode {
       let mut fileinfo = fileinfo_rc.deref().borrow_mut();
       let mut has_include = false;
       let file_path = self.parse_hook_url.clone();
-      let include_path = self.get_options().include_path.clone();
+      let include_path = self.get_options().include_path;
       let (abs_path, _file_content) = FileManger::resolve(file_path, include_path)?;
       // 是否曾经解析过 该文件
       for item in &fileinfo.import_file {
@@ -195,12 +190,11 @@ impl ImportNode {
           fileinfo.import_file.push(weak_file_ref.upgrade().unwrap());
         } else {
           let heap_obj = FileInfo::create_disklocation_parse(
-            abs_path.clone(),
+            abs_path,
             self.get_options(),
             Some(fileinfo.filecache.clone()),
           )?;
-          fileinfo.import_file.push(heap_obj.clone());
-          fileinfo.set_cache(abs_path.as_str(), Some(Rc::downgrade(&heap_obj)))
+          fileinfo.import_file.push(heap_obj);
         }
       }
       Ok(())
@@ -239,13 +233,10 @@ impl ImportNode {
         .borrow_mut()
         .file_info
         .clone();
-      if p_file_info.is_some() {
-        let mut_fileinfo_obj = p_file_info.unwrap().upgrade().unwrap();
-        match visit_mut(mut_fileinfo_obj) {
-          Err(msg) => {
-            return Err(msg);
-          }
-          _ => {}
+      if let Some(file_info) = p_file_info {
+        let mut_fileinfo_obj = file_info.upgrade().unwrap();
+        if let Err(msg) = visit_mut(mut_fileinfo_obj) {
+          return Err(msg);
         }
       }
     }

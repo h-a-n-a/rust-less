@@ -131,7 +131,7 @@ impl SelectorNode {
         select_txt.append(
           &mut word_groups
             .iter()
-            .map(|x| x.replace("$(&)", "").to_string())
+            .map(|x| x.replace("$(&)", ""))
             .collect::<Vec<String>>(),
         );
       } else {
