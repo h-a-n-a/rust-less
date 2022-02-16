@@ -1,7 +1,7 @@
 use crate::extend::string::StringExtend;
 use crate::new_less::comment::Comment;
 use crate::new_less::context::ParseContext;
-use crate::new_less::fileinfo::FileWeakRef;
+use crate::new_less::fileinfo::{FileInfo, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{NodeRef, NodeWeakRef, StyleNode, StyleNodeJson, VarRuleNode};
 use crate::new_less::option::OptionExtend;
@@ -135,6 +135,10 @@ impl RuleNode {
     Ok(heapobj)
   }
 
+  pub fn visit_fileinfo(&self, fileinfo: &mut FileInfo) {
+
+  }
+
   pub fn getrules(&self) -> Vec<NodeRef> {
     let mut list = vec![];
 
@@ -197,7 +201,7 @@ impl RuleNode {
           "  }",
           "}"
         )
-        .as_ref();
+          .as_ref();
       }
     }
 

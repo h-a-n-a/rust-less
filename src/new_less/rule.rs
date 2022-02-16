@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::comment::skip_comment;
@@ -19,6 +20,9 @@ impl Rule for FileInfo {
       &self.locmap,
       self.self_weak.clone(),
     )?;
+    nodes.iter().for_each(|rule| {
+
+    });
     self.block_node.append(
       &mut nodes
         .into_iter()
