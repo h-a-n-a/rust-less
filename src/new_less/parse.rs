@@ -135,8 +135,12 @@ impl RuleNode {
     Ok(heapobj)
   }
 
-  pub fn visit_fileinfo(&self, fileinfo: &mut FileInfo) {
-
+  pub fn visit_mut_file(&self, fileinfo: &mut FileInfo) {
+    self.block_node.iter().for_each(|x| {
+      if let StyleNode::Rule(rule) = x {
+        rule.borrow().visit_mut_file(fileinfo);
+      }
+    });
   }
 
   pub fn getrules(&self) -> Vec<NodeRef> {

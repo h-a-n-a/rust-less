@@ -20,8 +20,8 @@ impl Rule for FileInfo {
       &self.locmap,
       self.self_weak.clone(),
     )?;
-    nodes.iter().for_each(|rule| {
-
+    nodes.iter().for_each(|node| {
+      node.borrow().visit_mut_file(self);
     });
     self.block_node.append(
       &mut nodes
@@ -86,7 +86,7 @@ fn parse_rule(
       index += 1;
       continue;
     }
-    if context.borrow().option.sourcemap
+    if context.deref().borrow().option.sourcemap
       && char != " "
       && char != "\r"
       && char != "\n"
