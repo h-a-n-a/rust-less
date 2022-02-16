@@ -1,5 +1,5 @@
+use crate::new_less::context::Context;
 use crate::new_less::file::path_resolve;
-use crate::new_less::fileinfo::FileInfo;
 use crate::new_less::option::ParseOption;
 use test::Bencher;
 
@@ -8,7 +8,8 @@ fn parse_less_bench(bench: &mut Bencher) {
   bench.iter(|| {
     // 处理过程
     let filepath = path_resolve("assets/demo.less");
-    FileInfo::create_disklocation(filepath.clone(), Default::default()).unwrap();
+    let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
+    context.render(filepath).unwrap();
   });
 }
 
@@ -17,15 +18,16 @@ fn parse_less_bench_without_sourcemap(bench: &mut Bencher) {
   bench.iter(|| {
     // 处理过程
     let filepath = path_resolve("assets/demo.less");
-    FileInfo::create_disklocation(
-      filepath.clone(),
+    let context = Context::new(
       ParseOption {
-        include_path: None,
+        include_path: vec![],
         sourcemap: false,
-        tabspaces: 4,
+        tabspaces: 2,
         hooks: Default::default(),
       },
+      Some(filepath.clone()),
     )
     .unwrap();
+    context.render(filepath).unwrap();
   });
 }

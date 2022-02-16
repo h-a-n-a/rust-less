@@ -1,3 +1,4 @@
+use crate::new_less::context::Context;
 use crate::new_less::node::HandleResult;
 use crate::new_less::var_node::VarNode;
 
@@ -5,9 +6,8 @@ use crate::new_less::var_node::VarNode;
 fn test_var_parse() {
   let vars_list = vec![r#"@width:400px;"#.to_string()];
   let mut haserror = 0;
-  vars_list
-    .into_iter()
-    .for_each(|tt| match VarNode::new(tt, None, None, None) {
+  vars_list.into_iter().for_each(|tt| {
+    match VarNode::new(tt, None, None, None, Context::default()) {
       HandleResult::Success(obj) => {
         haserror += 0;
         let json = serde_json::to_string_pretty(&obj).unwrap();
@@ -21,7 +21,8 @@ fn test_var_parse() {
         haserror += 1;
         println!("{:?}", "swtich case ....");
       }
-    });
+    }
+  });
   assert_eq!(haserror, 0);
 }
 
@@ -39,7 +40,7 @@ fn test_var_error_parse() {
     r#""#.to_string(),
   ];
   demo_select_list.into_iter().for_each(|tt| {
-    match VarNode::new(tt, None, None, None) {
+    match VarNode::new(tt, None, None, None, Context::default()) {
       HandleResult::Success(_) => {
         haserror += 1;
       }

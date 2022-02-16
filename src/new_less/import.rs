@@ -1,5 +1,6 @@
 use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
+use crate::new_less::context::ParseContext;
 use crate::new_less::file_manger::FileManger;
 use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
@@ -8,13 +9,15 @@ use crate::new_less::option::ParseOption;
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::import::TokenImport;
 use crate::new_less::token::lib::Token;
+use derivative::Derivative;
 use serde::Serialize;
-use std::ops::Deref;
+use std::rc::Rc;
 
 ///
 /// import 处理
 ///
-#[derive(Debug, Clone, Serialize)]
+#[derive(Derivative, Serialize, Clone)]
+#[derivative(Debug)]
 pub struct ImportNode {
   // 原始字符
   #[serde(rename(serialize = "content"))]
@@ -43,9 +46,10 @@ pub struct ImportNode {
   #[serde(rename(serialize = "path"))]
   parse_hook_url: String,
 
-  // 用来 暂存 引用文件
+  // 上下文
+  #[derivative(Debug = "ignore")]
   #[serde(skip_serializing)]
-  pub import_file: Option<FileRef>,
+  pub context: ParseContext,
 }
 
 impl ImportNode {
@@ -57,6 +61,8 @@ impl ImportNode {
     loc: Option<Loc>,
     parent: NodeWeakRef,
     fileinfo: FileWeakRef,
+    context: ParseContext,
+    importfiles: &mut Vec<FileRef>,
   ) -> HandleResult<Self> {
     let map = if loc.is_none() {
       LocMap::new(txt.clone())
@@ -71,12 +77,12 @@ impl ImportNode {
       fileinfo,
       charlist: txt.trim().to_string().tocharlist(),
       parse_hook_url: "".to_string(),
-      import_file: None,
+      context,
     };
     if obj.origin_txt.len() < 7 || &obj.origin_txt[0..7] != "@import" {
       return HandleResult::Swtich;
     }
-    match obj.parse() {
+    match obj.parse(importfiles) {
       Ok(_) => HandleResult::Success(obj),
       Err(msg) => HandleResult::Fail(msg),
     }
@@ -104,7 +110,7 @@ impl ImportNode {
   ///
   /// 解析 字符串
   ///
-  fn parse(&mut self) -> Result<(), String> {
+  fn parse(&mut self, importfiles: &mut Vec<FileRef>) -> Result<(), String> {
     let charlist = &self.charlist.clone();
     let index = 7;
     let mut has_apost = false;
@@ -171,30 +177,28 @@ impl ImportNode {
     let options = self.get_options();
     // 过滤 对应 hook
     if options.hooks.import_alias.is_some() {
-      let convert = options.hooks.import_alias.unwrap();
+      let convert = options.hooks.import_alias.as_ref().unwrap();
       self.parse_hook_url = convert(path);
     } else {
       self.parse_hook_url = path;
     }
     // 处理递归解析 若节点不存在 则 不进行处理
-    if self.fileinfo.is_some() {
-      let fileinfo_rc = self.fileinfo.as_ref().unwrap().upgrade().unwrap();
-      let fileinfo = fileinfo_rc.deref().borrow();
-      let file_path = self.parse_hook_url.clone();
-      let include_path = self.get_options().include_path;
-      let (abs_path, _file_content) = FileManger::resolve(file_path, include_path)?;
-      let weak_file_ref_option = fileinfo.get_cache(abs_path.as_str());
-      // 自动忽略已经翻译后的文件
-      if weak_file_ref_option.is_none() {
-        let heap_obj = FileInfo::create_disklocation_parse(
-          abs_path,
-          self.get_options(),
-          Some(fileinfo.filecache.clone()),
-        )?;
-        self.import_file = Some(heap_obj);
-      }
+    let file_path = self.parse_hook_url.clone();
+    let include_path = self.get_options().include_path;
+    let (abs_path, _file_content) = FileManger::resolve(file_path, include_path)?;
+    let weak_file_ref_option = self.context.borrow().get_cache(abs_path.as_str());
+    // 自动忽略已经翻译后的文件
+    if weak_file_ref_option.is_none() {
+      let heap_obj = FileInfo::create_disklocation_parse(abs_path.clone(), self.context.clone())?;
+      importfiles.push(heap_obj.clone());
+      self
+        .context
+        .borrow_mut()
+        .set_cache(abs_path.as_str(), Some(Rc::downgrade(&heap_obj)))
+    } else {
+      let heap_obj = weak_file_ref_option.unwrap().upgrade().unwrap().clone();
+      importfiles.push(heap_obj.clone());
     }
-
     Ok(())
   }
 
@@ -202,9 +206,6 @@ impl ImportNode {
   /// 获取选项
   ///
   pub fn get_options(&self) -> ParseOption {
-    match self.fileinfo.clone() {
-      None => Default::default(),
-      Some(file) => file.upgrade().unwrap().deref().borrow().option.clone(),
-    }
+    self.context.borrow().option.clone()
   }
 }

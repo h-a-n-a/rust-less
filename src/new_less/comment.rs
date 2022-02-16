@@ -8,7 +8,7 @@ use serde::Serialize;
 use std::ops::Deref;
 
 pub trait Comment {
-  fn parse_comment(&self) -> Result<Vec<CommentNode>, String>;
+  fn parse_comment(&mut self) -> Result<(), String>;
   fn get_comment_blocknode(&self) -> Vec<CommentNode>;
   fn rm_comment(&self) -> String;
   fn skip_comment() -> Box<dyn FnMut(String, String, &mut usize) -> bool>;
@@ -27,8 +27,15 @@ pub struct CommentNode {
 }
 
 impl Comment for FileInfo {
-  fn parse_comment(&self) -> Result<Vec<CommentNode>, String> {
-    parse_comment(&self.get_options(), &self.origin_charlist, &self.locmap)
+  fn parse_comment(&mut self) -> Result<(), String> {
+    let nodes = parse_comment(&self.get_options(), &self.origin_charlist, &self.locmap)?;
+    self.block_node.append(
+      &mut nodes
+        .into_iter()
+        .map(StyleNode::Comment)
+        .collect::<Vec<StyleNode>>(),
+    );
+    Ok(())
   }
 
   fn get_comment_blocknode(&self) -> Vec<CommentNode> {
@@ -50,8 +57,15 @@ impl Comment for FileInfo {
 }
 
 impl Comment for RuleNode {
-  fn parse_comment(&self) -> Result<Vec<CommentNode>, String> {
-    parse_comment(&self.get_options(), &self.origin_charlist, &self.locmap)
+  fn parse_comment(&mut self) -> Result<(), String> {
+    let nodes = parse_comment(&self.get_options(), &self.origin_charlist, &self.locmap)?;
+    self.block_node.append(
+      &mut nodes
+        .into_iter()
+        .map(StyleNode::Comment)
+        .collect::<Vec<StyleNode>>(),
+    );
+    Ok(())
   }
 
   fn get_comment_blocknode(&self) -> Vec<CommentNode> {

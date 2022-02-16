@@ -1,40 +1,57 @@
 use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::comment::skip_comment;
+use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::{FileInfo, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::NodeRef;
-use crate::new_less::option::{OptionExtend, ParseOption};
+use crate::new_less::node::{NodeRef, StyleNode};
 use crate::new_less::parse::RuleNode;
 
 pub trait Rule {
-  fn parse_rule(&self) -> Result<Vec<NodeRef>, String>;
+  fn parse_rule(&mut self) -> Result<(), String>;
 }
 
 impl Rule for FileInfo {
-  fn parse_rule(&self) -> Result<Vec<NodeRef>, String> {
-    parse_rule(
-      &self.get_options(),
+  fn parse_rule(&mut self) -> Result<(), String> {
+    let nodes = parse_rule(
+      self.context.clone(),
       &self.origin_charlist,
       &self.locmap,
       self.self_weak.clone(),
-    )
+    )?;
+    self.block_node.append(
+      &mut nodes
+        .into_iter()
+        .map(StyleNode::Rule)
+        .collect::<Vec<StyleNode>>(),
+    );
+    Ok(())
   }
 }
 
 impl Rule for RuleNode {
-  fn parse_rule(&self) -> Result<Vec<NodeRef>, String> {
-    parse_rule(
-      &self.get_options(),
+  fn parse_rule(&mut self) -> Result<(), String> {
+    let nodes = parse_rule(
+      self.context.clone(),
       &self.origin_charlist,
       &self.locmap,
       self.file_info.clone(),
-    )
+    )?;
+    nodes.iter().for_each(|node| {
+      node.borrow_mut().parent = self.weak_self.clone();
+    });
+    self.block_node.append(
+      &mut nodes
+        .into_iter()
+        .map(StyleNode::Rule)
+        .collect::<Vec<StyleNode>>(),
+    );
+    Ok(())
   }
 }
 
 fn parse_rule(
-  options: &ParseOption,
+  context: ParseContext,
   origin_charlist: &[String],
   locmap: &Option<LocMap>,
   file_info: FileWeakRef,
@@ -65,8 +82,12 @@ fn parse_rule(
       index += 1;
       continue;
     }
-
-    if options.sourcemap && char != " " && char != "\r" && char != "\n" && record_loc.is_none() {
+    if context.borrow().option.sourcemap
+      && char != " "
+      && char != "\r"
+      && char != "\n"
+      && record_loc.is_none()
+    {
       record_loc = Some(locmap.as_ref().unwrap().get(&index).unwrap());
     }
     templist.push(char.clone());
@@ -96,6 +117,7 @@ fn parse_rule(
           selector_txt.clone(),
           record_loc,
           file_info.clone(),
+          context.clone(),
         ) {
           Ok(rule) => {
             blocklist.push(rule);

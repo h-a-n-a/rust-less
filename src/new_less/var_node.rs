@@ -2,17 +2,19 @@ use crate::extend::enum_extend::EnumExtend;
 use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
+use crate::new_less::context::ParseContext;
+use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::option::ParseOption;
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::var::{TokenVarKeyAllow, TokenVarValue};
+use derivative::Derivative;
 use serde::Serialize;
-use std::ops::Deref;
-use crate::new_less::fileinfo::FileWeakRef;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Derivative, Serialize, Clone)]
+#[derivative(Debug)]
 pub struct VarNode {
   // 节点内容
   pub content: String,
@@ -38,13 +40,24 @@ pub struct VarNode {
   pub key: Option<String>,
 
   pub value: Option<String>,
+
+  // 上下文
+  #[derivative(Debug = "ignore")]
+  #[serde(skip_serializing)]
+  pub context: ParseContext,
 }
 
 impl VarNode {
   ///
   /// 初始化
   ///
-  pub fn new(txt: String, loc: Option<Loc>, parent: NodeWeakRef, fileinfo: FileWeakRef) -> HandleResult<Self> {
+  pub fn new(
+    txt: String,
+    loc: Option<Loc>,
+    parent: NodeWeakRef,
+    fileinfo: FileWeakRef,
+    context: ParseContext,
+  ) -> HandleResult<Self> {
     let map = if loc.is_none() {
       LocMap::new(txt.clone())
     } else {
@@ -59,6 +72,7 @@ impl VarNode {
       fileinfo,
       key: None,
       value: None,
+      context,
     };
     if !obj.content.is_empty() && obj.charlist.get(0).unwrap() != "@" && !obj.is_top() {
       return HandleResult::Swtich;
@@ -84,12 +98,7 @@ impl VarNode {
   /// 获取选项
   ///
   pub fn get_options(&self) -> ParseOption {
-    match self.fileinfo.clone() {
-      None => Default::default(),
-      Some(file) => {
-        file.upgrade().unwrap().deref().borrow().option.clone()
-      }
-    }
+    self.context.borrow().option.clone()
   }
 
   ///

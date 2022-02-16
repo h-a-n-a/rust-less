@@ -8,7 +8,7 @@ use std::ops::Deref;
 #[derivative(Debug, PartialEq)]
 #[derive(Clone)]
 pub struct ParseOption {
-  pub include_path: Option<Vec<String>>,
+  pub include_path: Vec<String>,
   pub sourcemap: bool,
   pub tabspaces: usize,
   #[derivative(Debug = "ignore", PartialEq = "ignore")]
@@ -18,7 +18,7 @@ pub struct ParseOption {
 impl Default for ParseOption {
   fn default() -> Self {
     ParseOption {
-      include_path: None,
+      include_path: vec![],
       sourcemap: true,
       tabspaces: 2,
       hooks: Default::default(),
@@ -32,15 +32,12 @@ pub trait OptionExtend {
 
 impl OptionExtend for FileInfo {
   fn get_options(&self) -> ParseOption {
-    self.option.clone()
+    self.context.deref().borrow().option.clone()
   }
 }
 
 impl OptionExtend for RuleNode {
   fn get_options(&self) -> ParseOption {
-    match self.file_info.clone() {
-      None => Default::default(),
-      Some(obj) => obj.upgrade().unwrap().deref().borrow().option.clone(),
-    }
+    self.context.deref().borrow().option.clone()
   }
 }

@@ -2,14 +2,15 @@ use crate::extend::string::StringExtend;
 use crate::extend::time::wastetime;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::comment::{skip_comment, Comment};
+use crate::new_less::context::Context;
 use crate::new_less::file::{path_resolve, readfile};
-use crate::new_less::fileinfo::FileInfo;
 
 #[test]
 fn test_comment_remove() {
   let record = wastetime("test_less");
   let filepath = path_resolve("assets/demo.less");
-  let info = FileInfo::create_disklocation_parse(filepath, Default::default(), None).unwrap();
+  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
+  let info = context.parse(filepath).unwrap();
   let content = info.borrow().rm_comment();
   record();
   let target = r#"

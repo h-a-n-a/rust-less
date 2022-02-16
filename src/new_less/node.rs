@@ -1,4 +1,6 @@
 use crate::new_less::comment::CommentNode;
+use crate::new_less::context::ParseContext;
+use crate::new_less::fileinfo::{FileRef, FileWeakRef};
 use crate::new_less::import::ImportNode;
 use crate::new_less::loc::Loc;
 use crate::new_less::parse::{RuleNode, RuleNodeJson};
@@ -7,7 +9,6 @@ use crate::new_less::var_node::VarNode;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
-use crate::new_less::fileinfo::{FileRef, FileWeakRef};
 
 pub type NodeWeakRef = Option<Weak<RefCell<RuleNode>>>;
 pub type NodeRef = Rc<RefCell<RuleNode>>;
@@ -62,9 +63,23 @@ impl VarRuleNode {
   ///
   /// 初始化
   ///
-  pub fn new(txt: String, loc: Option<Loc>, parent: NodeWeakRef, fileinfo: FileWeakRef) -> Result<Self, String> {
+  pub fn new(
+    txt: String,
+    loc: Option<Loc>,
+    parent: NodeWeakRef,
+    fileinfo: FileWeakRef,
+    context: ParseContext,
+    importfiles: &mut Vec<FileRef>,
+  ) -> Result<Self, String> {
     // 处理 导入
-    match ImportNode::new(txt.clone(), loc.clone(), parent.clone(), fileinfo.clone()) {
+    match ImportNode::new(
+      txt.clone(),
+      loc.clone(),
+      parent.clone(),
+      fileinfo.clone(),
+      context.clone(),
+      importfiles,
+    ) {
       HandleResult::Success(obj) => return Ok(VarRuleNode::Import(obj)),
       HandleResult::Fail(msg) => {
         return Err(msg);
@@ -72,7 +87,13 @@ impl VarRuleNode {
       HandleResult::Swtich => {}
     };
     // 处理 变量声明
-    match VarNode::new(txt.clone(), loc.clone(), parent.clone(), fileinfo.clone()) {
+    match VarNode::new(
+      txt.clone(),
+      loc.clone(),
+      parent.clone(),
+      fileinfo.clone(),
+      context.clone(),
+    ) {
       HandleResult::Success(obj) => return Ok(VarRuleNode::Var(obj)),
       HandleResult::Fail(msg) => {
         return Err(msg);
@@ -80,7 +101,7 @@ impl VarRuleNode {
       HandleResult::Swtich => {}
     };
     // 处理 规则
-    match StyleRuleNode::new(txt.clone(), loc, parent, fileinfo) {
+    match StyleRuleNode::new(txt.clone(), loc, parent, fileinfo, context) {
       HandleResult::Success(obj) => return Ok(VarRuleNode::StyleRule(obj)),
       HandleResult::Fail(msg) => {
         return Err(msg);
@@ -88,18 +109,5 @@ impl VarRuleNode {
       HandleResult::Swtich => {}
     };
     Err(format!("nothing node match the txt -> {}", txt))
-  }
-
-  ///
-  /// 获取所有节点上的 文件引用
-  ///
-  pub fn collect_import_file_ref(&mut self) -> Option<FileRef> {
-    if let VarRuleNode::Import(import) = self {
-      let heap_obj = import.import_file.as_ref().unwrap().clone();
-      import.import_file = None;
-      Some(heap_obj)
-    } else {
-      None
-    }
   }
 }

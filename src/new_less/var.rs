@@ -1,30 +1,55 @@
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::comment::skip_comment;
-use crate::new_less::fileinfo::{FileInfo, FileWeakRef};
+use crate::new_less::context::ParseContext;
+use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{NodeWeakRef, VarRuleNode};
-use crate::new_less::option::{OptionExtend, ParseOption};
+use crate::new_less::node::{NodeWeakRef, StyleNode, VarRuleNode};
 use crate::new_less::parse::RuleNode;
 
 pub trait Var {
-  fn parse_var(&self) -> Result<Vec<VarRuleNode>, String>;
+  fn parse_var(&mut self) -> Result<(), String>;
 }
 
 impl Var for FileInfo {
-  fn parse_var(&self) -> Result<Vec<VarRuleNode>, String> {
-    parse_var(&self.option, &self.origin_charlist, &self.locmap, None, self.self_weak.clone())
+  fn parse_var(&mut self) -> Result<(), String> {
+    let mut importfiles: Vec<FileRef> = vec![];
+    let nodes = parse_var(
+      self.context.clone(),
+      &self.origin_charlist,
+      &self.locmap,
+      None,
+      self.self_weak.clone(),
+      &mut importfiles,
+    )?;
+    self.block_node.append(
+      &mut nodes
+        .into_iter()
+        .map(StyleNode::Var)
+        .collect::<Vec<StyleNode>>(),
+    );
+    self.import_files = importfiles;
+    Ok(())
   }
 }
 
 impl Var for RuleNode {
-  fn parse_var(&self) -> Result<Vec<VarRuleNode>, String> {
-    parse_var(
-      &self.get_options(),
+  fn parse_var(&mut self) -> Result<(), String> {
+    let mut importfiles: Vec<FileRef> = vec![];
+    let nodes = parse_var(
+      self.context.clone(),
       &self.origin_charlist,
       &self.locmap,
       self.weak_self.clone(),
       self.file_info.clone(),
-    )
+      &mut importfiles,
+    )?;
+    self.block_node.append(
+      &mut nodes
+        .into_iter()
+        .map(StyleNode::Var)
+        .collect::<Vec<StyleNode>>(),
+    );
+    Ok(())
   }
 }
 
@@ -32,11 +57,12 @@ impl Var for RuleNode {
 /// 转化当前层变量
 ///
 fn parse_var(
-  options: &ParseOption,
+  context: ParseContext,
   origin_charlist: &[String],
   locmap: &Option<LocMap>,
   parent: NodeWeakRef,
   fileinfo: FileWeakRef,
+  importfiles: &mut Vec<FileRef>,
 ) -> Result<Vec<VarRuleNode>, String> {
   let mut blocklist: Vec<VarRuleNode> = vec![];
   let mut templist: Vec<String> = vec![];
@@ -65,7 +91,12 @@ fn parse_var(
     }
 
     // 记录第一个非空字符 起始位置
-    if options.sourcemap && char != " " && char != "\r" && char != "\n" && record_loc.is_none() {
+    if context.borrow().option.sourcemap
+      && char != " "
+      && char != "\r"
+      && char != "\n"
+      && record_loc.is_none()
+    {
       record_loc = Some(locmap.as_ref().unwrap().get(&index).unwrap());
     }
 
@@ -76,6 +107,8 @@ fn parse_var(
         record_loc,
         parent.clone(),
         fileinfo.clone(),
+        context.clone(),
+        importfiles,
       ) {
         Ok(obj) => obj,
         Err(msg) => {

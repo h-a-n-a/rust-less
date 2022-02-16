@@ -1,19 +1,22 @@
 use crate::extend::string::StringExtend;
+use crate::new_less::comment::Comment;
+use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{NodeRef, NodeWeakRef, StyleNode, StyleNodeJson, VarRuleNode};
 use crate::new_less::option::OptionExtend;
+use crate::new_less::rule::Rule;
 use crate::new_less::select_node::SelectorNode;
 use crate::new_less::style_rule::StyleRuleNode;
+use crate::new_less::var::Var;
+use derivative::Derivative;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::Rc;
-use crate::new_less::comment::Comment;
-use crate::new_less::rule::Rule;
-use crate::new_less::var::Var;
 
-#[derive(Debug, Clone)]
+#[derive(Derivative)]
+#[derivative(Debug, Clone)]
 pub struct RuleNode {
   // 节点内容
   pub content: String,
@@ -26,13 +29,19 @@ pub struct RuleNode {
   // 当前所有 索引 对应的 坐标行列 -> 用于执行 sourcemap
   pub locmap: Option<LocMap>,
   // 节点 父节点
+  #[derivative(Debug = "ignore")]
   pub parent: NodeWeakRef,
   // 自己的引用关系
+  #[derivative(Debug = "ignore")]
   pub weak_self: NodeWeakRef,
   // 节点 子节点
   pub block_node: Vec<StyleNode>,
   // 文件弱引用
+  #[derivative(Debug = "ignore")]
   pub file_info: FileWeakRef,
+  // 全局上下文
+  #[derivative(Debug = "ignore")]
+  pub context: ParseContext,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -85,6 +94,7 @@ impl RuleNode {
     selector_txt: String,
     loc: Option<Loc>,
     file_info: FileWeakRef,
+    context: ParseContext,
   ) -> Result<NodeRef, String> {
     let origin_charlist = content.tocharlist();
     let mut change_loc: Option<Loc> = loc.clone();
@@ -98,6 +108,7 @@ impl RuleNode {
       parent: None,
       weak_self: None,
       file_info,
+      context,
     };
     let heapobj = Rc::new(RefCell::new(obj));
     let wek_self = Rc::downgrade(&heapobj);
@@ -146,42 +157,9 @@ impl RuleNode {
   }
 
   pub fn parse_heap(obj: NodeRef) -> Result<(), String> {
-    let mut comments = match obj.deref().borrow().parse_comment() {
-      Ok(blocks) => blocks
-        .into_iter()
-        .map(StyleNode::Comment)
-        .collect::<Vec<StyleNode>>(),
-      Err(msg) => {
-        return Err(msg);
-      }
-    };
-    obj.borrow_mut().block_node.append(&mut comments);
-    let mut vars = match obj.deref().borrow().parse_var() {
-      Ok(blocks) => blocks
-        .into_iter()
-        .map(StyleNode::Var)
-        .collect::<Vec<StyleNode>>(),
-      Err(msg) => {
-        return Err(msg);
-      }
-    };
-    obj.borrow_mut().block_node.append(&mut vars);
-    let mut enum_rule = match obj.deref().borrow().parse_rule() {
-      Ok(blocks) => {
-        for node in blocks.clone() {
-          let mut node_value = node.borrow_mut();
-          node_value.parent = Some(Rc::downgrade(&obj));
-        }
-        blocks
-          .into_iter()
-          .map(StyleNode::Rule)
-          .collect::<Vec<StyleNode>>()
-      }
-      Err(msg) => {
-        return Err(msg);
-      }
-    };
-    obj.borrow_mut().block_node.append(&mut enum_rule);
+    obj.deref().borrow_mut().parse_comment()?;
+    obj.deref().borrow_mut().parse_var()?;
+    obj.deref().borrow_mut().parse_rule()?;
     Ok(())
   }
 
