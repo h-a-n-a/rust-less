@@ -55,7 +55,12 @@ impl Selector {
   ///
   /// 初始化方法
   ///
-  pub fn new(txt: String, loc: Option<Loc>, map: Option<LocMap>, parent: NodeWeakRef) -> HandleResult<Self> {
+  pub fn new(
+    txt: String,
+    loc: Option<Loc>,
+    map: Option<LocMap>,
+    parent: NodeWeakRef,
+  ) -> HandleResult<Self> {
     let mut obj = Selector {
       origin_txt: txt.trim().to_string(),
       single_select_txt: vec![],
@@ -549,7 +554,10 @@ impl Selector {
               }
               TokenSelect::Colon => {
                 temp += &char.clone();
-                if nextchar != TokenSelect::Colon.tostr_value() && Token::is_token(&nextchar) {
+                if nextchar != TokenSelect::Colon.tostr_value()
+                  && nextchar != TokenAllow::Dash.tostr_value()
+                  && Token::is_token(&nextchar)
+                {
                   return self.errormsg(&(index + 1));
                 }
               }
@@ -600,7 +608,7 @@ impl Selector {
                   ));
                 }
                 let space = SelectParadigm::CominaWrap(TokenCombina::Space.tostr_value());
-                if paradigm_vec.last().unwrap() != &space {
+                if paradigm_vec.is_empty() || paradigm_vec.last().unwrap() != &space {
                   paradigm_vec.push(space);
                 }
               }
@@ -694,6 +702,11 @@ impl Selector {
         }
       }
       index += 1;
+    }
+    if !paradigm_vec.is_empty() {
+      let single_select_txt = Self::join(paradigm_vec.clone());
+      self.single_select_txt.push(single_select_txt);
+      paradigm_vec.clear();
     }
     Ok(())
   }

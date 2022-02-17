@@ -31,6 +31,11 @@ fn test_select_parse() {
     r#".a[id="xyz"]>.c"#.to_string(),
     r#".a[id*="xyz"]>.c"#.to_string(),
     r#"(id)>.c"#.to_string(),
+    r#"::-webkit-scrollbar"#.to_string(),
+    r#":global(.arco-menu-item-inner > a::after)"#.to_string(),
+    r#":global(.arco-menu-item-inner > a::after),
+  :global(.arco-menu-item > a::after)"#
+      .to_string(),
   ];
   let target = r#"
 .a .b
@@ -58,6 +63,9 @@ selector:pseudo-class
 .a[id="xyz"] > .c
 .a[id*="xyz"] > .c
 (id) > .c
+::-webkit-scrollbar
+:global(.arco-menu-item-inner>a::after)
+:global(.arco-menu-item-inner>a::after)->:global(.arco-menu-item>a::after)
   "#;
   let mut base = "".to_string();
   demo_select_list.into_iter().for_each(|tt| {
