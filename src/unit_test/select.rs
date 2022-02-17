@@ -61,12 +61,21 @@ selector:pseudo-class
   "#;
   let mut base = "".to_string();
   demo_select_list.into_iter().for_each(|tt| {
-    let ss = match Selector::new(tt, None, None, None) {
+    let res = match Selector::new(tt, None, None, None) {
       HandleResult::Success(obj) => Some(obj),
-      HandleResult::Fail(_) => None,
-      HandleResult::Swtich => None,
+      HandleResult::Fail(msg) => {
+        println!("{}", msg);
+        None
+      }
+      HandleResult::Swtich => {
+        println!("the type is not support select_txt!");
+        None
+      }
+    };
+    if res.is_none() {
+      panic!("parse has error!");
     }
-      .unwrap();
+    let ss = res.unwrap();
     let value;
     if ss.single_select_txt.len() < 2 {
       value = ss.single_select_txt.poly();

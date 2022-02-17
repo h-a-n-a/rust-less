@@ -188,16 +188,16 @@ impl ImportNode {
     let (abs_path, _file_content) = FileManger::resolve(file_path, include_path)?;
     let weak_file_ref_option = self.context.borrow().get_cache(abs_path.as_str());
     // 自动忽略已经翻译后的文件
-    if weak_file_ref_option.is_none() {
+    if let Some(weak_file_ref) = weak_file_ref_option {
+      let heap_obj = weak_file_ref.upgrade().unwrap();
+      importfiles.push(heap_obj);
+    } else {
       let heap_obj = FileInfo::create_disklocation_parse(abs_path.clone(), self.context.clone())?;
       importfiles.push(heap_obj.clone());
       self
         .context
         .borrow_mut()
-        .set_cache(abs_path.as_str(), Some(Rc::downgrade(&heap_obj)))
-    } else {
-      let heap_obj = weak_file_ref_option.unwrap().upgrade().unwrap().clone();
-      importfiles.push(heap_obj.clone());
+        .set_cache(abs_path.as_str(), Some(Rc::downgrade(&heap_obj)));
     }
     Ok(())
   }

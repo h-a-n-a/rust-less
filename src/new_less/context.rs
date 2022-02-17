@@ -33,23 +33,21 @@ impl Context {
   /// 创建全局应用 共享上下文
   ///
   pub fn new(option: ParseOption, application_fold: Option<String>) -> Result<Self, String> {
-    let mut fold = application_fold.unwrap_or(
+    let mut fold = application_fold.unwrap_or_else(|| {
       std::env::current_dir()
         .unwrap()
         .into_os_string()
         .into_string()
-        .unwrap(),
-    );
+        .unwrap()
+    });
     let filepath = Path::new(&fold);
     if filepath.exists() {
       if filepath.is_absolute() {
         if filepath.is_file() {
           let current_dir = FileManger::get_dir(&fold)?;
           fold = current_dir
-        } else {
-          if !filepath.is_dir() {
-            return Err(format!("application_fold is not file or dir,{}", fold));
-          }
+        } else if !filepath.is_dir() {
+          return Err(format!("application_fold is not file or dir,{}", fold));
         }
       } else {
         return Err(format!(
@@ -141,7 +139,7 @@ impl Context {
   ///
   /// 是否已经生成了
   ///
-  pub fn has_codegen(&self, path: &String) -> bool {
-    self.code_gen_file_path.contains(path)
+  pub fn has_codegen(&self, path: &str) -> bool {
+    self.code_gen_file_path.contains(&path.to_string())
   }
 }
