@@ -24,6 +24,8 @@ pub struct Context {
   pub filecache: ParseCacheMap,
   // 文件的绝对路径 入口文件
   pub application_fold: String,
+  // 已经生成目录的 文件
+  pub code_gen_file_path: Vec<String>,
 }
 
 impl Context {
@@ -62,6 +64,7 @@ impl Context {
       option,
       filecache: HashMap::new(),
       application_fold: fold.clone(),
+      code_gen_file_path: vec![],
     };
     obj.set_include_paths(vec![fold]);
     Ok(obj)
@@ -120,8 +123,25 @@ impl Context {
     FileInfo::create_disklocation_parse(filepath, context)
   }
 
+  ///
+  /// 生成默认上下文
+  ///
   pub fn default() -> ParseContext {
     let obj = Self::new(Default::default(), None).unwrap();
     Rc::new(RefCell::new(obj))
+  }
+
+  ///
+  /// 清楚生成 文件名
+  ///
+  pub fn clear_codegen(&mut self) {
+    self.code_gen_file_path.clear();
+  }
+
+  ///
+  /// 是否已经生成了
+  ///
+  pub fn has_codegen(&self, path: &String) -> bool {
+    self.code_gen_file_path.contains(path)
   }
 }

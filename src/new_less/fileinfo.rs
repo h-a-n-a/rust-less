@@ -67,7 +67,7 @@ impl FileInfo {
     let import_file = self
       .import_files
       .iter()
-      .map(|x| x.borrow().tojson())
+      .map(|x| x.deref().borrow().tojson())
       .collect();
     FileInfoJson {
       disk_location: self.disk_location.clone(),
@@ -97,10 +97,22 @@ impl FileInfo {
   ///
   pub fn create_disklocation(filepath: String, context: ParseContext) -> Result<String, String> {
     let obj_heap = Self::create_disklocation_parse(filepath, context)?;
+    obj_heap
+      .deref()
+      .borrow()
+      .context
+      .borrow_mut()
+      .clear_codegen();
     let res = match obj_heap.deref().borrow().code_gen() {
       Ok(res) => Ok(res),
       Err(msg) => Err(msg),
     };
+    obj_heap
+      .deref()
+      .borrow()
+      .context
+      .borrow_mut()
+      .clear_codegen();
     res
   }
 
@@ -114,7 +126,7 @@ impl FileInfo {
     let text_content: String;
     let charlist: Vec<String>;
     let mut locmap: Option<LocMap> = None;
-    let option = context.borrow().get_options();
+    let option = context.deref().borrow().get_options();
     let obj = match FileManger::resolve(filepath, option.include_path.clone()) {
       Ok((abs_path, content)) => {
         text_content = content.clone();
@@ -152,7 +164,7 @@ impl FileInfo {
   ) -> Result<FileRef, String> {
     let text_content: String = content.clone();
     let charlist: Vec<String> = text_content.tocharlist();
-    let option = context.borrow().get_options();
+    let option = context.deref().borrow().get_options();
     let mut locmap: Option<LocMap> = None;
     if option.sourcemap {
       locmap = Some(FileInfo::get_loc_by_content(content.as_str()));
@@ -223,6 +235,19 @@ impl FileInfo {
   ///
   pub fn code_gen(&self) -> Result<String, String> {
     let mut res = "".to_string();
+    if !self.import_files.is_empty() {
+      for item in self.import_files.iter() {
+        if !self
+          .context
+          .borrow()
+          .has_codegen(&item.deref().borrow().disk_location)
+        {
+          let import_res = item.deref().borrow().code_gen()?;
+          res += &import_res;
+          res += "\n";
+        }
+      }
+    }
     for item in self.getrules() {
       item.deref().borrow().code_gen(&mut res);
     }

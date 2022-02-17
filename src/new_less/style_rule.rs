@@ -28,7 +28,7 @@ impl StyleRuleNode {
   pub fn new(
     txt: String,
     loc: Option<Loc>,
-    parent: NodeWeakRef,
+    _parent: NodeWeakRef,
     fileinfo: FileWeakRef,
     context: ParseContext,
   ) -> HandleResult<Self> {
