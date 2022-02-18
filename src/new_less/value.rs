@@ -34,14 +34,6 @@ pub enum IdentType {
   Space,
   //  ~"(min-width: 768px)" (min-width: 768px) -> Only for MediaRule
   Escaping(String),
-
-  LeftBrackets,
-
-  RightBrackets,
-
-  LeftParentheses,
-
-  RightParentheses,
 }
 
 impl ValueNode {
