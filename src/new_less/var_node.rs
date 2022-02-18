@@ -9,7 +9,8 @@ use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::option::ParseOption;
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
-use crate::new_less::token::var::{TokenVarKeyAllow, TokenVarValue};
+use crate::new_less::token::var::TokenVarKeyAllow;
+use crate::new_less::value::ValueNode;
 use derivative::Derivative;
 use serde::Serialize;
 
@@ -39,7 +40,7 @@ pub struct VarNode {
 
   pub key: Option<String>,
 
-  pub value: Option<String>,
+  pub value: Option<ValueNode>,
 
   // 上下文
   #[derivative(Debug = "ignore")]
@@ -164,7 +165,7 @@ impl VarNode {
     }
   }
 
-  pub fn parse_var_value(&self, start: &usize) -> Result<(String, usize), String> {
+  pub fn parse_var_value(&self, start: &usize) -> Result<(ValueNode, usize), String> {
     // 取分号前一位 最后一定是分号
     let end = self.charlist.len() - 1;
     let c = self.charlist[*start..end].poly().trim().to_string();
@@ -179,16 +180,7 @@ impl VarNode {
           hasend,
         } = arg;
         let (_, char, _) = charword;
-        //todo! 目前是简单计算 后续需要修改加强 value 的 parse 过程
-        if Token::is_token(&char) {
-          if TokenVarValue::is(&char) {
-            temp += &char;
-          } else {
-            return Err(self.error_msg(&(index - 1)));
-          }
-        } else {
-          temp += &char;
-        }
+        temp += &char;
         let new_arg = ScanArg {
           index,
           temp,
@@ -197,7 +189,10 @@ impl VarNode {
         Ok(ScanResult::Arg(new_arg))
       }),
     ) {
-      Ok(obj) => Ok((obj.0, self.charlist.len() - 1)),
+      Ok(obj) => {
+        let node = ValueNode::new(obj.0)?;
+        Ok((node, self.charlist.len() - 1))
+      }
       Err(msg) => Err(msg),
     }
   }
