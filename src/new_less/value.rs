@@ -84,15 +84,15 @@ impl ValueNode {
   /// 转化
   ///
   fn parse(&mut self) -> Result<(), String> {
-    let charlist = self.charlist.clone();
+    let charlist = &self.charlist;
     if charlist.is_empty() {
       return Err("var declare text is empty".to_string());
     }
     let index: usize = 0;
     traversal(
       Some(index),
-      &charlist,
-      &mut (move |arg, charword| {
+      charlist,
+      &mut (|arg, charword| {
         let ScanArg {
           temp,
           index,
