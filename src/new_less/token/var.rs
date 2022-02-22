@@ -6,9 +6,6 @@ pub enum TokenVarKeyAllow {
   #[strum(serialize = ":")]
   Colon,
 
-  #[strum(serialize = "_")]
-  Underline,
-
   #[strum(serialize = "-")]
   Dash,
 }

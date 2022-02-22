@@ -13,6 +13,7 @@ use std::rc::{Rc, Weak};
 pub type NodeWeakRef = Option<Weak<RefCell<RuleNode>>>;
 pub type NodeRef = Rc<RefCell<RuleNode>>;
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
 pub enum StyleNode {
   Comment(CommentNode),
@@ -20,6 +21,7 @@ pub enum StyleNode {
   Rule(NodeRef),
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, Serialize)]
 pub enum StyleNodeJson {
   Comment(CommentNode),
