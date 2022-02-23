@@ -92,6 +92,56 @@ impl ValueNode {
   }
 
   ///
+  /// 转化 常用词
+  ///
+  pub fn parse_value_word(&self, start: &usize) -> Result<(String, usize), String> {
+    let charlist = &self.charlist;
+    let res = traversal(
+      Some(*start),
+      charlist,
+      &mut (|arg, charword| {
+        let ScanArg {
+          mut temp,
+          mut index,
+          mut hasend,
+        } = arg;
+        let (_, char, nextchar) = charword;
+        Ok(ScanResult::Arg(ScanArg {
+          index,
+          temp,
+          hasend,
+        }))
+      }),
+    )?;
+    Ok(res)
+  }
+
+  ///
+  /// 转化 引号词
+  ///
+  pub fn parse_value_string_const(&self, start: &usize) -> Result<(String, usize), String> {
+    let charlist = &self.charlist;
+    let res = traversal(
+      Some(*start),
+      charlist,
+      &mut (|arg, charword| {
+        let ScanArg {
+          mut temp,
+          mut index,
+          mut hasend,
+        } = arg;
+        let (_, char, nextchar) = charword;
+        Ok(ScanResult::Arg(ScanArg {
+          index,
+          temp,
+          hasend,
+        }))
+      }),
+    )?;
+    Ok(res)
+  }
+
+  ///
   /// 转化变量
   ///
   pub fn parse_value_var(&self, start: &usize) -> Result<(String, usize), String> {
