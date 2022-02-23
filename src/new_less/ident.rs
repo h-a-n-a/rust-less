@@ -30,30 +30,18 @@ pub enum IdentType {
 
 impl IdentType {
   pub fn is_number(&self) -> bool {
-    match self {
-      IdentType::Number(_, _) => true,
-      _ => false,
-    }
+    matches!(self, IdentType::Number(_, _))
   }
 
   pub fn is_space(&self) -> bool {
-    match self {
-      IdentType::Space => true,
-      _ => false,
-    }
+    matches!(self, IdentType::Space)
   }
 
   pub fn is_operator(&self) -> bool {
-    match self {
-      IdentType::Operator(..) => true,
-      _ => false,
-    }
+    matches!(self, IdentType::Operator(..))
   }
 
   pub fn is_var(&self) -> bool {
-    match self {
-      IdentType::Var(..) => true,
-      _ => false,
-    }
+    matches!(self, IdentType::Var(..))
   }
 }

@@ -91,6 +91,14 @@ impl ValueNode {
     char.parse::<i32>().is_ok()
   }
 
+  pub fn is_end(char: &str, extend_char: Option<Vec<&str>>) -> bool {
+    let mut char_list = vec![";", "@", "~", "$", "(", ")", "[", "]", "+", "*", "/"];
+    if let Some(mut extend_list) = extend_char {
+      char_list.append(&mut extend_list);
+    }
+    Token::is_space_token(char) || char_list.contains(&char)
+  }
+
   ///
   /// 转化 常用词
   ///
@@ -180,12 +188,7 @@ impl ValueNode {
               if temp.len() < 2 {
                 return Err(self.error_msg(&index));
               }
-            } else if &char == "+"
-              || &char == "*"
-              || &char == "/"
-              || &char == ";"
-              || Token::is_space_token(&char)
-            {
+            } else if Self::is_end(&char, None) {
               // @+ @* is error
               if temp.len() < 2 {
                 return Err(self.error_msg(&index));
@@ -236,34 +239,32 @@ impl ValueNode {
 
         if Token::is_token(&char) {
           return Err(self.error_msg(&index));
-        } else {
-          if Self::is_number(&char) {
-            if !has_record_value {
-              value += &char;
-            } else {
-              index -= 1;
-              hasend = true;
-            }
+        } else if Self::is_number(&char) {
+          if !has_record_value {
+            value += &char;
           } else {
-            if value.is_empty() {
-              return Err(self.error_msg(&index));
-            }
-            if !has_record_value {
-              has_record_value = true;
-            }
-            unit += &char;
+            index -= 1;
+            hasend = true;
           }
+        } else {
+          if value.is_empty() {
+            return Err(self.error_msg(&index));
+          }
+          if !has_record_value {
+            has_record_value = true;
+          }
+          unit += &char;
         }
-        if Token::is_space_token(&nextchar) || &nextchar == ";" {
+
+        if Self::is_end(&nextchar, Some(vec!["-"])) {
           hasend = true;
         }
 
-        let new_arg = ScanArg {
+        Ok(ScanResult::Arg(ScanArg {
           index,
           temp,
           hasend,
-        };
-        Ok(ScanResult::Arg(new_arg))
+        }))
       }),
     )?;
     if unit.is_empty() {
@@ -289,8 +290,7 @@ impl ValueNode {
       if TokenValueAllow::is(char) {
         if char == "]" || char == ")" {
           let last = brackets_vaildate.last();
-          if last.is_some() {
-            let last_char = last.unwrap();
+          if let Some(last_char) = last {
             if (last_char == "(" && char == ")") || (last_char == "[" && char == "]") {
               brackets_vaildate.remove(brackets_vaildate.len() - 1);
             } else {
@@ -300,7 +300,7 @@ impl ValueNode {
             return Err(format!(r#"{} is error "#, char));
           }
         } else {
-          brackets_vaildate.push(char.to_string().clone())
+          brackets_vaildate.push(char.to_string())
         }
       } else {
         return Err(format!(r#"{} is not '(' ')' '[' ']' "#, char));
@@ -359,18 +359,13 @@ impl ValueNode {
           };
         }
         // 处理prop
-        else if &char == "$" {
-        }
+        else if &char == "$" {}
         // 处理 引用
-        else if &char == "~" {
-        }
+        else if &char == "~" {}
         // 处理 keyword
-        else if &char == "!" {
-        }
+        else if &char == "!" {}
         // 处理引号词
-        else if &char == r#"""# {
-        } else if &char == r#"'"# {
-        }
+        else if &char == r#"""# {} else if &char == r#"'"# {}
         // 处理括号
         else if TokenValueAllow::is(&char) {
           if &char != r#"\"# {
@@ -416,10 +411,6 @@ impl ValueNode {
             }
           }
         }
-        // 非法连词
-        else if Token::is_token(&char) {
-          return Err(self.error_msg(&index));
-        }
         // 处理 数值
         else if Self::is_number(&char) {
           let ((val, unit), end) = self.parse_value_number(&index)?;
@@ -427,8 +418,7 @@ impl ValueNode {
           index = end;
         }
         // 处理单词
-        else {
-        }
+        else {}
         let new_arg = ScanArg {
           index,
           temp,
