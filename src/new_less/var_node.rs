@@ -190,7 +190,12 @@ impl VarNode {
       }),
     ) {
       Ok(obj) => {
-        let node = ValueNode::new(obj.0, self.map.get(start))?;
+        let node = ValueNode::new(
+          obj.0,
+          self.map.get(start),
+          self.parent.clone(),
+          self.fileinfo.clone(),
+        )?;
         Ok((node, self.charlist.len() - 1))
       }
       Err(msg) => Err(msg),

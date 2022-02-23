@@ -28,49 +28,32 @@ pub enum IdentType {
   Brackets(String),
 }
 
-
 impl IdentType {
   pub fn is_number(&self) -> bool {
     match self {
-      IdentType::Number(_, _) => {
-        true
-      }
-      _ => {
-        false
-      }
+      IdentType::Number(_, _) => true,
+      _ => false,
     }
   }
 
   pub fn is_space(&self) -> bool {
     match self {
-      IdentType::Space => {
-        true
-      }
-      _ => {
-        false
-      }
+      IdentType::Space => true,
+      _ => false,
     }
   }
 
   pub fn is_operator(&self) -> bool {
     match self {
-      IdentType::Operator(..) => {
-        true
-      }
-      _ => {
-        false
-      }
+      IdentType::Operator(..) => true,
+      _ => false,
     }
   }
 
   pub fn is_var(&self) -> bool {
     match self {
-      IdentType::Var(..) => {
-        true
-      }
-      _ => {
-        false
-      }
+      IdentType::Var(..) => true,
+      _ => false,
     }
   }
 }
