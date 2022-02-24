@@ -7,6 +7,7 @@ use std::rc::{Rc, Weak};
 use std::time::Duration;
 use tokio::sync::Mutex;
 use tokio::time::sleep;
+use uuid::Uuid;
 
 #[test]
 fn test_str() {
@@ -236,4 +237,11 @@ fn test_clousure_loop() {
   }
   let m: String = exec(None);
   assert_eq!(&m, "aaaaa");
+}
+
+#[test]
+fn test_uuid() {
+  let a = Uuid::new_v4().to_string();
+  println!("{}", a);
+  assert_eq!("f9c397f9-7528-4b8b-963b-c09c36c40ece".len(), a.len());
 }

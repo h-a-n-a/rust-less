@@ -16,6 +16,7 @@ pub struct ValueNode {
   pub origin_txt: String,
 
   // 字符 向量 只读
+  #[serde(skip_serializing)]
   charlist: Vec<String>,
 
   // rule 父节点
@@ -92,7 +93,7 @@ impl ValueNode {
   }
 
   pub fn is_end(char: &str, extend_char: Option<Vec<&str>>) -> bool {
-    let mut char_list = vec![";", "@", "~", "$", "(", ")", "[", "]", "+", "*", "/"];
+    let mut char_list = vec![";", "@", "~", "#", "$", "(", ")", "[", "]", "+", "*", "/"];
     if let Some(mut extend_list) = extend_char {
       char_list.append(&mut extend_list);
     }
@@ -100,7 +101,7 @@ impl ValueNode {
   }
 
   ///
-  /// 转化 常用词
+  /// 转化 常用词 颜色 关键词
   ///
   pub fn parse_value_word(&self, start: &usize) -> Result<(String, usize), String> {
     let charlist = &self.charlist;
@@ -110,10 +111,14 @@ impl ValueNode {
       &mut (|arg, charword| {
         let ScanArg {
           mut temp,
-          mut index,
+          index,
           mut hasend,
         } = arg;
         let (_, char, nextchar) = charword;
+        temp += &char;
+        if Self::is_end(&nextchar, None) {
+          hasend = true;
+        }
         Ok(ScanResult::Arg(ScanArg {
           index,
           temp,
@@ -129,7 +134,8 @@ impl ValueNode {
   ///
   pub fn parse_value_string_const(&self, start: &usize) -> Result<(String, usize), String> {
     let charlist = &self.charlist;
-    let res = traversal(
+    let mut keyword: String = "".to_string();
+    let (value, end) = traversal(
       Some(*start),
       charlist,
       &mut (|arg, charword| {
@@ -139,6 +145,24 @@ impl ValueNode {
           mut hasend,
         } = arg;
         let (_, char, nextchar) = charword;
+        // todo @{...} not support
+        if temp.is_empty() {
+          if &char == r#"'"# || &char == r#"""# {
+            keyword = char.clone();
+            temp += &char;
+          } else {
+            return Err(self.error_msg(&index));
+          }
+        } else {
+          temp += &char;
+        }
+
+        if nextchar == keyword && char != r#"\"# {
+          hasend = true;
+          temp += &keyword;
+          index += 1;
+        }
+
         Ok(ScanResult::Arg(ScanArg {
           index,
           temp,
@@ -146,7 +170,20 @@ impl ValueNode {
         }))
       }),
     )?;
-    Ok(res)
+
+    // 最终检查
+    if value.is_empty() {
+      return Err(self.error_msg(start));
+    }
+    if (value.len() > 1
+      && *value.tocharlist().get(0).unwrap() == keyword
+      && *value.tocharlist().get(value.len() - 1).unwrap() != keyword)
+      || value.len() == 1
+    {
+      return Err(format!("{} is not closure", self.origin_txt));
+    }
+
+    Ok((value, end))
   }
 
   ///
@@ -359,13 +396,41 @@ impl ValueNode {
           };
         }
         // 处理prop
-        else if &char == "$" {}
+        else if &char == "$" {
+          // todo! $ style_rule
+        }
         // 处理 引用
-        else if &char == "~" {}
+        else if &char == "~" {
+          // todo! ~ reference
+        }
+        // 处理 引用
+        else if &char == "#" {
+          let (color, end) = self.parse_value_word(&index)?;
+          self.word_ident_list.push(IdentType::Color(color));
+          index = end;
+        }
         // 处理 keyword
-        else if &char == "!" {}
+        else if &char == "!" {
+          let end = index + 10;
+          if self.charlist.len() >= end && &self.charlist[index..end].join("") == "!important" {
+            self
+              .word_ident_list
+              .push(IdentType::KeyWord("!important".to_string()));
+            index += 10;
+          } else {
+            let (word, end) = self.parse_value_word(&index)?;
+            self.word_ident_list.push(IdentType::Word(word));
+            index = end;
+          }
+        }
         // 处理引号词
-        else if &char == r#"""# {} else if &char == r#"'"# {}
+        else if &char == r#"""# || &char == r#"'"# {
+          let (string_const, end) = self.parse_value_string_const(&index)?;
+          self
+            .word_ident_list
+            .push(IdentType::StringConst(string_const));
+          index = end;
+        }
         // 处理括号
         else if TokenValueAllow::is(&char) {
           if &char != r#"\"# {
@@ -418,7 +483,11 @@ impl ValueNode {
           index = end;
         }
         // 处理单词
-        else {}
+        else {
+          let (word, end) = self.parse_value_word(&index)?;
+          self.word_ident_list.push(IdentType::Word(word));
+          index = end;
+        }
         let new_arg = ScanArg {
           index,
           temp,

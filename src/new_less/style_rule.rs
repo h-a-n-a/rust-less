@@ -1,3 +1,4 @@
+use crate::extend::string::StringExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::loc::Loc;
@@ -5,6 +6,7 @@ use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::option::ParseOption;
 use derivative::Derivative;
 use serde::Serialize;
+use uuid::Uuid;
 
 #[derive(Derivative, Serialize, Clone)]
 #[derivative(Debug)]
@@ -13,6 +15,13 @@ pub struct StyleRuleNode {
   pub content: String,
   // 节点坐标
   pub loc: Option<Loc>,
+
+  // 字符串 操作 序列
+  #[serde(skip_serializing)]
+  charlist: Vec<String>,
+
+  // uuid 避免 查找时循环引用
+  pub uuid: String,
 
   // 文件信息
   #[serde(skip_serializing)]
@@ -33,8 +42,10 @@ impl StyleRuleNode {
     context: ParseContext,
   ) -> HandleResult<Self> {
     let obj = Self {
-      content: txt,
+      content: txt.clone(),
       loc,
+      charlist: txt.tocharlist(),
+      uuid: Uuid::new_v4().to_string(),
       fileinfo,
       context,
     };

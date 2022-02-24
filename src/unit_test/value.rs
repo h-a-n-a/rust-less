@@ -8,6 +8,12 @@ fn test_value_parse() {
     r#"@abc - @bcd;"#.to_string(),
     r#"10px;"#.to_string(),
     r#"10px10 + 20px;"#.to_string(),
+    r#""abc";"#.to_string(),
+    r#"1px solid;"#.to_string(),
+    r#".a >.b;"#.to_string(),
+    r#"1px solid !important;"#.to_string(),
+    r#"1px solid !abc;"#.to_string(),
+    r#"1px solid #fff;"#.to_string(),
   ];
   let mut haserror = 0;
   vars_list

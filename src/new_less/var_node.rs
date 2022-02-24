@@ -13,6 +13,7 @@ use crate::new_less::token::var::TokenVarKeyAllow;
 use crate::new_less::value::ValueNode;
 use derivative::Derivative;
 use serde::Serialize;
+use uuid::Uuid;
 
 #[derive(Derivative, Serialize, Clone)]
 #[derivative(Debug)]
@@ -21,6 +22,9 @@ pub struct VarNode {
   pub content: String,
   // 节点坐标
   pub loc: Option<Loc>,
+
+  // uuid 避免 查找时循环引用
+  pub uuid: String,
 
   // 内部处理 地图
   #[serde(skip_serializing)]
@@ -67,6 +71,7 @@ impl VarNode {
     let mut obj = Self {
       content: txt.clone(),
       loc,
+      uuid: Uuid::new_v4().to_string(),
       map,
       charlist: txt.tocharlist(),
       parent,
