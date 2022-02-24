@@ -5,6 +5,7 @@ mod media;
 mod parse;
 mod select;
 mod single;
+mod style_rule;
 mod token;
-mod var;
 mod value;
+mod var;
