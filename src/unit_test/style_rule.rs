@@ -4,12 +4,13 @@ use crate::new_less::style_rule::StyleRuleNode;
 
 #[test]
 fn test_style_rule_parse() {
-  let vars_list = vec![
-    r#"box-sizing: border-box;"#.to_string(),
-    r#"font-size: 10px;"#.to_string(),
+  let list = vec![
+    // r#"box-sizing: border-box;"#.to_string(),
+    // r#"font-size: 10px;"#.to_string(),
+    r#"font -size: 10px;"#.to_string(),
   ];
   let mut haserror = 0;
-  vars_list.into_iter().for_each(|tt| {
+  list.into_iter().for_each(|tt| {
     match StyleRuleNode::new(tt, None, None, None, Context::default()) {
       HandleResult::Success(obj) => {
         haserror += 0;
@@ -27,4 +28,23 @@ fn test_style_rule_parse() {
     }
   });
   assert_eq!(haserror, 0);
+}
+
+#[test]
+fn test_style_rule_error_parse() {
+  let mut haserror = 0;
+  let list = vec![r#"font-size: 10px;"#.to_string()];
+  list.into_iter().for_each(|tt| {
+    match StyleRuleNode::new(tt, None, None, None, Context::default()) {
+      HandleResult::Success(_) => {
+        haserror += 1;
+      }
+      HandleResult::Fail(msg) => {
+        haserror += 0;
+        println!("{:?}", msg);
+      }
+      HandleResult::Swtich => {}
+    };
+  });
+  assert_eq!(haserror, 0)
 }

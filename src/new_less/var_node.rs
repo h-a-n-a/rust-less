@@ -119,19 +119,23 @@ impl VarNode {
     )
   }
 
+  ///
+  /// 转化变量声明 key
+  ///
   pub fn parse_var_ident(&self, start: &usize) -> Result<(String, usize), String> {
     let charlist = &self.charlist;
     let mut hasspace = false;
     match traversal(
       Some(*start),
       charlist,
-      &mut (move |arg, charword| {
+      &mut (|arg, charword| {
         let ScanArg {
           mut temp,
           index,
           mut hasend,
         } = arg;
         let (_, char, next) = charword;
+        // 变量声明 只允许 冒号前后有空格
         if hasspace && Token::is_space_token(&next) {
           return Ok(ScanResult::Skip);
         } else if hasspace && !Token::is_space_token(&char) {
@@ -170,41 +174,27 @@ impl VarNode {
     }
   }
 
+  ///
+  /// 转化变量声明 value
+  ///
   pub fn parse_var_value(&self, start: &usize) -> Result<(ValueNode, usize), String> {
     // 取分号前一位 最后一定是分号
     let end = self.charlist.len() - 1;
-    let c = self.charlist[*start..end].poly().trim().to_string();
-    let charlist = &c.tocharlist();
-    match traversal(
-      None,
-      charlist,
-      &mut (|arg, charword| {
-        let ScanArg {
-          mut temp,
-          index,
-          hasend,
-        } = arg;
-        let (_, char, _) = charword;
-        temp += &char;
-        let new_arg = ScanArg {
-          index,
-          temp,
-          hasend,
-        };
-        Ok(ScanResult::Arg(new_arg))
-      }),
-    ) {
-      Ok(obj) => {
-        let node = ValueNode::new(
-          obj.0,
-          self.map.get(start),
-          self.parent.clone(),
-          self.fileinfo.clone(),
-        )?;
-        Ok((node, self.charlist.len() - 1))
+    let mut trim_start = *start;
+    while trim_start < self.charlist.len() {
+      if !Token::is_space_token(self.charlist.get(trim_start).unwrap()) {
+        break;
       }
-      Err(msg) => Err(msg),
+      trim_start += 1;
     }
+    let content = self.charlist[trim_start..end].poly().trim().to_string();
+    let node = ValueNode::new(
+      content,
+      self.map.get(start),
+      self.parent.clone(),
+      self.fileinfo.clone(),
+    )?;
+    Ok((node, self.charlist.len() - 1))
   }
 
   ///

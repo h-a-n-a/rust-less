@@ -396,12 +396,13 @@ impl ValueNode {
           };
         }
         // 处理prop
-        else if &char == "$" {
+        else if &char == "$" || &char == "~" {
           // todo! $ style_rule
-        }
-        // 处理 引用
-        else if &char == "~" {
           // todo! ~ reference
+          return Err(format!(
+            "$ style_rule or ~ reference has not support \n {}",
+            self.error_msg(&index)
+          ));
         }
         // 处理 引用
         else if &char == "#" {
