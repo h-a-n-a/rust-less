@@ -229,4 +229,11 @@ impl StyleRuleNode {
 
     Ok(())
   }
+
+  ///
+  /// 代码生成
+  ///
+  fn code_gen(&self) -> Result<String, String> {
+    Ok(self.content.clone())
+  }
 }
