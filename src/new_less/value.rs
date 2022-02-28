@@ -116,6 +116,9 @@ impl ValueNode {
         } = arg;
         let (_, char, nextchar) = charword;
         temp += &char;
+        if &char == ":" {
+          return Err(self.error_msg(&index));
+        }
         if Self::is_end(&nextchar, None) {
           hasend = true;
         }

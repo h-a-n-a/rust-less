@@ -33,11 +33,12 @@ fn test_style_rule_parse() {
 #[test]
 fn test_style_rule_error_parse() {
   let mut haserror = 0;
-  let list = vec![r#"font-size: 10px;"#.to_string()];
+  let list = vec![r#"font-size:: 10px;"#.to_string()];
   list.into_iter().for_each(|tt| {
     match StyleRuleNode::new(tt, None, None, None, Context::default()) {
-      HandleResult::Success(_) => {
+      HandleResult::Success(obj) => {
         haserror += 1;
+        println!("{:#?}", obj);
       }
       HandleResult::Fail(msg) => {
         haserror += 0;

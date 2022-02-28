@@ -4,7 +4,7 @@ use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::FileWeakRef;
-use crate::new_less::ident::IdentType;
+use crate::new_less::ident::{IdentNature, IdentType};
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{HandleResult, NodeWeakRef, StyleNode, VarRuleNode};
 use crate::new_less::option::ParseOption;
@@ -239,6 +239,45 @@ impl StyleRuleNode {
     let _no_var_list = self.get_no_var_ident_list();
     println!("{:#?}", _no_var_list);
     Ok(self.content.clone())
+  }
+
+  ///
+  /// 计算 提纯后 根据所有 词的 性质进行组合
+  ///
+  pub fn group_calc_ident_value(list: Vec<IdentType>) -> Result<String, String> {
+    let mut nature_list: Vec<IdentNature> = vec![];
+    let mut calc_list: Vec<IdentType> = vec![];
+    for item in list {
+      match item {
+        IdentType::Number(_, _) | IdentType::Operator(_) => {
+          calc_list.push(item);
+        }
+        IdentType::Var(_) => {
+          return Err("get_no_var_ident_list -> func has error!".to_string());
+        }
+        IdentType::Prop(_) => {
+          return Err("$abc is not support".to_string());
+        }
+        IdentType::InsertVar(_) => {
+          return Err("@{abc} is not support".to_string());
+        }
+        IdentType::StringConst(_) | IdentType::Word(_) | IdentType::Color(_) | IdentType::KeyWord(_) => {
+          if !calc_list.is_empty() {
+            nature_list.push(IdentNature::Calc(calc_list.clone()));
+          }
+          nature_list.push(IdentNature::Word(item));
+          calc_list.clear();
+        }
+        IdentType::Space => {
+          nature_list.push(IdentNature::Space(item))
+        }
+        IdentType::Escaping(_) => {
+          return Err("(min-width: 768px) | ~'min-width: 768px'  is not support".to_string());
+        }
+        IdentType::Brackets(_) => {}
+      }
+    }
+    Ok("".to_string())
   }
 
   ///

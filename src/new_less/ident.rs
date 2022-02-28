@@ -45,3 +45,13 @@ impl IdentType {
     matches!(self, IdentType::Var(..))
   }
 }
+
+///
+/// 标识符 词性
+///
+#[derive(Clone, Serialize, Debug)]
+pub enum IdentNature {
+  Space(IdentType),
+  Calc(Vec<IdentType>),
+  Word(IdentType),
+}
