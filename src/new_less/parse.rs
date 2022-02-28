@@ -171,7 +171,7 @@ impl RuleNode {
     Ok(())
   }
 
-  pub fn code_gen(&self, content: &mut String) {
+  pub fn code_gen(&self, content: &mut String) -> Result<(), String> {
     let rules = self.get_style_rule();
 
     if !rules.is_empty() {
@@ -184,16 +184,16 @@ impl RuleNode {
         index += 1;
       }
 
-      let create_rules = |tab: String| {
-        rules
-          .iter()
-          .map(|x| tab.clone() + &x.content.clone())
-          .collect::<Vec<String>>()
-          .join("\n")
+      let create_rules = |tab: String| -> Result<String, String> {
+        let mut res: String = "".to_string();
+        for rule_res in rules {
+          res += &format!("{}{}{}", tab.clone(), rule_res.code_gen()?, "\n");
+        }
+        Ok(res)
       };
 
       if media_txt.is_empty() {
-        *content += format!("\n{}{}\n{}\n{}\n", select_txt, "{", create_rules(tab), "}").as_ref();
+        *content += format!("\n{}{}\n{}\n{}\n", select_txt, "{", create_rules(tab)?, "}").as_ref();
       } else {
         *content += format!(
           "\n{}{}\n{}{}\n{}\n{}\n{}",
@@ -201,16 +201,18 @@ impl RuleNode {
           "{",
           tab.clone() + &select_txt,
           "{",
-          create_rules(tab.clone() + &tab.clone()),
+          create_rules(tab.clone() + &tab.clone())?,
           "  }",
           "}"
         )
-          .as_ref();
+        .as_ref();
       }
     }
 
-    self.getrules().iter().for_each(|x| {
-      x.deref().borrow().code_gen(content);
-    });
+    for node_ref in self.getrules() {
+      node_ref.deref().borrow().code_gen(content)?;
+    }
+
+    Ok(())
   }
 }

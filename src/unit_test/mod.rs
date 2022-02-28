@@ -3,6 +3,7 @@ mod import;
 mod loc;
 mod media;
 mod parse;
+mod render;
 mod select;
 mod single;
 mod style_rule;

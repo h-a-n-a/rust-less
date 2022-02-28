@@ -3,9 +3,10 @@ use crate::new_less::comment::Comment;
 use crate::new_less::context::ParseContext;
 use crate::new_less::file_manger::FileManger;
 use crate::new_less::loc::LocMap;
-use crate::new_less::node::{NodeRef, StyleNode, StyleNodeJson};
+use crate::new_less::node::{NodeRef, StyleNode, StyleNodeJson, VarRuleNode};
 use crate::new_less::rule::Rule;
 use crate::new_less::var::Var;
+use crate::new_less::var_node::VarNode;
 use derivative::Derivative;
 use serde::Serialize;
 use std::cell::RefCell;
@@ -249,8 +250,27 @@ impl FileInfo {
       }
     }
     for item in self.getrules() {
-      item.deref().borrow().code_gen(&mut res);
+      item.deref().borrow().code_gen(&mut res)?;
     }
     Ok(res)
+  }
+
+  ///
+  /// 获取 某文件下 所有的 变量节点
+  /// 递归 获取所有 fileinfo 上 block_node -> var 节点
+  ///
+  pub fn collect_vars(&self) -> Vec<VarNode> {
+    let mut varlist = vec![];
+    for fileinfo in &self.import_files {
+      for item in &fileinfo.borrow().block_node {
+        if let StyleNode::Var(VarRuleNode::Var(var)) = item.deref() {
+          varlist.push(var.clone());
+        }
+      }
+      // 递归收集
+      let mut child_var_list = fileinfo.borrow().collect_vars();
+      varlist.append(&mut child_var_list)
+    }
+    varlist
   }
 }

@@ -4,8 +4,9 @@ use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::FileWeakRef;
+use crate::new_less::ident::IdentType;
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{HandleResult, NodeWeakRef};
+use crate::new_less::node::{HandleResult, NodeWeakRef, StyleNode, VarRuleNode};
 use crate::new_less::option::ParseOption;
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
@@ -13,6 +14,7 @@ use crate::new_less::token::style_rule::TokenStyleRuleKeyAllow;
 use crate::new_less::value::ValueNode;
 use serde::Serialize;
 use std::fmt::{Debug, Formatter};
+use std::ops::Deref;
 use uuid::Uuid;
 
 #[derive(Serialize, Clone)]
@@ -233,7 +235,105 @@ impl StyleRuleNode {
   ///
   /// 代码生成
   ///
-  fn code_gen(&self) -> Result<String, String> {
+  pub fn code_gen(&self) -> Result<String, String> {
+    let _no_var_list = self.get_no_var_ident_list();
+    println!("{:#?}", _no_var_list);
     Ok(self.content.clone())
+  }
+
+  ///
+  /// 代码转化 都 转化成 无变量 实参
+  ///
+  pub fn get_no_var_ident_list(&self) -> Result<Vec<IdentType>, String> {
+    let mut list = self.value.as_ref().unwrap().word_ident_list.clone();
+    if list.is_empty() {
+      return Err(format!(
+        "code_gen content {} is has error, value ident is empty!",
+        self.content
+      ));
+    }
+    // 把 表达式中 含有 var 声明的 全部进行 查找替换
+    self.pure_list(&mut list)?;
+    Ok(list)
+  }
+
+  ///
+  /// 递归净化 所有表达式 的 var
+  ///
+  pub fn pure_list(&self, list: &mut Vec<IdentType>) -> Result<(), String> {
+    let mut handle_vec: Vec<(usize, Vec<IdentType>)> = vec![];
+    for (index, ident) in list.iter().enumerate() {
+      if let IdentType::Var(ident_var) = ident {
+        let var_node_value =
+          self.get_var_by_key(ident_var, self.parent.clone(), self.fileinfo.clone())?;
+        handle_vec.push((index, var_node_value.word_ident_list.clone()));
+      }
+    }
+    // 把当前 所有的 变量 -> 代数 ident 插到 目前  ident_list vec 上
+    for (index, ident_list) in handle_vec {
+      list.remove(index);
+      let mut setp = 0;
+      ident_list.iter().rev().for_each(|x| {
+        list.insert(index + setp, x.clone());
+        setp += 1;
+      });
+    }
+    let _json = serde_json::to_string_pretty(&list).unwrap();
+    // 如果 当前 还有变量 则继续递归 演算
+    if list.iter().any(|x| matches!(x, IdentType::Var(_))) {
+      self.pure_list(list)?;
+    };
+    Ok(())
+  }
+
+  ///
+  /// 查找变量
+  ///
+  pub fn get_var_by_key(
+    &self,
+    key: &str,
+    rule_info: NodeWeakRef,
+    file_info: FileWeakRef,
+  ) -> Result<ValueNode, String> {
+    if let Some(rule_ref) = rule_info {
+      let rule = rule_ref.upgrade().unwrap();
+      let nodelist = &rule.borrow().block_node;
+      for item in nodelist {
+        if let StyleNode::Var(VarRuleNode::Var(var)) = item.deref() {
+          if var.key.as_ref().unwrap() == key {
+            return Ok(var.value.as_ref().unwrap().clone());
+          }
+        }
+      }
+      return if rule.borrow().parent.is_some() {
+        // 非顶层 向上递归
+        self.get_var_by_key(key, rule.borrow().parent.clone(), None)
+      } else {
+        // 顶层 同层 引用递归 查看下半段代码
+        self.get_var_by_key(key, None, self.fileinfo.clone())
+      };
+    }
+    //
+    else if let Some(file_ref) = file_info {
+      // 若没有则已经到达 顶层 则按照 顶层处理
+      let fileinfo_ref = file_ref.upgrade().unwrap();
+      let nodelist = &fileinfo_ref.borrow().block_node;
+      for item in nodelist {
+        if let StyleNode::Var(VarRuleNode::Var(var)) = item.deref() {
+          if var.key.as_ref().unwrap() == key {
+            return Ok(var.value.as_ref().unwrap().clone());
+          }
+        }
+      }
+      // 获取 该节点下 其他顶层 变量
+      let top_level_other_vars = fileinfo_ref.borrow().collect_vars();
+      for var in top_level_other_vars {
+        if var.key.as_ref().unwrap() == key {
+          return Ok(var.value.as_ref().unwrap().clone());
+        }
+      }
+    };
+
+    Err(format!("no var key {} has found", key))
   }
 }
