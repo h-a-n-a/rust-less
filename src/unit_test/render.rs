@@ -7,6 +7,7 @@ fn test_less_render() {
   let record = wastetime("test_less_render");
   let filepath = path_resolve("assets/demo.less");
   let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  context.render(filepath).unwrap();
+  let res = context.render(filepath).unwrap();
+  println!("{}", res);
   record();
 }

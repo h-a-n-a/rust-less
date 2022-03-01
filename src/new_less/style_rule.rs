@@ -4,7 +4,7 @@ use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::FileWeakRef;
-use crate::new_less::ident::{IdentNature, IdentType};
+use crate::new_less::ident::IdentType;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{HandleResult, NodeWeakRef, StyleNode, VarRuleNode};
 use crate::new_less::option::ParseOption;
@@ -236,21 +236,63 @@ impl StyleRuleNode {
   /// 代码生成
   ///
   pub fn code_gen(&self) -> Result<String, String> {
-    let _no_var_list = self.get_no_var_ident_list();
-    println!("{:#?}", _no_var_list);
-    Ok(self.content.clone())
+    let no_var_list = self.get_no_var_ident_list()?;
+    let res = Self::group_calc_ident_value(no_var_list)?;
+    let code_res = format!("{} : {}", self.key.as_ref().unwrap(), res);
+    Ok(code_res)
   }
 
   ///
   /// 计算 提纯后 根据所有 词的 性质进行组合
+  /// 用于 (运算)
   ///
   pub fn group_calc_ident_value(list: Vec<IdentType>) -> Result<String, String> {
-    let mut nature_list: Vec<IdentNature> = vec![];
+    let mut nature_list: Vec<IdentType> = vec![];
     let mut calc_list: Vec<IdentType> = vec![];
-    for item in list {
-      match item {
-        IdentType::Number(_, _) | IdentType::Operator(_) => {
-          calc_list.push(item);
+    let mut index = 0;
+
+    // 逆向查找第一个 非空格 的元素
+    // 左值 重要
+    let find_no_space_node_rev = |nlist: &Vec<IdentType>| {
+      for item in nlist.iter().rev() {
+        if !matches!(item, IdentType::Space) {
+          return Some(item.clone());
+        }
+      }
+      None
+    };
+
+    // 遍历 范式
+    while index < list.len() {
+      // 比对词性
+      let now = list.get(index).unwrap().clone();
+      match now {
+        IdentType::Operator(op) => {
+          if !calc_list.is_empty() {
+            let last_calc_item = find_no_space_node_rev(&calc_list).unwrap();
+            if matches!(last_calc_item, IdentType::Number(..)) {
+              calc_list.push(IdentType::Operator(op));
+            } else {
+              return Err(format!("operatar char is repeat {}", op));
+            }
+          } else {
+            nature_list.push(IdentType::Word(op));
+          }
+        }
+        IdentType::Number(..) => {
+          if calc_list.is_empty() {
+            calc_list.push(now);
+          } else {
+            let last_calc_item = find_no_space_node_rev(&calc_list).unwrap();
+            if matches!(last_calc_item, IdentType::Operator(..)) {
+              calc_list.push(now);
+            } else if matches!(last_calc_item, IdentType::Number(..)) {
+              let calc_number = IdentType::calc_value(calc_list.clone())?;
+              nature_list.push(calc_number);
+              calc_list.clear();
+              calc_list.push(now);
+            }
+          }
         }
         IdentType::Var(_) => {
           return Err("get_no_var_ident_list -> func has error!".to_string());
@@ -261,27 +303,88 @@ impl StyleRuleNode {
         IdentType::InsertVar(_) => {
           return Err("@{abc} is not support".to_string());
         }
-        IdentType::StringConst(_) | IdentType::Word(_) | IdentType::Color(_) | IdentType::KeyWord(_) => {
+        IdentType::StringConst(op)
+        | IdentType::Word(op)
+        | IdentType::Color(op)
+        | IdentType::KeyWord(op) => {
           if !calc_list.is_empty() {
-            nature_list.push(IdentNature::Calc(calc_list.clone()));
+            let calc_number = IdentType::calc_value(calc_list.clone())?;
+            nature_list.push(calc_number);
+            calc_list.clear();
           }
-          nature_list.push(IdentNature::Word(item));
-          calc_list.clear();
+          nature_list.push(IdentType::Word(op));
         }
         IdentType::Space => {
-          nature_list.push(IdentNature::Space(item))
+          if !calc_list.is_empty() {
+            calc_list.push(now);
+          } else {
+            nature_list.push(now);
+          }
         }
         IdentType::Escaping(_) => {
           return Err("(min-width: 768px) | ~'min-width: 768px'  is not support".to_string());
         }
-        IdentType::Brackets(_) => {}
+        IdentType::Brackets(br) => {
+          if !calc_list.is_empty() {
+            calc_list.push(IdentType::Brackets(br));
+          } else {
+            nature_list.push(IdentType::Brackets(br));
+          }
+        }
+      }
+      index += 1;
+    }
+    if !calc_list.is_empty() {
+      let calc_number = IdentType::calc_value(calc_list.clone())?;
+      nature_list.push(calc_number);
+      calc_list.clear();
+    }
+
+    let mut res: Vec<String> = vec![];
+    for (index, item) in nature_list.iter().enumerate() {
+      let last = if index > 0 {
+        Some(nature_list.get(index - 1).unwrap().clone())
+      } else {
+        None
+      };
+
+      match item {
+        IdentType::Number(value, unit) => {
+          let add_char = "".to_string() + value + unit.clone().unwrap_or("".to_string()).as_str();
+          if matches!(last, Some(IdentType::Word(..)))
+            || matches!(last, Some(IdentType::Number(..)))
+          {
+            res.push(" ".to_string());
+          }
+          res.push(add_char);
+        }
+        IdentType::Word(char) => {
+          if matches!(last, Some(IdentType::Word(..)))
+            || matches!(last, Some(IdentType::Number(..)))
+          {
+            res.push(" ".to_string());
+          }
+          res.push(char.to_string());
+        }
+        IdentType::Space => {
+          if !matches!(last, Some(IdentType::Space)) {
+            res.push(" ".to_string());
+          }
+        }
+        IdentType::Brackets(br) => {
+          // todo fix single number situation
+          res.push(br.to_string());
+        }
+        _ => {}
       }
     }
-    Ok("".to_string())
+
+    Ok(res.join(""))
   }
 
   ///
   /// 代码转化 都 转化成 无变量 实参
+  /// 用于 (变量计算)
   ///
   pub fn get_no_var_ident_list(&self) -> Result<Vec<IdentType>, String> {
     let mut list = self.value.as_ref().unwrap().word_ident_list.clone();
@@ -298,6 +401,7 @@ impl StyleRuleNode {
 
   ///
   /// 递归净化 所有表达式 的 var
+  /// 用于 (变量计算)
   ///
   pub fn pure_list(&self, list: &mut Vec<IdentType>) -> Result<(), String> {
     let mut handle_vec: Vec<(usize, Vec<IdentType>)> = vec![];
@@ -327,6 +431,7 @@ impl StyleRuleNode {
 
   ///
   /// 查找变量
+  /// 用于 (变量计算)
   ///
   pub fn get_var_by_key(
     &self,
@@ -352,7 +457,7 @@ impl StyleRuleNode {
         self.get_var_by_key(key, None, self.fileinfo.clone())
       };
     }
-    //
+    // 到达顶层后 取当前文件 的 顶层变量 或者 其他引用 文件的 顶层变量
     else if let Some(file_ref) = file_info {
       // 若没有则已经到达 顶层 则按照 顶层处理
       let fileinfo_ref = file_ref.upgrade().unwrap();
@@ -364,7 +469,7 @@ impl StyleRuleNode {
           }
         }
       }
-      // 获取 该节点下 其他顶层 变量
+      // 获取 其他 引用文件 顶层变量
       let top_level_other_vars = fileinfo_ref.borrow().collect_vars();
       for var in top_level_other_vars {
         if var.key.as_ref().unwrap() == key {

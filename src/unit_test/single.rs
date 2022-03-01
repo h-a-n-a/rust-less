@@ -245,3 +245,15 @@ fn test_uuid() {
   println!("{}", a);
   assert_eq!("f9c397f9-7528-4b8b-963b-c09c36c40ece".len(), a.len());
 }
+
+#[test]
+fn test_expression() {
+  let a = "1+2*((3+4*5)*6)";
+  let b = "20";
+  let mut ns = fasteval::EmptyNamespace;
+  let c = fasteval::ez_eval(a, &mut ns).unwrap();
+  let d = fasteval::ez_eval(b, &mut ns).unwrap();
+  println!("....,{},{}", c, d);
+  assert_eq!(&c.to_string(), "277");
+  assert_eq!(&d.to_string(), "20");
+}

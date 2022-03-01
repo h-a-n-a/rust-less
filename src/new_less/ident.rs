@@ -44,14 +44,44 @@ impl IdentType {
   pub fn is_var(&self) -> bool {
     matches!(self, IdentType::Var(..))
   }
-}
 
-///
-/// 标识符 词性
-///
-#[derive(Clone, Serialize, Debug)]
-pub enum IdentNature {
-  Space(IdentType),
-  Calc(Vec<IdentType>),
-  Word(IdentType),
+  ///
+  /// 计算取值
+  ///
+  pub fn calc_value(list: Vec<Self>) -> Result<Self, String> {
+    let mut exper = "".to_string();
+    let mut base_unit: Option<String> = None;
+    for item in list {
+      match item {
+        IdentType::Number(value, unit) => {
+          let mut convert_value = value.clone();
+          if base_unit.is_none() && unit.is_some() {
+            base_unit = unit;
+          } else if base_unit.is_some() && unit.is_some() {
+            // todo 进行单位转化
+            convert_value = value;
+          }
+          exper += &convert_value;
+        }
+        IdentType::Operator(op) => {
+          exper += &op;
+        }
+        IdentType::Space => {
+          exper += " ";
+        }
+        IdentType::Brackets(br) => {
+          exper += &br;
+        }
+        _ => return Err(format!("calc exper is not support -> {:#?}", item)),
+      }
+    }
+    let mut ns = fasteval::EmptyNamespace;
+    let final_value = match fasteval::ez_eval(&exper, &mut ns) {
+      Ok(val) => val,
+      Err(msg) => {
+        return Err(format!("{} \n exper -> {}", msg.to_string(), exper));
+      }
+    };
+    Ok(Self::Number(final_value.to_string(), base_unit))
+  }
 }

@@ -12,5 +12,6 @@ serde_json = "1.0.74"
 futures = "0.3.19"
 tokio = { version = "1.15.0", features = ["full"] }
 strum = { version = "0.23", features = ["derive"] }
+fasteval = "0.2.4"
 uuid = { version = "0.8", features = ["serde", "v4"] }
 derivative = "2.2.0"
