@@ -246,7 +246,8 @@ impl StyleRuleNode {
   /// 计算 提纯后 根据所有 词的 性质进行组合
   /// 用于 (运算)
   ///
-  pub fn group_calc_ident_value(list: Vec<IdentType>) -> Result<String, String> {
+  pub fn group_calc_ident_value(mut list: Vec<IdentType>) -> Result<String, String> {
+    list.reverse();
     let mut nature_list: Vec<IdentType> = vec![];
     let mut calc_list: Vec<IdentType> = vec![];
     let mut index = 0;
@@ -273,6 +274,11 @@ impl StyleRuleNode {
             if matches!(last_calc_item, IdentType::Number(..)) {
               calc_list.push(IdentType::Operator(op));
             } else {
+              // let json = serde_json::to_string_pretty(&calc_list).unwrap();
+              // println!("{}", json);
+              let json = serde_json::to_string_pretty(&list).unwrap();
+              println!("{}", json);
+
               return Err(format!("operatar char is repeat {}", op));
             }
           } else {
@@ -284,7 +290,9 @@ impl StyleRuleNode {
             calc_list.push(now);
           } else {
             let last_calc_item = find_no_space_node_rev(&calc_list).unwrap();
-            if matches!(last_calc_item, IdentType::Operator(..)) {
+            if matches!(last_calc_item, IdentType::Operator(..))
+              || matches!(last_calc_item, IdentType::Brackets(..))
+            {
               calc_list.push(now);
             } else if matches!(last_calc_item, IdentType::Number(..)) {
               let calc_number = IdentType::calc_value(calc_list.clone())?;
