@@ -5,7 +5,7 @@ use crate::new_less::file::path_resolve;
 #[test]
 fn test_less_render() {
   let record = wastetime("test_less_render");
-  let filepath = path_resolve("assets/demo.less");
+  let filepath = path_resolve("assets/var.less");
   let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
   let res = context.render(filepath).unwrap();
   println!("{}", res);
@@ -15,7 +15,7 @@ fn test_less_render() {
 #[test]
 fn test_less_arco_pro_render() {
   let record = wastetime("test_less_render");
-  let index = 13;
+  let index = 42;
   let filepath = path_resolve(format!("assets/arco-pro/{}.less", index).as_str());
   let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
   let res = context.render(filepath).unwrap();
