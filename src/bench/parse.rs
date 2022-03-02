@@ -17,7 +17,7 @@ fn parse_less_bench(bench: &mut Bencher) {
 fn render_less_arco_pro_bench(bench: &mut Bencher) {
   bench.iter(|| {
     // 处理过程
-    let filepath = path_resolve("assets/arco-pro/42.less");
+    let filepath = path_resolve("assets/arco-pro/13.less");
     let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
     context.render(filepath).unwrap();
   });

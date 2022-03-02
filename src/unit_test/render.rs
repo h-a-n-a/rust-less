@@ -15,7 +15,7 @@ fn test_less_render() {
 #[test]
 fn test_less_arco_pro_render() {
   let record = wastetime("test_less_render");
-  let index = 42;
+  let index = 13;
   let filepath = path_resolve(format!("assets/arco-pro/{}.less", index).as_str());
   let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
   let res = context.render(filepath).unwrap();
