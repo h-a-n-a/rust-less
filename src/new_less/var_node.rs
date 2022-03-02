@@ -201,25 +201,28 @@ impl VarNode {
   /// 转化校验
   ///
   fn parse(&mut self) -> Result<(), String> {
-    let charlist = &self.charlist.clone();
+    let charlist = &self.charlist;
     if charlist.is_empty() {
       return Err("var declare text is empty".to_string());
     }
     let index = 1;
+    let mut obj_key: Option<String> = None;
+    let mut obj_value: Option<ValueNode> = None;
+
     match traversal(
       Some(index),
       charlist,
       &mut (|arg, _| {
         let mut index = arg.index;
-        if self.key.is_none() {
+        if obj_key.is_none() {
           let (key, jump) = self.parse_var_ident(&arg.index)?;
           index = jump;
-          self.key = Some("@".to_string() + &key);
-        } else if self.value.is_none() {
+          obj_key = Some("@".to_string() + &key);
+        } else if obj_value.is_none() {
           let (value, jump) = self.parse_var_value(&arg.index)?;
           index = jump;
-          self.value = Some(value);
-        } else if self.value.is_some() && self.key.is_some() {
+          obj_value = Some(value);
+        } else if obj_key.is_some() && obj_value.is_some() {
           return Err(self.error_msg(&index));
         }
         let new_arg = ScanArg {
@@ -230,7 +233,10 @@ impl VarNode {
         Ok(ScanResult::Arg(new_arg))
       }),
     ) {
-      Ok(_) => {}
+      Ok(_) => {
+        self.key = obj_key;
+        self.value = obj_value;
+      }
       Err(msg) => {
         return Err(msg);
       }

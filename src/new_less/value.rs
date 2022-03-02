@@ -396,7 +396,7 @@ impl ValueNode {
   /// 转化
   ///
   fn parse(&mut self) -> Result<(), String> {
-    let charlist = self.charlist.clone();
+    let charlist = &self.charlist.clone();
     if charlist.is_empty() {
       return Err("var declare text is empty".to_string());
     }
@@ -406,7 +406,7 @@ impl ValueNode {
 
     traversal(
       Some(index),
-      &charlist,
+      charlist,
       &mut (|arg, charword| {
         let ScanArg {
           temp,
