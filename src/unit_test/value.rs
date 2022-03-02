@@ -14,6 +14,9 @@ fn test_value_parse() {
     r#"1px solid !important;"#.to_string(),
     r#"1px solid !abc;"#.to_string(),
     r#"1px solid #fff;"#.to_string(),
+    r#"rgba(255, 255, 255, 0.12);"#.to_string(),
+    r#"rgb(var(--warning-6), 0.35);"#.to_string(),
+    r#"50%;"#.to_string(),
   ];
   let mut haserror = 0;
   vars_list

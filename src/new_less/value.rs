@@ -93,7 +93,9 @@ impl ValueNode {
   }
 
   pub fn is_end(char: &str, extend_char: Option<Vec<&str>>) -> bool {
-    let mut char_list = vec![";", "@", "~", "#", "$", "(", ")", "[", "]", "+", "*", "/"];
+    let mut char_list = vec![
+      ";", "@", "~", "#", "$", "(", ")", "[", "]", "+", "*", "/", ",",
+    ];
     if let Some(mut extend_list) = extend_char {
       char_list.append(&mut extend_list);
     }
@@ -255,6 +257,34 @@ impl ValueNode {
   }
 
   ///
+  /// 向前查找
+  /// 第一个非 space ident
+  ///
+  fn find_prev_no_space_ident(&self) -> Option<IdentType> {
+    for item in self.word_ident_list.iter().rev() {
+      if !item.is_space() {
+        return Some(item.clone());
+      }
+    }
+    None
+  }
+
+  ///
+  /// 向后查找
+  /// 第一个 非空字符串
+  ///
+  fn find_next_no_space_char(&self, mut index: usize) -> Option<String> {
+    while index < self.charlist.len() {
+      let cur = self.charlist.get(index).unwrap();
+      if !Token::is_space_token(cur) {
+        return Some(cur.clone());
+      }
+      index += 1;
+    }
+    None
+  }
+
+  ///
   /// 转化 数值
   ///
   pub fn parse_value_number(
@@ -265,6 +295,7 @@ impl ValueNode {
     let mut value: String = "".to_string();
     let mut unit: String = "".to_string();
     let mut has_record_value = false;
+    let mut has_single = false;
 
     let (_, end) = traversal(
       Some(*start),
@@ -275,10 +306,19 @@ impl ValueNode {
           mut index,
           mut hasend,
         } = arg;
-        let (_, char, nextchar) = charword;
+        let (prevchar, char, nextchar) = charword;
 
         if Token::is_token(&char) {
-          return Err(self.error_msg(&index));
+          // 判断小数点的 情况
+          if &char == "." && !has_single && Self::is_number(&prevchar) && Self::is_number(&nextchar)
+          {
+            value += &char;
+            has_single = true;
+          } else if &char == "%" {
+            unit += &char;
+          } else {
+            return Err(self.error_msg(&index));
+          }
         } else if Self::is_number(&char) {
           if !has_record_value {
             value += &char;
@@ -295,8 +335,11 @@ impl ValueNode {
           }
           unit += &char;
         }
-
-        if Self::is_end(&nextchar, Some(vec!["-"])) {
+        // 判断是否完结
+        if Self::is_end(&nextchar, Some(vec!["-"]))
+          || (has_single && &nextchar == ".")
+          || &char == "%"
+        {
           hasend = true;
         }
 
@@ -453,31 +496,17 @@ impl ValueNode {
         }
         // 操作符
         else if Self::is_operator(&char) {
-          if self.word_ident_list.is_empty() {
-            return Ok(ScanResult::Skip);
+          let last_item = self.find_prev_no_space_ident();
+          let next_char_no_space = self.find_next_no_space_char(index.clone()).unwrap();
+          if last_item.is_some()
+            && last_item.unwrap().is_number()
+            && Self::is_number(&next_char_no_space)
+          {
+            self.word_ident_list.push(IdentType::Operator(char));
           } else {
-            let last_item = self.word_ident_list.last().unwrap();
-            if last_item.is_number() || last_item.is_var() {
-              self.word_ident_list.push(IdentType::Operator(char));
-            } else if last_item.is_space() {
-              if self.word_ident_list.len() > 1 {
-                let before_last_item = self
-                  .word_ident_list
-                  .get(self.word_ident_list.len() - 2)
-                  .unwrap();
-                if before_last_item.is_var() || before_last_item.is_number() {
-                  self.word_ident_list.push(IdentType::Operator(char));
-                } else if before_last_item.is_operator() {
-                  return Err(self.error_msg(&index));
-                } else {
-                  return Ok(ScanResult::Skip);
-                }
-              } else {
-                return Ok(ScanResult::Skip);
-              }
-            } else {
-              self.word_ident_list.push(IdentType::Space);
-            }
+            let (word, end) = self.parse_value_word(&index)?;
+            self.word_ident_list.push(IdentType::Word(word));
+            index = end;
           }
         }
         // 处理 数值
