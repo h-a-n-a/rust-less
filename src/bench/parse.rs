@@ -27,7 +27,7 @@ fn render_less_arco_pro_bench(bench: &mut Bencher) {
 fn parse_less_bench_without_sourcemap(bench: &mut Bencher) {
   bench.iter(|| {
     // 处理过程
-    let filepath = path_resolve("assets/var.less");
+    let filepath = path_resolve("assets/base.less");
     let context = Context::new(
       ParseOption {
         include_path: vec![],

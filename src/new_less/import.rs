@@ -79,9 +79,6 @@ impl ImportNode {
       parse_hook_url: "".to_string(),
       context,
     };
-    if obj.origin_txt.len() < 7 || &obj.origin_txt[0..7] != "@import" {
-      return HandleResult::Swtich;
-    }
     match obj.parse(importfiles) {
       Ok(_) => HandleResult::Success(obj),
       Err(msg) => HandleResult::Fail(msg),

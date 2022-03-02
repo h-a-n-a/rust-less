@@ -80,13 +80,6 @@ impl VarNode {
       value: None,
       context,
     };
-    if !obj.content.is_empty() && obj.charlist.get(0).unwrap() != "@" && !obj.is_top() {
-      return HandleResult::Swtich;
-    } else if !obj.content.is_empty() && obj.charlist.get(0).unwrap() != "@" && obj.is_top() {
-      return HandleResult::Fail(obj.error_msg(&0));
-    } else if obj.content.is_empty() {
-      return HandleResult::Fail("var declare txt is empty!".to_string());
-    }
     match obj.parse() {
       Ok(_) => HandleResult::Success(obj),
       Err(msg) => HandleResult::Fail(msg),

@@ -9,6 +9,7 @@ use crate::new_less::var_node::VarNode;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
+use crate::extend::string::StringExtend;
 
 pub type NodeWeakRef = Option<Weak<RefCell<RuleNode>>>;
 pub type NodeRef = Rc<RefCell<RuleNode>>;
@@ -74,42 +75,46 @@ impl VarRuleNode {
     importfiles: &mut Vec<FileRef>,
   ) -> Result<Self, String> {
     // 处理 导入
-    match ImportNode::new(
-      txt.clone(),
-      loc.clone(),
-      parent.clone(),
-      fileinfo.clone(),
-      context.clone(),
-      importfiles,
-    ) {
-      HandleResult::Success(obj) => return Ok(VarRuleNode::Import(obj)),
-      HandleResult::Fail(msg) => {
-        return Err(msg);
-      }
-      HandleResult::Swtich => {}
-    };
-    // 处理 变量声明
-    match VarNode::new(
-      txt.clone(),
-      loc.clone(),
-      parent.clone(),
-      fileinfo.clone(),
-      context.clone(),
-    ) {
-      HandleResult::Success(obj) => return Ok(VarRuleNode::Var(obj)),
-      HandleResult::Fail(msg) => {
-        return Err(msg);
-      }
-      HandleResult::Swtich => {}
-    };
-    // 处理 规则
-    match StyleRuleNode::new(txt.clone(), loc, parent, fileinfo, context) {
-      HandleResult::Success(obj) => return Ok(VarRuleNode::StyleRule(obj)),
-      HandleResult::Fail(msg) => {
-        return Err(msg);
-      }
-      HandleResult::Swtich => {}
-    };
-    Err(format!("nothing node match the txt -> {}", txt))
+    if txt.len() > "@import".len() && txt.indexOf("@import", None) > -1 {
+      match ImportNode::new(
+        txt,
+        loc,
+        parent,
+        fileinfo,
+        context,
+        importfiles,
+      ) {
+        HandleResult::Success(obj) => return Ok(VarRuleNode::Import(obj)),
+        HandleResult::Fail(msg) => {
+          return Err(msg);
+        }
+        HandleResult::Swtich => {}
+      };
+    } else if txt.len() > "@".len() && txt.indexOf("@", None) > -1 {
+      // 处理 变量声明
+      match VarNode::new(
+        txt,
+        loc,
+        parent,
+        fileinfo,
+        context,
+      ) {
+        HandleResult::Success(obj) => return Ok(VarRuleNode::Var(obj)),
+        HandleResult::Fail(msg) => {
+          return Err(msg);
+        }
+        HandleResult::Swtich => {}
+      };
+    } else {
+      // 处理 规则
+      match StyleRuleNode::new(txt, loc, parent, fileinfo, context) {
+        HandleResult::Success(obj) => return Ok(VarRuleNode::StyleRule(obj)),
+        HandleResult::Fail(msg) => {
+          return Err(msg);
+        }
+        HandleResult::Swtich => {}
+      };
+    }
+    Err(format!("nothing node match the txt!"))
   }
 }
