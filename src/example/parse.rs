@@ -2,6 +2,7 @@ use crate::new_less::context::Context;
 use crate::new_less::file::path_resolve;
 use crate::new_less::option::ParseOption;
 use test::Bencher;
+use crate::new_less::var_node::VarNode;
 
 #[bench]
 fn parse_less_bench(bench: &mut Bencher) {
@@ -125,8 +126,20 @@ fn add_thread_bench(bench: &mut Bencher) {
       tasklist.push(task);
       index += 1;
     }
-    for task in tasklist{
+    for task in tasklist {
       task.join().unwrap();
+    }
+  });
+}
+
+#[bench]
+fn parse_value_bench(bench: &mut Bencher) {
+  bench.iter(|| {
+    let mut index = 0;
+    while index < 1000 {
+      let content = r#"@width:400px;"#.to_string();
+      VarNode::new(content, None, None, None, Context::default());
+      index += 1;
     }
   });
 }

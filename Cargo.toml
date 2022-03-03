@@ -3,9 +3,12 @@ name = "rust-less"
 version = "0.1.0"
 edition = "2021"
 
+[profile.bench]
+debug = true
+
 [profile.release]
 opt-level = 3
-debug = false
+debug = true
 debug-assertions = false
 overflow-checks = false
 lto = false

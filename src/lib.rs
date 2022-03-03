@@ -6,7 +6,7 @@ extern crate derivative;
 extern crate test;
 
 #[cfg(test)]
-mod bench;
+mod example;
 #[cfg(test)]
 mod unit_test;
 

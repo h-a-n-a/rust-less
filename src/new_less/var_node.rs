@@ -72,6 +72,8 @@ impl VarNode {
       content: txt.clone(),
       loc,
       uuid: Uuid::new_v4().to_string(),
+      // uuid: "".to_string(),
+      // map: LocMap::new("".to_string()),
       map,
       charlist: txt.tocharlist(),
       parent,
@@ -80,6 +82,7 @@ impl VarNode {
       value: None,
       context,
     };
+    // HandleResult::Success(obj)
     match obj.parse() {
       Ok(_) => HandleResult::Success(obj),
       Err(msg) => HandleResult::Fail(msg),
