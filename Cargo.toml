@@ -28,3 +28,4 @@ strum = { version = "0.23", features = ["derive"] }
 fasteval = "0.2.4"
 uuid = { version = "0.8", features = ["serde", "v4"] }
 derivative = "2.2.0"
+smol_str = "0.1.21"
