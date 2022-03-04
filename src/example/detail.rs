@@ -1,4 +1,3 @@
-use crate::extend::string::StringExtend;
 use crate::new_less::context::Context;
 use crate::new_less::var_node::VarNode;
 use test::Bencher;
@@ -54,7 +53,11 @@ fn parse_str_u32_bench(bench: &mut Bencher) {
 fn parse_str_bench(bench: &mut Bencher) {
   bench.iter(|| {
     let chars = "0123456789";
-    for item in chars.to_string().tocharlist() {
+    let charlist = chars
+      .chars()
+      .map(|x| String::from(x))
+      .collect::<Vec<String>>();
+    for item in charlist {
       println!("{:#?}", item);
     }
   });
