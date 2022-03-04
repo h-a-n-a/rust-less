@@ -1,3 +1,4 @@
+use crate::extend::string::StringExtend;
 use crate::new_less::comment::CommentNode;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::{FileRef, FileWeakRef};
@@ -9,7 +10,6 @@ use crate::new_less::var_node::VarNode;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
-use crate::extend::string::StringExtend;
 
 pub type NodeWeakRef = Option<Weak<RefCell<RuleNode>>>;
 pub type NodeRef = Rc<RefCell<RuleNode>>;
@@ -76,14 +76,7 @@ impl VarRuleNode {
   ) -> Result<Self, String> {
     // 处理 导入
     if txt.len() > "@import".len() && txt.indexOf("@import", None) > -1 {
-      match ImportNode::new(
-        txt,
-        loc,
-        parent,
-        fileinfo,
-        context,
-        importfiles,
-      ) {
+      match ImportNode::new(txt, loc, parent, fileinfo, context, importfiles) {
         HandleResult::Success(obj) => return Ok(VarRuleNode::Import(obj)),
         HandleResult::Fail(msg) => {
           return Err(msg);
@@ -92,13 +85,7 @@ impl VarRuleNode {
       };
     } else if txt.len() > "@".len() && txt.indexOf("@", None) > -1 {
       // 处理 变量声明
-      match VarNode::new(
-        txt,
-        loc,
-        parent,
-        fileinfo,
-        context,
-      ) {
+      match VarNode::new(txt, loc, parent, fileinfo, context) {
         HandleResult::Success(obj) => return Ok(VarRuleNode::Var(obj)),
         HandleResult::Fail(msg) => {
           return Err(msg);
@@ -115,6 +102,6 @@ impl VarRuleNode {
         HandleResult::Swtich => {}
       };
     }
-    Err(format!("nothing node match the txt!"))
+    Err("nothing node match the txt!".to_string())
   }
 }

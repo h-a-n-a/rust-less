@@ -8,59 +8,16 @@ use crate::new_less::file::{path_resolve, readfile};
 #[test]
 fn test_comment_remove() {
   let record = wastetime("test_less");
-  let filepath = path_resolve("assets/demo.less");
+  let filepath = path_resolve("assets/comment.less");
   let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
   let info = context.parse(filepath).unwrap();
   let content = info.borrow().rm_comment();
   record();
   let target = r#"
-@import "index.less";
-@width: 400px;
 @height: 300px;
-@font_size: 12px;
 
 textarea {
-  width: @width;
-  height: @height;
-  font-size: @font_size;
-  @font_size: 12px;
-
-  .a {
-    font-size: @font_size;
-
-    .c {
-      font-size: @font_size;
-    }
-  }
-
-  .b {
-    font-size: @font_size;
-  }
-}
-
-
-.a {
-  font-size: @font_size;
-
-  @media screen and ( max-width: 900px) {
-    font-size: @font_size;
-  }
-}
-
-@media screen and ( min-width: 900px) {
-  .xyz {
-    font-size: @font_size;
-    @media screen and ( max-width: 900px) {
-      color: red;
-    }
-  }
-}
-
-.ace{
-  font-size: 10px;
-  & .b{
-    font-size: 20px;
-  }
+  width: @height;
 }
     "#;
   assert_eq!(

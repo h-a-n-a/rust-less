@@ -358,7 +358,8 @@ impl StyleRuleNode {
 
       match item {
         IdentType::Number(value, unit) => {
-          let add_char = "".to_string() + value + unit.clone().unwrap_or("".to_string()).as_str();
+          let add_char =
+            "".to_string() + value + unit.clone().unwrap_or_else(|| "".to_string()).as_str();
           if matches!(last, Some(IdentType::Word(..)))
             || matches!(last, Some(IdentType::Number(..)))
           {

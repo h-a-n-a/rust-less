@@ -79,7 +79,7 @@ impl IdentType {
     let final_value = match fasteval::ez_eval(&exper, &mut ns) {
       Ok(val) => val,
       Err(msg) => {
-        return Err(format!("{} \n exper -> {}", msg.to_string(), exper));
+        return Err(format!("{} \n exper -> {}", msg, exper));
       }
     };
     Ok(Self::Number(final_value.to_string(), base_unit))

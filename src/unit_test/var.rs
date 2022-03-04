@@ -36,7 +36,6 @@ fn test_var_error_parse() {
     r#"@widt
     h:400px;"#
       .to_string(),
-    r#" "#.to_string(),
     r#""#.to_string(),
   ];
   demo_select_list.into_iter().for_each(|tt| {

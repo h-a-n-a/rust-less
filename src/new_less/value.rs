@@ -497,7 +497,7 @@ impl ValueNode {
         // 操作符
         else if Self::is_operator(&char) {
           let last_item = self.find_prev_no_space_ident();
-          let next_char_no_space = self.find_next_no_space_char(index.clone()).unwrap();
+          let next_char_no_space = self.find_next_no_space_char(index).unwrap();
           if last_item.is_some()
             && last_item.unwrap().is_number()
             && Self::is_number(&next_char_no_space)
