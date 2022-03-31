@@ -1,7 +1,7 @@
 ///
 /// 扫词的 前 | 中 | 后 字符
 ///
-pub type CharWord = (String, String, String);
+pub type CharWord<'a> = (Option<&'a char>, &'a char, Option<&'a char>);
 
 ///
 /// 基础可变参数
@@ -23,7 +23,7 @@ pub enum ScanResult {
 ///
 pub fn traversal(
   arg_start: Option<usize>,
-  charlist: &[String],
+  charlist: &Vec<char>,
   exec: &mut dyn FnMut(ScanArg, CharWord) -> Result<ScanResult, String>,
 ) -> Result<(String, usize), String> {
   let mut index = arg_start.unwrap_or(0);
@@ -31,17 +31,9 @@ pub fn traversal(
   let mut hasend = false;
 
   while index < charlist.len() {
-    let prevchar = if index == 0 {
-      "".to_string()
-    } else {
-      charlist.get(index - 1).unwrap().to_string()
-    };
-    let char = charlist.get(index).unwrap().to_string();
-    let nextchar = if index == charlist.len() - 1 {
-      "".to_string()
-    } else {
-      charlist.get(index + 1).unwrap().to_string()
-    };
+    let prevchar = charlist.get(index - 1);
+    let char = charlist.get(index).unwrap();
+    let nextchar = charlist.get(index + 1);
     let arg = ScanArg {
       index,
       temp: temp.clone(),

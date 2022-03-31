@@ -1,5 +1,4 @@
 use crate::extend::enum_extend::EnumExtend;
-use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::loc::{Loc, LocMap};
@@ -7,7 +6,7 @@ use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::media::{
-  TokenMediaFeature, TokenMediaLogic, TokenMediaType, TokenMeidaAllow,
+  TokenMediaFeature, TokenMediaLogic, TokenMediaType,
 };
 use serde::Serialize;
 
@@ -24,7 +23,7 @@ pub struct MediaQuery {
   map: LocMap,
 
   #[serde(skip_serializing)]
-  charlist: Vec<String>,
+  charlist: Vec<char>,
 
   #[serde(skip_serializing)]
   pub parent: NodeWeakRef,
@@ -86,7 +85,7 @@ impl MediaQuery {
         let index = arg.index;
         let (_, char, next) = charword;
         if Token::is_token(&char) {
-          if char == TokenMeidaAllow::Colon.tostr_value() {
+          if *char == ':' {
             if TokenMediaFeature::is(temp.trim()) {
               // 加冒号之前 先判断是否是有效 key
               hasend = true;
@@ -94,18 +93,18 @@ impl MediaQuery {
               return Err(self.errormsg(&index).err().unwrap());
             }
           } else if Token::is_space_token(&char) {
-            if Token::is_space_token(&next) {
+            if Token::is_space_token(&next.unwrap_or(&'\0')) {
               return Ok(ScanResult::Skip);
             } else {
-              temp += &char;
+              temp.push(char.clone());
             }
-          } else if &char == "-" {
-            temp += "-";
+          } else if *char == '-' {
+            temp.push('-');
           } else {
             return Err(self.errormsg(&index).err().unwrap());
           }
         } else {
-          temp += &char;
+          temp.push(char.clone());
         }
         Ok(ScanResult::Arg(ScanArg {
           temp,
@@ -133,17 +132,17 @@ impl MediaQuery {
         let index = arg.index;
         let (_, char, next) = charword;
         if Token::is_token(&char) {
-          if char == TokenMeidaAllow::RightBrackets.tostr_value() {
+          if *char == ')' {
             hasend = true;
           } else if Token::is_space_token(&char) {
-            if Token::is_space_token(&next) {
+            if Token::is_space_token(&next.unwrap_or(&'\0')) {
               return Ok(ScanResult::Skip);
             } else {
-              temp += &char;
+              temp.push(char.clone());
             }
-          } else if &char == "-" {
+          } else if *char == '-' {
             if temp.trim().is_empty() {
-              temp += "-";
+              temp.push('-');
             } else {
               return Err(self.errormsg(&index).err().unwrap());
             }
@@ -151,7 +150,7 @@ impl MediaQuery {
             return Err(self.errormsg(&index).err().unwrap());
           }
         } else {
-          temp += &char;
+          temp.push(char.clone());
         }
         Ok(ScanResult::Arg(ScanArg {
           temp,
@@ -222,7 +221,7 @@ impl MediaQuery {
             return Err(self.errormsg(&index).err().unwrap());
           }
         } else {
-          temp += &char;
+          temp.push(char.clone());
         }
         Ok(ScanResult::Arg(ScanArg {
           temp,
@@ -250,8 +249,8 @@ impl MediaQuery {
       return Err("media query text is empty".to_string());
     }
     if charlist.len() < 6
-      || (charlist.len() == 6 && charlist[0..6].poly().as_str() != "@media")
-      || (charlist.len() > 6 && charlist[0..7].poly().as_str() != "@media ")
+      || (charlist.len() == 6 && charlist[0..6].to_vec().poly().as_str() != "@media")
+      || (charlist.len() > 6 && charlist[0..7].to_vec().poly().as_str() != "@media ")
     {
       return Err("select_txt not match media query".to_string());
     }
@@ -267,30 +266,31 @@ impl MediaQuery {
         let (_, char, next) = charword;
         return if Token::is_token(&char) {
           if Token::is_space_token(&char) {
-            if !Token::is_space_token(&next) {
+            if !Token::is_space_token(&next.unwrap_or(&'\0')) {
               word_vec.push(" ".to_string());
               Ok(ScanResult::Skip)
             } else {
               Ok(ScanResult::Skip)
             }
-          } else if TokenMeidaAllow::is(&char) {
-            match TokenMeidaAllow::try_from(char.as_str()).unwrap() {
-              TokenMeidaAllow::LeftBrackets => match self.parse_media_feature(&index) {
+          } else if vec!['(', ')', ':'].contains(char) {
+            return if '(' == *char {
+              match self.parse_media_feature(&index) {
                 Ok((word, jump)) => {
                   word_vec.push(word);
                   index = jump;
-                  return Ok(ScanResult::Arg(ScanArg {
+                  Ok(ScanResult::Arg(ScanArg {
                     index,
                     temp,
                     hasend: false,
-                  }));
+                  }))
                 }
                 Err(msg) => Err(msg),
-              },
-              _ => Err(self.errormsg(&index).err().unwrap()),
-            }
+              }
+            } else {
+              Err(self.errormsg(&index).err().unwrap())
+            };
           } else {
-            Err(self.errormsg(&index).err().unwrap())
+            return Err(self.errormsg(&index).err().unwrap());
           }
         } else {
           let (word, jump) = match self.parse_media_logicword(&index) {

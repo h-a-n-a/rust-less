@@ -7,7 +7,7 @@ use std::string::String;
 pub struct Loc {
   pub line: usize,
   pub col: usize,
-  pub char: String,
+  pub char: char,
   pub index: usize,
 }
 
@@ -29,7 +29,7 @@ impl LocMap {
     let mut obj = Self { data: map };
     for (index, cc) in chars.iter().enumerate() {
       let loc: Loc;
-      if *cc != '\r'.to_string() && *cc != '\n'.to_string() {
+      if *cc != '\r' && *cc != '\n' {
         loc = Loc {
           col,
           line,
@@ -76,7 +76,7 @@ impl LocMap {
     let mut last: Loc = start.clone();
     for (index, cc) in chars.iter().enumerate() {
       let loc: Loc;
-      if *cc != '\r'.to_string() && *cc != '\n'.to_string() {
+      if *cc != '\r' && *cc != '\n' {
         loc = Loc {
           col,
           line,

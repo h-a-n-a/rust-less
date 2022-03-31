@@ -42,7 +42,7 @@ fn parse_number_compare_bench(bench: &mut Bencher) {
 fn parse_str_u32_bench(bench: &mut Bencher) {
   bench.iter(|| {
     let char = "0123456789";
-    let charlist = char.chars().map(|x| x as u32).collect::<Vec<u32>>();
+    let charlist = char.chars().collect::<Vec<char>>();
     for item in charlist {
       println!("{:#?}", item);
     }

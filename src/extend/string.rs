@@ -5,7 +5,7 @@ pub trait StringExtend {
   fn indexOf(&self, findchar: &str, fromindex: Option<usize>) -> i32;
   fn slice(&self, fromindex: i32) -> String;
   fn substr(&self, fromindex: i32, length: Option<i32>) -> String;
-  fn tocharlist(&self) -> Vec<String>;
+  fn tocharlist(&self) -> Vec<char>;
   fn simple_compare(&self) -> std::string::String;
   fn removelast(&self) -> std::string::String;
   fn removelast_without_trim(&self) -> String;
@@ -101,8 +101,8 @@ impl StringExtend for String {
     };
   }
 
-  fn tocharlist(&self) -> Vec<String> {
-    self.chars().map(|x| x.to_string()).collect::<Vec<String>>()
+  fn tocharlist(&self) -> Vec<char> {
+    self.chars().collect::<Vec<char>>()
   }
 
   fn simple_compare(&self) -> String {

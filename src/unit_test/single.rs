@@ -257,3 +257,12 @@ fn test_expression() {
   assert_eq!(&c.to_string(), "277");
   assert_eq!(&d.to_string(), "20");
 }
+
+#[test]
+fn test_char(){
+  let a = char::default().to_string();
+  println!("{}",a);
+}
+
+
+

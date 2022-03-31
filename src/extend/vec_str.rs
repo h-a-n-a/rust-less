@@ -3,7 +3,7 @@ pub trait VecStrExtend {
   fn poly(&self) -> String;
 }
 
-impl VecStrExtend for Vec<String> {
+impl VecStrExtend for Vec<char> {
   fn try_getword(&self, index: usize, wordlength: usize) -> Result<String, String> {
     if index < self.len() {
       let start = index;
@@ -11,14 +11,14 @@ impl VecStrExtend for Vec<String> {
       if end > self.len() {
         end = self.len();
       }
-      Ok(self[start..end].join(""))
+      Ok(self[start..end].to_vec().iter().collect::<String>())
     } else {
       Err("find index is over vec range!".to_string())
     }
   }
 
   fn poly(&self) -> String {
-    self.join("")
+    self.iter().collect::<String>()
   }
 }
 

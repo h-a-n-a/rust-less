@@ -11,7 +11,7 @@ pub trait Comment {
   fn parse_comment(&mut self) -> Result<(), String>;
   fn get_comment_blocknode(&self) -> Vec<CommentNode>;
   fn rm_comment(&self) -> String;
-  fn skip_comment() -> Box<dyn FnMut(String, String, &mut usize) -> bool>;
+  fn skip_comment() -> Box<dyn FnMut(String, char, &mut usize) -> bool>;
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -51,7 +51,7 @@ impl Comment for FileInfo {
     }
   }
 
-  fn skip_comment() -> Box<dyn FnMut(String, String, &mut usize) -> bool> {
+  fn skip_comment() -> Box<dyn FnMut(String, char, &mut usize) -> bool> {
     skip_comment()
   }
 }
@@ -81,7 +81,7 @@ impl Comment for RuleNode {
     }
   }
 
-  fn skip_comment() -> Box<dyn FnMut(String, String, &mut usize) -> bool> {
+  fn skip_comment() -> Box<dyn FnMut(String, char, &mut usize) -> bool> {
     skip_comment()
   }
 }
@@ -91,7 +91,7 @@ impl Comment for RuleNode {
 ///
 fn parse_comment(
   options: &ParseOption,
-  origin_charlist: &[String],
+  origin_charlist: &Vec<char>,
   locmap: &Option<LocMap>,
 ) -> Result<Vec<CommentNode>, String> {
   let mut blocklist: Vec<CommentNode> = vec![];
@@ -106,10 +106,10 @@ fn parse_comment(
   let mut braces_level = 0;
 
   // 结束标记 & 开始标记
-  let start_braces = "{".to_string();
-  let end_braces = "}".to_string();
+  let start_braces = '{';
+  let end_braces = '}';
   // 注释的内容共
-  let comment_flag = "//".to_string();
+  let comment_flag = '/'.to_string();
   let comment_mark_strat = "/*".to_string();
   let comment_mark_end = "*/".to_string();
 
@@ -132,13 +132,13 @@ fn parse_comment(
     }
     if braces_level == 0
       && wirte_comment
-      && ((wirte_line_comment && (&char == "\n" || &char == "\r"))
-        || (wirte_closure_comment && word == comment_mark_end))
+      && ((wirte_line_comment && (char == '\n' || char == '\r'))
+      || (wirte_closure_comment && word == comment_mark_end))
     {
       wirte_comment = false;
       if wirte_line_comment {
         index += 1;
-        commentlist.push(char.clone());
+        commentlist.push(char.to_string());
         wirte_line_comment = false;
       } else if wirte_closure_comment {
         index += 2;
@@ -158,13 +158,13 @@ fn parse_comment(
     }
     if wirte_comment {
       // 如果启用 sourcemap 则记录坐标
-      if options.sourcemap && char != "\r" && char != "\n" && record_loc.is_none() {
+      if options.sourcemap && char != '\r' && char != '\n' && record_loc.is_none() {
         record_loc = Some(locmap.as_ref().unwrap().get(&index).unwrap());
       }
       if start_index.is_none() {
         start_index = Some(index);
       }
-      commentlist.push(char.clone());
+      commentlist.push(char.to_string());
     }
     // ignore 忽略 大括号区域
     if char == start_braces {
@@ -199,9 +199,9 @@ fn get_comment_blocknode(block_node: &[StyleNode]) -> Vec<CommentNode> {
 /// 移除注释
 /// 必须依赖开启 sourcemap
 ///
-fn rm_comment(commentlist: &[CommentNode], origin_charlist: &[String]) -> String {
+fn rm_comment(commentlist: &[CommentNode], origin_charlist: &Vec<char>) -> String {
   return if commentlist.is_empty() {
-    origin_charlist.join("")
+    origin_charlist.iter().collect::<String>()
   } else {
     let mut charlist = origin_charlist.to_owned();
     for cc in commentlist {
@@ -211,13 +211,13 @@ fn rm_comment(commentlist: &[CommentNode], origin_charlist: &[String]) -> String
       let mut i = start;
       while i < end {
         let char = charlist.get(i).unwrap();
-        if char != "\n" && char != "\r" {
-          charlist[i] = " ".to_string();
+        if *char != '\n' && *char != '\r' {
+          charlist[i] = char::from(32);
         }
         i += 1;
       }
     }
-    charlist.join("")
+    charlist.iter().collect::<String>()
   };
 }
 
@@ -225,7 +225,7 @@ fn rm_comment(commentlist: &[CommentNode], origin_charlist: &[String]) -> String
 /// 是否跳过 返回结果 [0]
 /// 跳过索引 返回结果 [1]
 ///
-pub fn skip_comment() -> Box<dyn FnMut(String, String, &mut usize) -> bool> {
+pub fn skip_comment() -> Box<dyn FnMut(String, char, &mut usize) -> bool> {
   let comment_flag = "//".to_string();
   let comment_mark_strat = "/*".to_string();
   let comment_mark_end = "*/".to_string();
@@ -238,7 +238,7 @@ pub fn skip_comment() -> Box<dyn FnMut(String, String, &mut usize) -> bool> {
     if word == comment_mark_strat && !comment_mark {
       comment_mark = true;
     }
-    if (char == "\n" || char == "\r") && comment_inline {
+    if (char == '\n' || char == '\r') && comment_inline {
       comment_inline = false;
     }
     if word == comment_mark_end && comment_mark {

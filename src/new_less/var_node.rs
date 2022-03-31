@@ -1,7 +1,6 @@
 use crate::extend::enum_extend::EnumExtend;
 use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
-use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::loc::{Loc, LocMap};
@@ -14,6 +13,7 @@ use crate::new_less::value::ValueNode;
 use derivative::Derivative;
 use serde::Serialize;
 use uuid::Uuid;
+use crate::extend::vec_str::VecStrExtend;
 
 #[derive(Derivative, Serialize, Clone)]
 #[derivative(Debug)]
@@ -32,7 +32,7 @@ pub struct VarNode {
 
   // 字符串 操作 序列
   #[serde(skip_serializing)]
-  charlist: Vec<String>,
+  charlist: Vec<char>,
 
   // 节点 父节点
   #[serde(skip_serializing)]
@@ -132,29 +132,29 @@ impl VarNode {
         } = arg;
         let (_, char, next) = charword;
         // 变量声明 只允许 冒号前后有空格
-        if hasspace && Token::is_space_token(&next) {
+        if hasspace && Token::is_space_token(next.unwrap_or(&'\0')) {
           return Ok(ScanResult::Skip);
-        } else if hasspace && !Token::is_space_token(&char) {
-          if char == TokenVarKeyAllow::Colon.tostr_value() {
-            temp += &char;
+        } else if hasspace && !Token::is_space_token(char) {
+          if *char == ':' {
+            temp.push(char.clone());
           } else {
             return Err(self.error_msg(&(index - 1)));
           }
-        } else if Token::is_token(&char) && !hasspace {
-          if TokenVarKeyAllow::is(&char) {
-            if char == TokenVarKeyAllow::Colon.tostr_value() {
+        } else if Token::is_token(char) && !hasspace {
+          if vec![':', '-'].contains(char) {
+            if *char == ':' {
               hasend = true;
             } else {
-              temp += &char;
+              temp.push(char.clone());
             }
           } else if Token::is_space_token(&char) {
             hasspace = true;
-            temp += &char;
+            temp.push(char.clone());
           } else {
             return Err(self.error_msg(&index));
           }
         } else if !Token::is_token(&char) && !hasspace {
-          temp += &char;
+          temp.push(char.clone());
         }
 
         let new_arg = ScanArg {
@@ -183,7 +183,7 @@ impl VarNode {
       }
       trim_start += 1;
     }
-    let content = self.charlist[trim_start..end].poly().trim().to_string();
+    let content = self.charlist[trim_start..end].to_vec().poly().trim().to_string();
     let node = ValueNode::new(
       content,
       self.map.get(start),

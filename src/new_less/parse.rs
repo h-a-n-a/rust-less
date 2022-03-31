@@ -23,7 +23,7 @@ pub struct RuleNode {
   // 选择器 文字
   pub selector: Option<SelectorNode>,
   // 根据 原始内容 -> 转化的 字符数组
-  pub origin_charlist: Vec<String>,
+  pub origin_charlist: Vec<char>,
   // 节点坐标
   pub loc: Option<Loc>,
   // 当前所有 索引 对应的 坐标行列 -> 用于执行 sourcemap

@@ -56,20 +56,20 @@ impl Rule for RuleNode {
 
 fn parse_rule(
   context: ParseContext,
-  origin_charlist: &[String],
+  origin_charlist: &Vec<char>,
   locmap: &Option<LocMap>,
   file_info: FileWeakRef,
 ) -> Result<Vec<NodeRef>, String> {
   let mut blocklist: Vec<NodeRef> = vec![];
-  let mut templist: Vec<String> = vec![];
+  let mut templist: Vec<char> = vec![];
   let mut index = 0;
 
   // 块等级
   let mut braces_level = 0;
   // 结束标记 & 开始标记
-  let endqueto = ";".to_string();
-  let start_braces = "{".to_string();
-  let end_braces = "}".to_string();
+  let endqueto = ';';
+  let start_braces = '{';
+  let end_braces = '}';
 
   let mut record_loc: Option<Loc> = None;
   let mut skipcall = skip_comment();
@@ -87,9 +87,9 @@ fn parse_rule(
       continue;
     }
     if context.deref().borrow().option.sourcemap
-      && char != " "
-      && char != "\r"
-      && char != "\n"
+      && char != ' '
+      && char != '\r'
+      && char != '\n'
       && record_loc.is_none()
     {
       record_loc = Some(locmap.as_ref().unwrap().get(&index).unwrap());
