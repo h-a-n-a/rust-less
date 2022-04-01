@@ -1,5 +1,3 @@
-use crate::extend::enum_extend::EnumExtend;
-use crate::extend::str_into::StringInto;
 use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::context::ParseContext;
@@ -10,7 +8,6 @@ use crate::new_less::node::{HandleResult, NodeWeakRef, StyleNode, VarRuleNode};
 use crate::new_less::option::ParseOption;
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
-use crate::new_less::token::style_rule::TokenStyleRuleKeyAllow;
 use crate::new_less::value::ValueNode;
 use serde::Serialize;
 use std::fmt::{Debug, Formatter};
@@ -26,7 +23,7 @@ pub struct StyleRuleNode {
 
   // 字符串 操作 序列
   #[serde(skip_serializing)]
-  charlist: Vec<String>,
+  charlist: Vec<char>,
 
   // uuid 避免 查找时循环引用
   pub uuid: String,
@@ -139,18 +136,18 @@ impl StyleRuleNode {
           mut hasend,
         } = arg;
         let (_, char, next) = charword;
-        if Token::is_token(&char) {
-          if TokenStyleRuleKeyAllow::is(&char) {
-            if char == TokenStyleRuleKeyAllow::Colon.tostr_value() {
+        if Token::is_token(Some(char)) {
+          if vec![':', '-'].contains(char) {
+            if *char == ':' {
               hasend = true;
             } else {
-              temp += &char;
+              temp.push(char.clone());
             }
-          } else if Token::is_space_token(&char) {
-            if Token::is_space_token(&next) {
+          } else if Token::is_space_token(Some(char)) {
+            if Token::is_space_token(next) {
               return Ok(ScanResult::Skip);
-            } else if next == TokenStyleRuleKeyAllow::Colon.tostr_value() {
-              temp += &char;
+            } else if next.is_some() && *next.unwrap() == ':' {
+              temp.push(char.clone());
             } else {
               return Ok(ScanResult::Skip);
             }
@@ -158,7 +155,7 @@ impl StyleRuleNode {
             return Err(self.error_msg(&index));
           }
         } else {
-          temp += &char;
+          temp.push(char.clone());
         }
 
         let new_arg = ScanArg {
@@ -181,12 +178,16 @@ impl StyleRuleNode {
     let end = self.charlist.len() - 1;
     let mut trim_start = *start;
     while trim_start < self.charlist.len() {
-      if !Token::is_space_token(self.charlist.get(trim_start).unwrap()) {
+      if !Token::is_space_token(Some(self.charlist.get(trim_start).unwrap())) {
         break;
       }
       trim_start += 1;
     }
-    let content = self.charlist[trim_start..end].poly().trim().to_string();
+    let content = self.charlist[trim_start..end]
+      .to_vec()
+      .poly()
+      .trim()
+      .to_string();
     let node = ValueNode::new(
       content,
       self.map.get(start),

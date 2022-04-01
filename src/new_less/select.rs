@@ -6,7 +6,6 @@ use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::select::{TokenAllow, TokenCombina, TokenKeyWord, TokenSelect};
 use serde::Serialize;
-use std::ops::Deref;
 
 ///
 /// 选择器范式
@@ -144,12 +143,12 @@ impl Selector {
     let mut char;
     loop {
       to_move(&mut find_num);
-      char = self.charlist.get(find_num).unwrap().deref();
+      char = self.charlist.get(find_num).unwrap();
       if *char != ' ' {
         break;
       }
     }
-    if Token::is_token(char) {
+    if Token::is_token(Some(char)) {
       // 验证 连接词 不能固定想连
       let res = forbidword.into_iter().find(|x| *x == *char);
       match res {
@@ -189,7 +188,7 @@ impl Selector {
         continue;
       }
       // 如果 引号关闭 且是 标点符号则执行检查
-      if Token::is_token(char) && !has_quota {
+      if Token::is_token(Some(char)) && !has_quota {
         // 遇到 "]" 则跳出循环 当前索引即是 "]" 的位置
         if *char == ']' {
           hasend = true;
@@ -199,7 +198,8 @@ impl Selector {
         // 遇到 = 需要判断后一个词 只能跟 引号
         if *char == '=' {
           // 不能有重复的等号出现
-          if !hasequal && (*nextchar.unwrap_or(&'\0') == '"' || *nextchar.unwrap_or(&'\0') == '\'') {
+          if !hasequal && (*nextchar.unwrap_or(&'\0') == '"' || *nextchar.unwrap_or(&'\0') == '\'')
+          {
             // 且不能 是 [= 这种组合
             if temp.len() > 1 {
               hasequal = true;
@@ -258,7 +258,7 @@ impl Selector {
 
     while index < charlist.len() {
       let char = charlist.get(index).unwrap();
-      if Token::is_token(&char) {
+      if Token::is_token(Some(char)) {
         if *char == '@' {
           return Err(self.errormsg(&index).err().unwrap());
         } else {
@@ -298,16 +298,24 @@ impl Selector {
 
     // 循环解析
     while index < charlist.len() {
-      let prevchar = charlist.get(index - 1);
+      let prevchar = if index > 0 {
+        charlist.get(index - 1)
+      } else {
+        None
+      };
       let char = charlist.get(index).unwrap();
-      let nextchar = charlist.get(index + 1);
+      let nextchar = if index + 1 < charlist.len() {
+        charlist.get(index + 1)
+      } else {
+        None
+      };
       // 跳过空格
-      if Token::is_space_token(char) && Token::is_space_token(nextchar.unwrap_or(&'\0')) {
+      if Token::is_space_token(Some(char)) && Token::is_space_token(nextchar) {
         index += 1;
         continue;
       }
       // 有任务则继续填词
-      if !Token::is_token(&char) {
+      if !Token::is_token(Some(char)) {
         temp.push(char.clone());
         if index + 1 != charlist.len() {
           index += 1;
@@ -316,7 +324,7 @@ impl Selector {
       }
 
       if index == 0 {
-        if Token::is_token(char) {
+        if Token::is_token(Some(char)) {
           if charlist.len() == 1 && char.to_string() != TokenSelect::WildCard.tostr_value() {
             return self.errormsg(&index);
           }
@@ -331,13 +339,17 @@ impl Selector {
               TokenSelect::ClassToken | TokenSelect::IdToken => {
                 temp.push(char.clone());
                 // 起始符 后续不能接 任意 词根符 类似 "#>" ".*"
-                if Token::is_token(nextchar.unwrap_or(&'\0')) && !TokenAllow::is(nextchar.unwrap_or(&'\0').to_string().as_str()) {
+                if Token::is_token(nextchar)
+                  && !TokenAllow::is(nextchar.unwrap_or(&'\0').to_string().as_str())
+                {
                   return self.errormsg(&(index + 1));
                 }
               }
               TokenSelect::Colon => {
                 temp.push(char.clone());
-                if nextchar.unwrap_or(&'\0').to_string() != TokenSelect::Colon.tostr_value() && Token::is_token(nextchar.unwrap_or(&'\0')) {
+                if nextchar.unwrap_or(&'\0').to_string() != TokenSelect::Colon.tostr_value()
+                  && Token::is_token(nextchar)
+                {
                   return self.errormsg(&(index + 1));
                 }
               }
@@ -383,7 +395,7 @@ impl Selector {
                 paradigm_vec.push(SelectParadigm::CominaWrap(
                   TokenCombina::ExtendChar.tostr_value(),
                 ));
-                if !Token::is_space_token(nextchar.unwrap_or(&'\0')) {
+                if !Token::is_space_token(nextchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(
                     TokenCombina::Space.tostr_value(),
                   ));
@@ -408,7 +420,7 @@ impl Selector {
                   TokenCombina::BrotherNextChar.tostr_value(),
                 ));
                 // 补空格
-                if !Token::is_space_token(nextchar.unwrap_or(&'\0')) {
+                if !Token::is_space_token(nextchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(
                     TokenCombina::Space.tostr_value(),
                   ));
@@ -429,7 +441,7 @@ impl Selector {
                   TokenCombina::BrotherMatchChar.tostr_value(),
                 ));
                 // 补空格
-                if !Token::is_space_token(nextchar.unwrap_or(&'\0')) {
+                if !Token::is_space_token(nextchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(
                     TokenCombina::Space.tostr_value(),
                   ));
@@ -460,19 +472,21 @@ impl Selector {
         }
       } else if index == charlist.len() - 1 {
         // 结尾处理
-        if Token::is_token(&char) {
+        if Token::is_token(Some(char)) {
           // 处理字符
           if TokenKeyWord::is(char.to_string().as_str()) {
             // 第一个词 是 &
             if !has_ref_token {
-              if !Token::is_space_token(prevchar.unwrap_or(&'\0')) {
+              if !Token::is_space_token(prevchar) {
                 paradigm_vec.push(SelectParadigm::CominaWrap(
                   TokenCombina::Space.tostr_value(),
                 ));
               }
               paradigm_vec.push(SelectParadigm::OtherWrap("$(&)".to_string()));
             }
-          } else if TokenSelect::is(char.to_string().as_str()) && char.to_string() != TokenSelect::WildCard.tostr_value() {
+          } else if TokenSelect::is(char.to_string().as_str())
+            && char.to_string() != TokenSelect::WildCard.tostr_value()
+          {
             return self.errormsg(&index);
           } else if TokenCombina::is(char.to_string().as_str()) {
             match TokenCombina::try_from(char.to_string().as_str()).unwrap() {
@@ -510,14 +524,14 @@ impl Selector {
         }
       } else {
         // 过程处理
-        if Token::is_token(char) {
+        if Token::is_token(Some(char)) {
           if !temp.is_empty() {
             paradigm_vec.push(SelectParadigm::SelectWrap(temp.clone()));
             temp = "".to_string();
           }
           if TokenKeyWord::is(char.to_string().as_str()) {
             if !has_ref_token {
-              if !Token::is_space_token(prevchar.unwrap_or(&'\0')) {
+              if !Token::is_space_token(prevchar) {
                 paradigm_vec.push(SelectParadigm::CominaWrap(
                   TokenCombina::Space.tostr_value(),
                 ));
@@ -531,7 +545,9 @@ impl Selector {
               TokenSelect::ClassToken | TokenSelect::IdToken => {
                 temp.push(char.clone());
                 // 起始符 后续不能接 任意 词根符 类似 "#>" ".*"
-                if Token::is_token(nextchar.unwrap_or(&'\0')) && !TokenAllow::is(nextchar.unwrap_or(&'\0').to_string().as_str()) {
+                if Token::is_token(nextchar)
+                  && !TokenAllow::is(nextchar.unwrap_or(&'\0').to_string().as_str())
+                {
                   return self.errormsg(&(index + 1));
                 }
               }
@@ -539,7 +555,7 @@ impl Selector {
                 temp.push(char.clone());
                 if nextchar.unwrap_or(&'\0').to_string() != TokenSelect::Colon.tostr_value()
                   && nextchar.unwrap_or(&'\0').to_string() != TokenAllow::Dash.tostr_value()
-                  && Token::is_token(nextchar.unwrap_or(&'\0'))
+                  && Token::is_token(nextchar)
                 {
                   return self.errormsg(&(index + 1));
                 }
@@ -585,7 +601,7 @@ impl Selector {
                 paradigm_vec = vec![];
               }
               TokenCombina::Space | TokenCombina::NewLineOs | TokenCombina::NewLineWindos => {
-                if !Token::is_space_token(prevchar.unwrap_or(&'\0')) {
+                if !Token::is_space_token(prevchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(
                     TokenCombina::Space.tostr_value(),
                   ));
@@ -596,7 +612,7 @@ impl Selector {
                 }
               }
               TokenCombina::ExtendChar => {
-                if !Token::is_space_token(nextchar.unwrap_or(&'\0')) {
+                if !Token::is_space_token(nextchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(
                     TokenCombina::Space.tostr_value(),
                   ));
@@ -604,7 +620,7 @@ impl Selector {
                 paradigm_vec.push(SelectParadigm::CominaWrap(
                   TokenCombina::ExtendChar.tostr_value(),
                 ));
-                if !Token::is_space_token(nextchar.unwrap_or(&'\0')) {
+                if !Token::is_space_token(nextchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(
                     TokenCombina::Space.tostr_value(),
                   ));
@@ -622,7 +638,7 @@ impl Selector {
               }
               TokenCombina::ColumnChar => {}
               TokenCombina::BrotherNextChar => {
-                if !Token::is_space_token(prevchar.unwrap_or(&'\0')) {
+                if !Token::is_space_token(prevchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(
                     TokenCombina::Space.tostr_value(),
                   ));
@@ -630,7 +646,7 @@ impl Selector {
                 paradigm_vec.push(SelectParadigm::CominaWrap(
                   TokenCombina::BrotherNextChar.tostr_value(),
                 ));
-                if !Token::is_space_token(nextchar.unwrap_or(&'\0')) {
+                if !Token::is_space_token(nextchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(
                     TokenCombina::Space.tostr_value(),
                   ));
@@ -647,7 +663,7 @@ impl Selector {
                 }
               }
               TokenCombina::BrotherMatchChar => {
-                if !Token::is_space_token(prevchar.unwrap_or(&'\0')) {
+                if !Token::is_space_token(prevchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(
                     TokenCombina::Space.tostr_value(),
                   ));
@@ -655,7 +671,7 @@ impl Selector {
                 paradigm_vec.push(SelectParadigm::CominaWrap(
                   TokenCombina::BrotherMatchChar.tostr_value(),
                 ));
-                if !Token::is_space_token(nextchar.unwrap_or(&'\0')) {
+                if !Token::is_space_token(nextchar) {
                   paradigm_vec.push(SelectParadigm::CominaWrap(
                     TokenCombina::Space.tostr_value(),
                   ));

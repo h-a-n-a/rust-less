@@ -10,6 +10,6 @@ fn test_loc() {
   let obj = LocMap::new(content);
   let c = obj.get(&0).unwrap();
   let x = obj.getloc(4, 10).unwrap();
-  assert_eq!(c.char, "@".to_string());
-  assert_eq!(x.char, "@".to_string());
+  assert_eq!(c.char, '@');
+  assert_eq!(x.char, '@');
 }

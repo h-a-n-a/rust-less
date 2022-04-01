@@ -58,22 +58,22 @@ impl Var for RuleNode {
 ///
 fn parse_var(
   context: ParseContext,
-  origin_charlist: &[String],
+  origin_charlist: &Vec<char>,
   locmap: &Option<LocMap>,
   parent: NodeWeakRef,
   fileinfo: FileWeakRef,
   importfiles: &mut Vec<FileRef>,
 ) -> Result<Vec<VarRuleNode>, String> {
   let mut blocklist: Vec<VarRuleNode> = vec![];
-  let mut templist: Vec<String> = vec![];
+  let mut templist: Vec<char> = vec![];
   let mut index = 0;
 
   // 块等级
   let mut braces_level = 0;
   // 结束标记 & 开始标记
-  let endqueto = ";".to_string();
-  let start_braces = "{".to_string();
-  let end_braces = "}".to_string();
+  let endqueto = ';';
+  let start_braces = '{';
+  let end_braces = '}';
 
   let mut record_loc: Option<Loc> = None;
   let mut skipcall = skip_comment();
@@ -81,7 +81,6 @@ fn parse_var(
   while index < origin_charlist.len() {
     let char = origin_charlist.get(index).unwrap().clone();
     let word = origin_charlist.try_getword(index, 2).unwrap();
-
     let prev_index = index;
     let skip_res = skipcall(word, char.clone(), &mut index);
     if skip_res || prev_index != index {
@@ -92,9 +91,9 @@ fn parse_var(
 
     // 记录第一个非空字符 起始位置
     if context.borrow().option.sourcemap
-      && char != " "
-      && char != "\r"
-      && char != "\n"
+      && char != ' '
+      && char != '\r'
+      && char != '\n'
       && record_loc.is_none()
     {
       record_loc = Some(locmap.as_ref().unwrap().get(&index).unwrap());
@@ -134,7 +133,7 @@ fn parse_var(
 
     // 最后检查 分号闭合情况
     if index == origin_charlist.len() - 1 {
-      let checkstr = templist.join("").trim().to_string();
+      let checkstr = templist.poly().trim().to_string();
       if !checkstr.is_empty() {
         return Err(format!("the word is not with endqueto -> {}", checkstr));
       }

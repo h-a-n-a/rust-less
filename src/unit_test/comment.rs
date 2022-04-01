@@ -36,7 +36,7 @@ fn test_skip_comment() {
   let mut skipcall = skip_comment();
   while i < conetnt.len() {
     let word = conetnt.try_getword(i, 2).unwrap();
-    let char_val = conetnt.get(i).unwrap().to_string();
+    let char_val = conetnt.get(i).unwrap();
     let old_i = i;
     let skip_res = skipcall(word, char_val.clone(), &mut i);
     if !skip_res && old_i == i {

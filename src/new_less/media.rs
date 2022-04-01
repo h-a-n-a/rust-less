@@ -5,9 +5,7 @@ use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
-use crate::new_less::token::media::{
-  TokenMediaFeature, TokenMediaLogic, TokenMediaType,
-};
+use crate::new_less::token::media::{TokenMediaFeature, TokenMediaLogic, TokenMediaType};
 use serde::Serialize;
 
 ///
@@ -33,13 +31,16 @@ impl MediaQuery {
   ///
   /// 初始化方法
   ///
-  pub fn new(txt: String, loc: Option<Loc>, map: Option<LocMap>, parent: NodeWeakRef) -> HandleResult<Self> {
+  pub fn new(
+    txt: String,
+    loc: Option<Loc>,
+    map: Option<LocMap>,
+    parent: NodeWeakRef,
+  ) -> HandleResult<Self> {
     let obj = Self {
       origin_txt: txt.clone(),
       loc,
-      map: map.unwrap_or_else(|| {
-        LocMap::new(txt.clone())
-      }),
+      map: map.unwrap_or_else(|| LocMap::new(txt.clone())),
       charlist: txt.trim().to_string().tocharlist(),
       parent,
     };
@@ -84,7 +85,7 @@ impl MediaQuery {
         let mut temp = arg.temp;
         let index = arg.index;
         let (_, char, next) = charword;
-        if Token::is_token(&char) {
+        if Token::is_token(Some(char)) {
           if *char == ':' {
             if TokenMediaFeature::is(temp.trim()) {
               // 加冒号之前 先判断是否是有效 key
@@ -92,8 +93,8 @@ impl MediaQuery {
             } else {
               return Err(self.errormsg(&index).err().unwrap());
             }
-          } else if Token::is_space_token(&char) {
-            if Token::is_space_token(&next.unwrap_or(&'\0')) {
+          } else if Token::is_space_token(Some(char)) {
+            if Token::is_space_token(next) {
               return Ok(ScanResult::Skip);
             } else {
               temp.push(char.clone());
@@ -131,11 +132,11 @@ impl MediaQuery {
         let mut temp = arg.temp;
         let index = arg.index;
         let (_, char, next) = charword;
-        if Token::is_token(&char) {
+        if Token::is_token(Some(char)) {
           if *char == ')' {
             hasend = true;
-          } else if Token::is_space_token(&char) {
-            if Token::is_space_token(&next.unwrap_or(&'\0')) {
+          } else if Token::is_space_token(Some(char)) {
+            if Token::is_space_token(next) {
               return Ok(ScanResult::Skip);
             } else {
               temp.push(char.clone());
@@ -214,8 +215,8 @@ impl MediaQuery {
         let mut temp = arg.temp;
         let index = arg.index;
         let (_, char, _) = charword;
-        if Token::is_token(&char) {
-          if Token::is_space_token(&char) {
+        if Token::is_token(Some(char)) {
+          if Token::is_space_token(Some(char)) {
             hasend = true;
           } else {
             return Err(self.errormsg(&index).err().unwrap());
@@ -264,9 +265,9 @@ impl MediaQuery {
         let temp = arg.temp;
         let mut index = arg.index;
         let (_, char, next) = charword;
-        return if Token::is_token(&char) {
-          if Token::is_space_token(&char) {
-            if !Token::is_space_token(&next.unwrap_or(&'\0')) {
+        return if Token::is_token(Some(char)) {
+          if Token::is_space_token(Some(char)) {
+            if !Token::is_space_token(next) {
               word_vec.push(" ".to_string());
               Ok(ScanResult::Skip)
             } else {

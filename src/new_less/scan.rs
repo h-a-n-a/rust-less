@@ -31,9 +31,17 @@ pub fn traversal(
   let mut hasend = false;
 
   while index < charlist.len() {
-    let prevchar = charlist.get(index - 1);
+    let prevchar = if index == 0 {
+      None
+    } else {
+      charlist.get(index - 1)
+    };
     let char = charlist.get(index).unwrap();
-    let nextchar = charlist.get(index + 1);
+    let nextchar = if index + 1 < charlist.len() {
+      charlist.get(index + 1)
+    } else {
+      None
+    };
     let arg = ScanArg {
       index,
       temp: temp.clone(),

@@ -123,10 +123,8 @@ impl ImportNode {
         } = arg;
 
         if has_apost || has_quote {
-          if Token::is_token(&char) {
-            if ('\'' == *char && has_apost)
-              || ('"' == *char && has_quote)
-            {
+          if Token::is_token(Some(char)) {
+            if ('\'' == *char && has_apost) || ('"' == *char && has_quote) {
               if index != charlist.len() - 2 {
                 return Err(self.error_msg(&index));
               } else {
@@ -140,8 +138,8 @@ impl ImportNode {
           } else {
             temp.push(char.clone());
           }
-        } else if Token::is_token(&char) {
-          if !Token::is_space_token(&char) {
+        } else if Token::is_token(Some(char)) {
+          if !Token::is_space_token(Some(char)) {
             if '\'' == *char {
               has_apost = true;
             } else if '"' == *char {

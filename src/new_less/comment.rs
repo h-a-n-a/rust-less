@@ -109,7 +109,7 @@ fn parse_comment(
   let start_braces = '{';
   let end_braces = '}';
   // 注释的内容共
-  let comment_flag = '/'.to_string();
+  let comment_flag = "//".to_string();
   let comment_mark_strat = "/*".to_string();
   let comment_mark_end = "*/".to_string();
 
@@ -133,7 +133,7 @@ fn parse_comment(
     if braces_level == 0
       && wirte_comment
       && ((wirte_line_comment && (char == '\n' || char == '\r'))
-      || (wirte_closure_comment && word == comment_mark_end))
+        || (wirte_closure_comment && word == comment_mark_end))
     {
       wirte_comment = false;
       if wirte_line_comment {
