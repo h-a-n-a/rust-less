@@ -1,4 +1,3 @@
-use crate::extend::string::StringExtend;
 use crate::new_less::comment::Comment;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::{FileInfo, FileWeakRef};
@@ -14,12 +13,11 @@ use serde::Serialize;
 use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::Rc;
+use crate::extend::vec_str::VecStrExtend;
 
 #[derive(Derivative)]
 #[derivative(Debug, Clone)]
 pub struct RuleNode {
-  // 节点内容
-  pub content: String,
   // 选择器 文字
   pub selector: Option<SelectorNode>,
   // 根据 原始内容 -> 转化的 字符数组
@@ -80,7 +78,7 @@ impl RuleNode {
       });
     RuleNodeJson {
       selector_txt: self.selector.as_ref().unwrap().value(),
-      content: self.content.clone(),
+      content: self.origin_charlist.poly(),
       loc: self.loc.as_ref().cloned(),
       block_node,
     }
@@ -90,18 +88,16 @@ impl RuleNode {
   /// 构造方法
   ///
   pub fn new(
-    content: String,
-    selector_txt: String,
+    charlist: Vec<char>,
+    selector_txt: Vec<char>,
     loc: Option<Loc>,
     file_info: FileWeakRef,
     context: ParseContext,
   ) -> Result<NodeRef, String> {
-    let origin_charlist = content.tocharlist();
     let mut change_loc: Option<Loc> = loc.clone();
     let obj = RuleNode {
-      content: content.clone(),
       selector: None,
-      origin_charlist,
+      origin_charlist:charlist,
       loc,
       locmap: None,
       block_node: vec![],
@@ -122,7 +118,7 @@ impl RuleNode {
     };
     heapobj.borrow_mut().selector = Some(selector);
     if heapobj.deref().borrow().get_options().sourcemap {
-      let (calcmap, _) = LocMap::merge(change_loc.as_ref().unwrap(), &content);
+      let (calcmap, _) = LocMap::merge(change_loc.as_ref().unwrap(), &heapobj.borrow().origin_charlist);
       heapobj.borrow_mut().locmap = Some(calcmap);
     }
 

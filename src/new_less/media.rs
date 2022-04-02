@@ -1,5 +1,4 @@
 use crate::extend::enum_extend::EnumExtend;
-use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{HandleResult, NodeWeakRef};
@@ -13,15 +12,13 @@ use serde::Serialize;
 ///
 #[derive(Debug, Clone, Serialize)]
 pub struct MediaQuery {
-  pub origin_txt: String,
-
   pub loc: Option<Loc>,
 
   #[serde(skip_serializing)]
   map: LocMap,
 
   #[serde(skip_serializing)]
-  charlist: Vec<char>,
+  pub charlist: Vec<char>,
 
   #[serde(skip_serializing)]
   pub parent: NodeWeakRef,
@@ -32,16 +29,15 @@ impl MediaQuery {
   /// 初始化方法
   ///
   pub fn new(
-    txt: String,
+    charlist: Vec<char>,
     loc: Option<Loc>,
     map: Option<LocMap>,
     parent: NodeWeakRef,
   ) -> HandleResult<Self> {
     let obj = Self {
-      origin_txt: txt.clone(),
       loc,
-      map: map.unwrap_or_else(|| LocMap::new(txt.clone())),
-      charlist: txt.trim().to_string().tocharlist(),
+      map: map.unwrap_or_else(|| LocMap::new(&charlist)),
+      charlist,
       parent,
     };
     match obj.parse() {
@@ -64,12 +60,12 @@ impl MediaQuery {
     let error_loc = self.map.get(index).unwrap();
     Err(format!(
       "select text {}, char {} is not allow,line is {} col is {}",
-      self.origin_txt, char, error_loc.line, error_loc.col
+      self.charlist.poly(), char, error_loc.line, error_loc.col
     ))
   }
 
   pub fn value(&self) -> String {
-    self.origin_txt.clone()
+    self.charlist.poly()
   }
 
   ///
@@ -199,7 +195,7 @@ impl MediaQuery {
       return Err(self.errormsg(&index).err().unwrap());
     }
 
-    Ok((word_vec.poly(), index))
+    Ok((word_vec.join(""), index))
   }
 
   ///

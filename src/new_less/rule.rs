@@ -1,5 +1,4 @@
 use std::ops::Deref;
-use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::comment::skip_comment;
 use crate::new_less::context::ParseContext;
@@ -73,7 +72,7 @@ fn parse_rule(
 
   let mut record_loc: Option<Loc> = None;
   let mut skipcall = skip_comment();
-  let mut selector_txt = "".to_string();
+  let mut selector_txt: Vec<char> = vec![];
 
   while index < origin_charlist.len() {
     let char = origin_charlist.get(index).unwrap().clone();
@@ -98,11 +97,7 @@ fn parse_rule(
 
     if char == start_braces {
       if braces_level == 0 {
-        selector_txt = templist
-          .poly()
-          .removelast_without_trim()
-          .trim_start()
-          .to_string();
+        selector_txt = templist[0..templist.len() - 1].to_vec().trim();
         templist.clear();
       }
       braces_level += 1;
@@ -117,7 +112,7 @@ fn parse_rule(
       braces_level -= 1;
       if braces_level == 0 {
         match RuleNode::new(
-          templist.poly().removelast_without_trim(),
+          templist[0..templist.len() - 1].to_vec().trim(),
           selector_txt.clone(),
           record_loc,
           file_info.clone(),
@@ -130,7 +125,7 @@ fn parse_rule(
             return Err(msg);
           }
         }
-        selector_txt = "".to_string();
+        selector_txt = vec![];
         templist.clear();
         record_loc = None;
       }

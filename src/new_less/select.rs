@@ -1,11 +1,11 @@
 use crate::extend::enum_extend::EnumExtend;
 use crate::extend::str_into::StringInto;
-use crate::extend::string::StringExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::select::{TokenAllow, TokenCombina, TokenKeyWord, TokenSelect};
 use serde::Serialize;
+use crate::extend::vec_str::VecStrExtend;
 
 ///
 /// 选择器范式
@@ -27,8 +27,6 @@ pub enum SelectParadigm {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Selector {
-  // 原始字符串
-  pub origin_txt: String,
 
   // 字符串规则 根据逗号分割
   pub single_select_txt: Vec<String>,
@@ -42,7 +40,7 @@ pub struct Selector {
 
   // 字符串 操作 序列
   #[serde(skip_serializing)]
-  charlist: Vec<char>,
+  pub charlist: Vec<char>,
 
   // 节点 父节点
   // 延迟赋值
@@ -55,17 +53,16 @@ impl Selector {
   /// 初始化方法
   ///
   pub fn new(
-    txt: String,
+    charlist: Vec<char>,
     loc: Option<Loc>,
     map: Option<LocMap>,
     parent: NodeWeakRef,
   ) -> HandleResult<Self> {
     let mut obj = Selector {
-      origin_txt: txt.trim().to_string(),
       single_select_txt: vec![],
       loc,
-      map: map.unwrap_or_else(|| LocMap::new(txt.clone())),
-      charlist: txt.tocharlist(),
+      map: map.unwrap_or_else(|| LocMap::new(&charlist)),
+      charlist,
       parent,
     };
     match obj.parse() {
@@ -75,7 +72,7 @@ impl Selector {
   }
 
   pub fn value(&self) -> String {
-    self.origin_txt.clone()
+    self.charlist.poly()
   }
 
   ///
@@ -104,7 +101,7 @@ impl Selector {
     let error_loc = self.map.get(index).unwrap();
     Err(format!(
       "select text {}, char {} is not allow, line is {} col is {}",
-      self.origin_txt, char, error_loc.line, error_loc.col
+      self.charlist.poly(), char, error_loc.line, error_loc.col
     ))
   }
 
@@ -241,7 +238,7 @@ impl Selector {
       index += 1;
     }
     if !hasend {
-      return Err(format!("select text {}, not found ']'", self.origin_txt));
+      return Err(format!("select text {}, not found ']'", self.charlist.poly()));
     }
     let obj = SelectParadigm::SelectWrap(temp);
     Ok((obj, index))
@@ -274,7 +271,7 @@ impl Selector {
       index += 1;
     }
     if !hasend {
-      return Err(format!("select text {}, not found ')'", self.origin_txt));
+      return Err(format!("select text {}, not found ')'", self.charlist.poly()));
     }
     let obj = SelectParadigm::SelectWrap(temp);
     Ok((obj, index))

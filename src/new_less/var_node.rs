@@ -1,5 +1,3 @@
-use crate::extend::string::StringExtend;
-use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::loc::{Loc, LocMap};
@@ -11,12 +9,11 @@ use crate::new_less::value::ValueNode;
 use derivative::Derivative;
 use serde::Serialize;
 use uuid::Uuid;
+use crate::extend::vec_str::VecStrExtend;
 
 #[derive(Derivative, Serialize, Clone)]
 #[derivative(Debug)]
 pub struct VarNode {
-  // 节点内容
-  pub content: String,
   // 节点坐标
   pub loc: Option<Loc>,
 
@@ -54,25 +51,22 @@ impl VarNode {
   /// 初始化
   ///
   pub fn new(
-    txt: String,
+    charlist: Vec<char>,
     loc: Option<Loc>,
     parent: NodeWeakRef,
     fileinfo: FileWeakRef,
     context: ParseContext,
   ) -> HandleResult<Self> {
     let map = if loc.is_none() {
-      LocMap::new(txt.clone())
+      LocMap::new(&charlist)
     } else {
-      LocMap::merge(loc.as_ref().unwrap(), &txt).0
+      LocMap::merge(loc.as_ref().unwrap(), &charlist).0
     };
     let mut obj = Self {
-      content: txt.clone(),
       loc,
       uuid: Uuid::new_v4().to_string(),
-      // uuid: "".to_string(),
-      // map: LocMap::new("".to_string()),
       map,
-      charlist: txt.tocharlist(),
+      charlist,
       parent,
       fileinfo,
       key: None,
@@ -108,7 +102,7 @@ impl VarNode {
     let char = self.charlist.get(*index).unwrap().to_string();
     format!(
       "text {}, char {} is not allow, line is {} col is {}",
-      &self.content, char, error_loc.line, error_loc.col
+      &self.charlist.poly(), char, error_loc.line, error_loc.col
     )
   }
 
@@ -180,13 +174,8 @@ impl VarNode {
       }
       trim_start += 1;
     }
-    let content = self.charlist[trim_start..end]
-      .to_vec()
-      .poly()
-      .trim()
-      .to_string();
     let node = ValueNode::new(
-      content,
+      self.charlist[trim_start..end].to_vec(),
       self.map.get(start),
       self.parent.clone(),
       self.fileinfo.clone(),

@@ -1,3 +1,4 @@
+use crate::extend::string::StringExtend;
 use crate::new_less::media::MediaQuery;
 use crate::new_less::node::HandleResult;
 
@@ -9,7 +10,7 @@ fn test_media_parse() {
   ];
   let mut haserror = 0;
   demo_select_list.into_iter().for_each(|tt| {
-    match MediaQuery::new(tt, None, None, None) {
+    match MediaQuery::new(tt.tocharlist(), None, None, None) {
       HandleResult::Success(_) => {
         haserror += 0;
       }
@@ -32,7 +33,7 @@ fn test_media_error_parse() {
     r#""#.to_string(),
   ];
   demo_select_list.into_iter().for_each(|tt| {
-    match MediaQuery::new(tt, None, None, None) {
+    match MediaQuery::new(tt.tocharlist(), None, None, None) {
       HandleResult::Success(_) => {
         haserror += 1;
       }

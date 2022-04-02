@@ -1,7 +1,5 @@
-use crate::extend::string::StringExtend;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::string::String;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Loc {
@@ -21,8 +19,7 @@ impl LocMap {
   /// 初始化对象
   /// 根据传入的 字符串 txt 构造索引 行|列
   ///
-  pub fn new(txt: String) -> Self {
-    let chars = txt.tocharlist();
+  pub fn new(chars: &Vec<char>) -> Self {
     let map = HashMap::new();
     let mut line = 1;
     let mut col = 1;
@@ -67,9 +64,8 @@ impl LocMap {
     loc
   }
 
-  pub fn merge(start: &Loc, content: &str) -> (Self, Loc) {
+  pub fn merge(start: &Loc, chars: &Vec<char>) -> (Self, Loc) {
     let map = HashMap::new();
-    let chars = content.to_string().tocharlist();
     let mut line = start.line;
     let mut col = start.col;
     let mut obj = LocMap { data: map };

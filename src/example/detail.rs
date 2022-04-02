@@ -1,6 +1,7 @@
 use crate::new_less::context::Context;
 use crate::new_less::var_node::VarNode;
 use test::Bencher;
+use crate::extend::string::StringExtend;
 
 #[bench]
 fn parse_value_bench(bench: &mut Bencher) {
@@ -8,7 +9,7 @@ fn parse_value_bench(bench: &mut Bencher) {
     let mut index = 0;
     while index < 1000 {
       let content = r#"@width:400px;"#.to_string();
-      VarNode::new(content, None, None, None, Context::default());
+      VarNode::new(content.tocharlist(), None, None, None, Context::default());
       index += 1;
     }
   });

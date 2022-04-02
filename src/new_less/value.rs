@@ -11,8 +11,6 @@ use std::fmt::{Debug, Formatter};
 
 #[derive(Serialize, Clone)]
 pub struct ValueNode {
-  // 原始字符
-  pub origin_txt: String,
 
   // 字符 向量 只读
   #[serde(skip_serializing)]
@@ -37,7 +35,7 @@ pub struct ValueNode {
 impl Debug for ValueNode {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("ValueNode")
-      .field("origin_txt", &self.origin_txt)
+      .field("origin_txt", &self.charlist.poly())
       .field("word_ident_list", &self.word_ident_list)
       .finish()
   }
@@ -45,19 +43,18 @@ impl Debug for ValueNode {
 
 impl ValueNode {
   pub fn new(
-    txt: String,
+    charlist: Vec<char>,
     loc: Option<Loc>,
     parent: NodeWeakRef,
     fileinfo: FileWeakRef,
   ) -> Result<Self, String> {
     let map = if loc.is_none() {
-      LocMap::new(txt.clone())
+      LocMap::new(&charlist)
     } else {
-      LocMap::merge(loc.as_ref().unwrap(), &txt).0
+      LocMap::merge(loc.as_ref().unwrap(), &charlist).0
     };
     let mut obj = Self {
-      origin_txt: txt.clone(),
-      charlist: txt.tocharlist(),
+      charlist,
       parent,
       fileinfo,
       map,
@@ -75,7 +72,7 @@ impl ValueNode {
     let char = self.charlist.get(*index).unwrap().to_string();
     format!(
       "text {}, char {} is not allow, line is {} col is {}",
-      &self.origin_txt, char, error_loc.line, error_loc.col
+      &self.charlist.poly(), char, error_loc.line, error_loc.col
     )
   }
 
@@ -192,7 +189,7 @@ impl ValueNode {
       && *value.tocharlist().get(value.len() - 1).unwrap() != keyword)
       || value.len() == 1
     {
-      return Err(format!("{} is not closure", self.origin_txt));
+      return Err(format!("{} is not closure", self.charlist.poly()));
     }
 
     Ok((value, end))
@@ -546,7 +543,7 @@ impl ValueNode {
     if !vaildate_res.is_empty() {
       return Err(format!(
         "{} contains unclosed parentheses -> {:#?}",
-        &self.origin_txt, &vaildate_res
+        &self.charlist.poly(), &vaildate_res
       ));
     }
 

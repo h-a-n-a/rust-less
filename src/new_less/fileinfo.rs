@@ -89,8 +89,8 @@ impl FileInfo {
   ///
   /// 生成整个文件的 locmap 地图
   ///
-  pub fn get_loc_by_content(content: &str) -> LocMap {
-    LocMap::new(content.to_string())
+  pub fn get_loc_by_content(chars: &Vec<char>) -> LocMap {
+    LocMap::new(chars)
   }
 
   ///
@@ -131,10 +131,10 @@ impl FileInfo {
     let obj = match FileManger::resolve(filepath, option.include_path.clone()) {
       Ok((abs_path, content)) => {
         text_content = content.clone();
-        if option.sourcemap {
-          locmap = Some(FileInfo::get_loc_by_content(content.as_str()));
-        }
         charlist = content.tocharlist();
+        if option.sourcemap {
+          locmap = Some(FileInfo::get_loc_by_content(&charlist));
+        }
         FileInfo {
           disk_location: abs_path,
           block_node: vec![],
@@ -168,7 +168,7 @@ impl FileInfo {
     let option = context.deref().borrow().get_options();
     let mut locmap: Option<LocMap> = None;
     if option.sourcemap {
-      locmap = Some(FileInfo::get_loc_by_content(content.as_str()));
+      locmap = Some(FileInfo::get_loc_by_content(&charlist));
     }
     let obj = FileInfo {
       disk_location: filename,

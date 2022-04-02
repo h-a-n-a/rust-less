@@ -102,7 +102,7 @@ fn parse_var(
     templist.push(char.clone());
     if char == endqueto && braces_level == 0 {
       let style_var = match VarRuleNode::new(
-        templist.poly().trim().to_string(),
+        templist.trim(),
         record_loc,
         parent.clone(),
         fileinfo.clone(),

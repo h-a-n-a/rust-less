@@ -1,5 +1,3 @@
-use crate::extend::string::StringExtend;
-use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::ident::IdentType;
@@ -13,11 +11,10 @@ use serde::Serialize;
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
 use uuid::Uuid;
+use crate::extend::vec_str::VecStrExtend;
 
 #[derive(Serialize, Clone)]
 pub struct StyleRuleNode {
-  // 节点内容
-  pub content: String,
   // 节点坐标
   pub loc: Option<Loc>,
 
@@ -54,7 +51,7 @@ pub struct StyleRuleNode {
 impl Debug for StyleRuleNode {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("ValueNode")
-      .field("content", &self.content)
+      .field("content", &self.charlist.poly())
       .field("loc", &self.loc)
       .field("uuid", &self.uuid)
       .field("key", &self.key)
@@ -65,21 +62,20 @@ impl Debug for StyleRuleNode {
 
 impl StyleRuleNode {
   pub fn new(
-    txt: String,
+    charlist: Vec<char>,
     loc: Option<Loc>,
     parent: NodeWeakRef,
     fileinfo: FileWeakRef,
     context: ParseContext,
   ) -> HandleResult<Self> {
     let map = if loc.is_none() {
-      LocMap::new(txt.clone())
+      LocMap::new(&charlist)
     } else {
-      LocMap::merge(loc.as_ref().unwrap(), &txt).0
+      LocMap::merge(loc.as_ref().unwrap(), &charlist).0
     };
     let mut obj = Self {
-      content: txt.clone(),
       loc,
-      charlist: txt.tocharlist(),
+      charlist,
       uuid: Uuid::new_v4().to_string(),
       map,
       fileinfo,
@@ -116,7 +112,7 @@ impl StyleRuleNode {
     let char = self.charlist.get(*index).unwrap().to_string();
     format!(
       "text {}, char {} is not allow, line is {} col is {}",
-      &self.content, char, error_loc.line, error_loc.col
+      &self.charlist.poly(), char, error_loc.line, error_loc.col
     )
   }
 
@@ -183,13 +179,8 @@ impl StyleRuleNode {
       }
       trim_start += 1;
     }
-    let content = self.charlist[trim_start..end]
-      .to_vec()
-      .poly()
-      .trim()
-      .to_string();
     let node = ValueNode::new(
-      content,
+      self.charlist[trim_start..end].to_vec(),
       self.map.get(start),
       self.parent.clone(),
       self.fileinfo.clone(),
@@ -401,7 +392,7 @@ impl StyleRuleNode {
     if list.is_empty() {
       return Err(format!(
         "code_gen content {} is has error, value ident is empty!",
-        self.content
+        self.charlist.poly()
       ));
     }
     // 把 表达式中 含有 var 声明的 全部进行 查找替换

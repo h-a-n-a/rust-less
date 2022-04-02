@@ -77,7 +77,7 @@ impl Comment for RuleNode {
     if !node_list.is_empty() {
       rm_comment(node_list, &self.origin_charlist)
     } else {
-      self.content.clone()
+      self.origin_charlist.poly()
     }
   }
 

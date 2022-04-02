@@ -259,9 +259,10 @@ fn test_expression() {
 }
 
 #[test]
-fn test_char(){
-  let a = char::default().to_string();
-  println!("{}",a);
+fn test_trim() {
+  let list = vec![' ', ' ', '1', '2', ' ', '3', '\r', '\n', ' '];
+  println!("{:#?}", list.trim());
+  println!("{:#?}", list.trim_start());
 }
 
 
