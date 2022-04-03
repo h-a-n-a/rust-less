@@ -257,3 +257,13 @@ fn test_expression() {
   assert_eq!(&c.to_string(), "277");
   assert_eq!(&d.to_string(), "20");
 }
+
+#[test]
+fn test_trim() {
+  let list = vec![' ', ' ', '1', '2', ' ', '3', '\r', '\n', ' '];
+  println!("{:#?}", list.trim());
+  println!("{:#?}", list.trim_start());
+}
+
+
+

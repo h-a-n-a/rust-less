@@ -1,7 +1,3 @@
-use crate::extend::enum_extend::EnumExtend;
-use crate::extend::str_into::StringInto;
-use crate::extend::string::StringExtend;
-use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::loc::{Loc, LocMap};
@@ -9,17 +5,15 @@ use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::option::ParseOption;
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
-use crate::new_less::token::var::TokenVarKeyAllow;
 use crate::new_less::value::ValueNode;
 use derivative::Derivative;
 use serde::Serialize;
 use uuid::Uuid;
+use crate::extend::vec_str::VecStrExtend;
 
 #[derive(Derivative, Serialize, Clone)]
 #[derivative(Debug)]
 pub struct VarNode {
-  // 节点内容
-  pub content: String,
   // 节点坐标
   pub loc: Option<Loc>,
 
@@ -32,7 +26,7 @@ pub struct VarNode {
 
   // 字符串 操作 序列
   #[serde(skip_serializing)]
-  charlist: Vec<String>,
+  charlist: Vec<char>,
 
   // 节点 父节点
   #[serde(skip_serializing)]
@@ -57,25 +51,22 @@ impl VarNode {
   /// 初始化
   ///
   pub fn new(
-    txt: String,
+    charlist: Vec<char>,
     loc: Option<Loc>,
     parent: NodeWeakRef,
     fileinfo: FileWeakRef,
     context: ParseContext,
   ) -> HandleResult<Self> {
     let map = if loc.is_none() {
-      LocMap::new(txt.clone())
+      LocMap::new(&charlist)
     } else {
-      LocMap::merge(loc.as_ref().unwrap(), &txt).0
+      LocMap::merge(loc.as_ref().unwrap(), &charlist).0
     };
     let mut obj = Self {
-      content: txt.clone(),
       loc,
       uuid: Uuid::new_v4().to_string(),
-      // uuid: "".to_string(),
-      // map: LocMap::new("".to_string()),
       map,
-      charlist: txt.tocharlist(),
+      charlist,
       parent,
       fileinfo,
       key: None,
@@ -111,7 +102,7 @@ impl VarNode {
     let char = self.charlist.get(*index).unwrap().to_string();
     format!(
       "text {}, char {} is not allow, line is {} col is {}",
-      &self.content, char, error_loc.line, error_loc.col
+      &self.charlist.poly(), char, error_loc.line, error_loc.col
     )
   }
 
@@ -132,29 +123,29 @@ impl VarNode {
         } = arg;
         let (_, char, next) = charword;
         // 变量声明 只允许 冒号前后有空格
-        if hasspace && Token::is_space_token(&next) {
+        if hasspace && Token::is_space_token(next) {
           return Ok(ScanResult::Skip);
-        } else if hasspace && !Token::is_space_token(&char) {
-          if char == TokenVarKeyAllow::Colon.tostr_value() {
-            temp += &char;
+        } else if hasspace && !Token::is_space_token(Some(char)) {
+          if *char == ':' {
+            temp.push(char.clone());
           } else {
             return Err(self.error_msg(&(index - 1)));
           }
-        } else if Token::is_token(&char) && !hasspace {
-          if TokenVarKeyAllow::is(&char) {
-            if char == TokenVarKeyAllow::Colon.tostr_value() {
+        } else if Token::is_token(Some(char)) && !hasspace {
+          if vec![':', '-'].contains(char) {
+            if *char == ':' {
               hasend = true;
             } else {
-              temp += &char;
+              temp.push(char.clone());
             }
-          } else if Token::is_space_token(&char) {
+          } else if Token::is_space_token(Some(char)) {
             hasspace = true;
-            temp += &char;
+            temp.push(char.clone());
           } else {
             return Err(self.error_msg(&index));
           }
-        } else if !Token::is_token(&char) && !hasspace {
-          temp += &char;
+        } else if !Token::is_token(Some(char)) && !hasspace {
+          temp.push(char.clone());
         }
 
         let new_arg = ScanArg {
@@ -178,14 +169,13 @@ impl VarNode {
     let end = self.charlist.len() - 1;
     let mut trim_start = *start;
     while trim_start < self.charlist.len() {
-      if !Token::is_space_token(self.charlist.get(trim_start).unwrap()) {
+      if !Token::is_space_token(Some(self.charlist.get(trim_start).unwrap())) {
         break;
       }
       trim_start += 1;
     }
-    let content = self.charlist[trim_start..end].poly().trim().to_string();
     let node = ValueNode::new(
-      content,
+      self.charlist[trim_start..end].to_vec(),
       self.map.get(start),
       self.parent.clone(),
       self.fileinfo.clone(),

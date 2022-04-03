@@ -1,23 +1,20 @@
-use crate::extend::enum_extend::EnumExtend;
 use crate::extend::string::StringExtend;
+use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::ident::IdentType;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::NodeWeakRef;
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
-use crate::new_less::token::value::TokenValueAllow;
 use serde::Serialize;
 use std::fmt::{Debug, Formatter};
 
 #[derive(Serialize, Clone)]
 pub struct ValueNode {
-  // 原始字符
-  pub origin_txt: String,
 
   // 字符 向量 只读
   #[serde(skip_serializing)]
-  charlist: Vec<String>,
+  charlist: Vec<char>,
 
   // rule 父节点
   #[serde(skip_serializing)]
@@ -38,7 +35,7 @@ pub struct ValueNode {
 impl Debug for ValueNode {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("ValueNode")
-      .field("origin_txt", &self.origin_txt)
+      .field("origin_txt", &self.charlist.poly())
       .field("word_ident_list", &self.word_ident_list)
       .finish()
   }
@@ -46,19 +43,18 @@ impl Debug for ValueNode {
 
 impl ValueNode {
   pub fn new(
-    txt: String,
+    charlist: Vec<char>,
     loc: Option<Loc>,
     parent: NodeWeakRef,
     fileinfo: FileWeakRef,
   ) -> Result<Self, String> {
     let map = if loc.is_none() {
-      LocMap::new(txt.clone())
+      LocMap::new(&charlist)
     } else {
-      LocMap::merge(loc.as_ref().unwrap(), &txt).0
+      LocMap::merge(loc.as_ref().unwrap(), &charlist).0
     };
     let mut obj = Self {
-      origin_txt: txt.clone(),
-      charlist: txt.tocharlist(),
+      charlist,
       parent,
       fileinfo,
       map,
@@ -76,7 +72,7 @@ impl ValueNode {
     let char = self.charlist.get(*index).unwrap().to_string();
     format!(
       "text {}, char {} is not allow, line is {} col is {}",
-      &self.origin_txt, char, error_loc.line, error_loc.col
+      &self.charlist.poly(), char, error_loc.line, error_loc.col
     )
   }
 
@@ -88,18 +84,26 @@ impl ValueNode {
   ///
   /// 是否是数字
   ///
-  pub fn is_number(char: &str) -> bool {
-    char.parse::<i32>().is_ok()
+  pub fn is_number(char: Option<&char>) -> bool {
+    if char.is_none() {
+      false
+    } else {
+      vec!['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].contains(char.unwrap())
+    }
   }
 
-  pub fn is_end(char: &str, extend_char: Option<Vec<&str>>) -> bool {
-    let mut char_list = vec![
-      ";", "@", "~", "#", "$", "(", ")", "[", "]", "+", "*", "/", ",",
-    ];
-    if let Some(mut extend_list) = extend_char {
-      char_list.append(&mut extend_list);
+  pub fn is_end(char: Option<&char>, extend_char: Option<Vec<char>>) -> bool {
+    if char.is_none() {
+      false
+    } else {
+      let mut char_list = vec![
+        ';', '@', '~', '#', '$', '(', ')', '[', ']', '+', '*', '/', ',',
+      ];
+      if let Some(mut extend_list) = extend_char {
+        char_list.append(&mut extend_list);
+      }
+      Token::is_space_token(Some(char.unwrap())) || char_list.contains(char.unwrap())
     }
-    Token::is_space_token(char) || char_list.contains(&char)
   }
 
   ///
@@ -117,11 +121,11 @@ impl ValueNode {
           mut hasend,
         } = arg;
         let (_, char, nextchar) = charword;
-        temp += &char;
-        if &char == ":" {
+        temp.push(char.clone());
+        if *char == ':' {
           return Err(self.error_msg(&index));
         }
-        if Self::is_end(&nextchar, None) {
+        if Self::is_end(nextchar, None) {
           hasend = true;
         }
         Ok(ScanResult::Arg(ScanArg {
@@ -139,7 +143,7 @@ impl ValueNode {
   ///
   pub fn parse_value_string_const(&self, start: &usize) -> Result<(String, usize), String> {
     let charlist = &self.charlist;
-    let mut keyword: String = "".to_string();
+    let mut keyword = '\0';
     let (value, end) = traversal(
       Some(*start),
       charlist,
@@ -152,19 +156,19 @@ impl ValueNode {
         let (_, char, nextchar) = charword;
         // todo @{...} not support
         if temp.is_empty() {
-          if &char == r#"'"# || &char == r#"""# {
-            keyword = char.clone();
-            temp += &char;
+          if *char == '\'' || *char == '"' {
+            keyword = *char;
+            temp.push(char.clone());
           } else {
             return Err(self.error_msg(&index));
           }
         } else {
-          temp += &char;
+          temp.push(char.clone());
         }
 
-        if nextchar == keyword && char != r#"\"# {
+        if nextchar.is_some() && *nextchar.unwrap() == keyword && *char != '\\' {
           hasend = true;
-          temp += &keyword;
+          temp.push(keyword.clone());
           index += 1;
         }
 
@@ -185,7 +189,7 @@ impl ValueNode {
       && *value.tocharlist().get(value.len() - 1).unwrap() != keyword)
       || value.len() == 1
     {
-      return Err(format!("{} is not closure", self.origin_txt));
+      return Err(format!("{} is not closure", self.charlist.poly()));
     }
 
     Ok((value, end))
@@ -207,7 +211,7 @@ impl ValueNode {
         } = arg;
         let (_, char, nextchar) = charword;
         // 第一位必须是 @
-        if temp.is_empty() && &char == "@" {
+        if temp.is_empty() && *char == '@' {
           temp += "@";
           Ok(ScanResult::Arg(ScanArg {
             index,
@@ -218,32 +222,32 @@ impl ValueNode {
           Err(self.error_msg(&index))
         } else {
           // 后续写词
-          if Token::is_token(&char) {
-            if &char == "-" {
-              if Token::is_token(&nextchar) {
+          if Token::is_token(Some(char)) {
+            if *char == '-' {
+              if Token::is_token(nextchar) {
                 hasend = true;
                 index -= 1;
-              } else if !nextchar.is_empty() {
-                temp += &char;
+              } else if nextchar.is_some() {
+                temp.push(char.clone());
               }
               // @- is error
               if temp.len() < 2 {
                 return Err(self.error_msg(&index));
               }
-            } else if Self::is_end(&char, None) {
+            } else if Self::is_end(Some(char), None) {
               // @+ @* is error
               if temp.len() < 2 {
                 return Err(self.error_msg(&index));
               }
               hasend = true;
               index -= 1;
-            } else if &char == r#"\"# {
-              temp += &char;
+            } else if *char == '\\' {
+              temp.push(char.clone());
             } else {
               return Err(self.error_msg(&index));
             }
           } else {
-            temp += &char;
+            temp.push(char.clone());
           }
           Ok(ScanResult::Arg(ScanArg {
             index,
@@ -273,10 +277,10 @@ impl ValueNode {
   /// 向后查找
   /// 第一个 非空字符串
   ///
-  fn find_next_no_space_char(&self, mut index: usize) -> Option<String> {
+  fn find_next_no_space_char(&self, mut index: usize) -> Option<char> {
     while index < self.charlist.len() {
       let cur = self.charlist.get(index).unwrap();
-      if !Token::is_space_token(cur) {
+      if !Token::is_space_token(Some(cur)) {
         return Some(cur.clone());
       }
       index += 1;
@@ -308,20 +312,19 @@ impl ValueNode {
         } = arg;
         let (prevchar, char, nextchar) = charword;
 
-        if Token::is_token(&char) {
+        if Token::is_token(Some(char)) {
           // 判断小数点的 情况
-          if &char == "." && !has_single && Self::is_number(&prevchar) && Self::is_number(&nextchar)
-          {
-            value += &char;
+          if *char == '.' && !has_single && Self::is_number(prevchar) && Self::is_number(nextchar) {
+            value.push(char.clone());
             has_single = true;
-          } else if &char == "%" {
-            unit += &char;
+          } else if *char == '%' {
+            unit.push(char.clone());
           } else {
             return Err(self.error_msg(&index));
           }
-        } else if Self::is_number(&char) {
+        } else if Self::is_number(Some(char)) {
           if !has_record_value {
-            value += &char;
+            value.push(char.clone());
           } else {
             index -= 1;
             hasend = true;
@@ -333,12 +336,12 @@ impl ValueNode {
           if !has_record_value {
             has_record_value = true;
           }
-          unit += &char;
+          unit.push(char.clone());
         }
         // 判断是否完结
-        if Self::is_end(&nextchar, Some(vec!["-"]))
-          || (has_single && &nextchar == ".")
-          || &char == "%"
+        if Self::is_end(nextchar, Some(vec!['-']))
+          || (has_single && nextchar.is_some() && *nextchar.unwrap() == '.')
+          || *char == '%'
         {
           hasend = true;
         }
@@ -360,21 +363,21 @@ impl ValueNode {
   ///
   /// 判断 是否 是 操作符
   ///
-  fn is_operator(char: &str) -> bool {
-    vec!["+", "-", "*", "/"].contains(&char)
+  fn is_operator(char: &char) -> bool {
+    vec!['+', '-', '*', '/'].contains(char)
   }
 
   ///
   /// 检测 中小 括号 是否能够对齐
   ///
-  fn validate_brackets() -> Box<dyn FnMut(&str) -> Result<Vec<String>, String>> {
-    let mut brackets_vaildate: Vec<String> = vec![];
-    Box::new(move |char: &str| {
-      if TokenValueAllow::is(char) {
-        if char == "]" || char == ")" {
+  fn validate_brackets() -> Box<dyn FnMut(&char) -> Result<Vec<char>, String>> {
+    let mut brackets_vaildate: Vec<char> = vec![];
+    Box::new(move |char: &char| {
+      if vec!['(', ')', '[', ']', '\\'].contains(char) {
+        if *char == ']' || *char == ')' {
           let last = brackets_vaildate.last();
           if let Some(last_char) = last {
-            if (last_char == "(" && char == ")") || (last_char == "[" && char == "]") {
+            if (*last_char == '(' && *char == ')') || (*last_char == '[' && *char == ']') {
               brackets_vaildate.remove(brackets_vaildate.len() - 1);
             } else {
               return Err(format!(r#"{} is error "#, char));
@@ -383,7 +386,7 @@ impl ValueNode {
             return Err(format!(r#"{} is error "#, char));
           }
         } else {
-          brackets_vaildate.push(char.to_string())
+          brackets_vaildate.push(char.clone())
         }
       } else {
         return Err(format!(r#"{} is not '(' ')' '[' ']' "#, char));
@@ -402,7 +405,7 @@ impl ValueNode {
     }
     let index: usize = 0;
     let mut validate_fn = Self::validate_brackets();
-    let mut vaildate_res: Vec<String> = vec![];
+    let mut vaildate_res: Vec<char> = vec![];
 
     traversal(
       Some(index),
@@ -416,7 +419,7 @@ impl ValueNode {
         let (_, char, _) = charword;
 
         // 处理空格
-        if Token::is_space_token(&char) {
+        if Token::is_space_token(Some(char)) {
           match self.word_ident_list.last() {
             None => {}
             Some(val) => match val {
@@ -428,13 +431,13 @@ impl ValueNode {
               }
             },
           }
-        } else if &char == "@" {
+        } else if *char == '@' {
           let (var, end) = self.parse_value_var(&index)?;
           self.word_ident_list.push(IdentType::Var(var));
           index = end;
         }
         // 处理结尾词 ignore
-        else if &char == r#";"# {
+        else if *char == ';' {
           return if index == self.charlist.len() - 1 {
             Ok(ScanResult::Skip)
           } else {
@@ -442,7 +445,7 @@ impl ValueNode {
           };
         }
         // 处理prop
-        else if &char == "$" || &char == "~" {
+        else if *char == '$' || *char == '~' {
           // todo! $ style_rule
           // todo! ~ reference
           return Err(format!(
@@ -451,15 +454,17 @@ impl ValueNode {
           ));
         }
         // 处理 引用
-        else if &char == "#" {
+        else if *char == '#' {
           let (color, end) = self.parse_value_word(&index)?;
           self.word_ident_list.push(IdentType::Color(color));
           index = end;
         }
         // 处理 keyword
-        else if &char == "!" {
+        else if *char == '!' {
           let end = index + 10;
-          if self.charlist.len() >= end && &self.charlist[index..end].join("") == "!important" {
+          if self.charlist.len() >= end
+            && &self.charlist[index..end].to_vec().poly() == "!important"
+          {
             self
               .word_ident_list
               .push(IdentType::KeyWord("!important".to_string()));
@@ -471,7 +476,7 @@ impl ValueNode {
           }
         }
         // 处理引号词
-        else if &char == r#"""# || &char == r#"'"# {
+        else if *char == '"' || *char == '\'' {
           let (string_const, end) = self.parse_value_string_const(&index)?;
           self
             .word_ident_list
@@ -479,12 +484,14 @@ impl ValueNode {
           index = end;
         }
         // 处理括号
-        else if TokenValueAllow::is(&char) {
-          if &char != r#"\"# {
-            match validate_fn(&char) {
+        else if vec!['(', ')', '[', ']', '\\'].contains(char) {
+          if *char != '\\' {
+            match validate_fn(char) {
               Ok(res) => {
                 vaildate_res = res;
-                self.word_ident_list.push(IdentType::Brackets(char));
+                self
+                  .word_ident_list
+                  .push(IdentType::Brackets(char.to_string()));
               }
               Err(..) => {
                 return Err(self.error_msg(&index));
@@ -500,9 +507,11 @@ impl ValueNode {
           let next_char_no_space = self.find_next_no_space_char(index).unwrap();
           if last_item.is_some()
             && last_item.unwrap().is_number()
-            && Self::is_number(&next_char_no_space)
+            && Self::is_number(Some(&next_char_no_space))
           {
-            self.word_ident_list.push(IdentType::Operator(char));
+            self
+              .word_ident_list
+              .push(IdentType::Operator(char.to_string()));
           } else {
             let (word, end) = self.parse_value_word(&index)?;
             self.word_ident_list.push(IdentType::Word(word));
@@ -510,7 +519,7 @@ impl ValueNode {
           }
         }
         // 处理 数值
-        else if Self::is_number(&char) {
+        else if Self::is_number(Some(char)) {
           let ((val, unit), end) = self.parse_value_number(&index)?;
           self.word_ident_list.push(IdentType::Number(val, unit));
           index = end;
@@ -534,7 +543,7 @@ impl ValueNode {
     if !vaildate_res.is_empty() {
       return Err(format!(
         "{} contains unclosed parentheses -> {:#?}",
-        &self.origin_txt, &vaildate_res
+        &self.charlist.poly(), &vaildate_res
       ));
     }
 

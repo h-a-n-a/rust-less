@@ -1,3 +1,4 @@
+use crate::extend::string::StringExtend;
 use crate::new_less::value::ValueNode;
 
 #[test]
@@ -21,7 +22,7 @@ fn test_value_parse() {
   let mut haserror = 0;
   vars_list
     .into_iter()
-    .for_each(|tt| match ValueNode::new(tt, None, None, None) {
+    .for_each(|tt| match ValueNode::new(tt.tocharlist(), None, None, None) {
       Ok(obj) => {
         println!("{:#?}", obj);
       }

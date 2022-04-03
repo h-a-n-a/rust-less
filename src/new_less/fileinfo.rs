@@ -21,7 +21,7 @@ pub struct FileInfo {
   // 文件的原始内容
   pub origin_txt_content: String,
   // 根据 原始内容 -> 转化的 字符数组
-  pub origin_charlist: Vec<String>,
+  pub origin_charlist: Vec<char>,
   // 文件的 原始AST节点
   pub block_node: Vec<StyleNode>,
   // 当前所有 索引 对应的 坐标行列 -> 用于执行 sourcemap
@@ -89,8 +89,8 @@ impl FileInfo {
   ///
   /// 生成整个文件的 locmap 地图
   ///
-  pub fn get_loc_by_content(content: &str) -> LocMap {
-    LocMap::new(content.to_string())
+  pub fn get_loc_by_content(chars: &Vec<char>) -> LocMap {
+    LocMap::new(chars)
   }
 
   ///
@@ -125,16 +125,16 @@ impl FileInfo {
     context: ParseContext,
   ) -> Result<FileRef, String> {
     let text_content: String;
-    let charlist: Vec<String>;
+    let charlist: Vec<char>;
     let mut locmap: Option<LocMap> = None;
     let option = context.deref().borrow().get_options();
     let obj = match FileManger::resolve(filepath, option.include_path.clone()) {
       Ok((abs_path, content)) => {
         text_content = content.clone();
-        if option.sourcemap {
-          locmap = Some(FileInfo::get_loc_by_content(content.as_str()));
-        }
         charlist = content.tocharlist();
+        if option.sourcemap {
+          locmap = Some(FileInfo::get_loc_by_content(&charlist));
+        }
         FileInfo {
           disk_location: abs_path,
           block_node: vec![],
@@ -164,11 +164,11 @@ impl FileInfo {
     filename: String,
   ) -> Result<FileRef, String> {
     let text_content: String = content.clone();
-    let charlist: Vec<String> = text_content.tocharlist();
+    let charlist = text_content.tocharlist();
     let option = context.deref().borrow().get_options();
     let mut locmap: Option<LocMap> = None;
     if option.sourcemap {
-      locmap = Some(FileInfo::get_loc_by_content(content.as_str()));
+      locmap = Some(FileInfo::get_loc_by_content(&charlist));
     }
     let obj = FileInfo {
       disk_location: filename,

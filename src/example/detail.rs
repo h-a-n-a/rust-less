@@ -1,6 +1,7 @@
 use crate::new_less::context::Context;
 use crate::new_less::var_node::VarNode;
 use test::Bencher;
+use crate::extend::string::StringExtend;
 
 #[bench]
 fn parse_value_bench(bench: &mut Bencher) {
@@ -8,7 +9,7 @@ fn parse_value_bench(bench: &mut Bencher) {
     let mut index = 0;
     while index < 1000 {
       let content = r#"@width:400px;"#.to_string();
-      VarNode::new(content, None, None, None, Context::default());
+      VarNode::new(content.tocharlist(), None, None, None, Context::default());
       index += 1;
     }
   });
@@ -42,7 +43,7 @@ fn parse_number_compare_bench(bench: &mut Bencher) {
 fn parse_str_u32_bench(bench: &mut Bencher) {
   bench.iter(|| {
     let char = "0123456789";
-    let charlist = char.chars().map(|x| x as u32).collect::<Vec<u32>>();
+    let charlist = char.chars().collect::<Vec<char>>();
     for item in charlist {
       println!("{:#?}", item);
     }

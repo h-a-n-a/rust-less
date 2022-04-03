@@ -1,9 +1,11 @@
 pub trait VecStrExtend {
   fn try_getword(&self, index: usize, wordlength: usize) -> Result<String, String>;
   fn poly(&self) -> String;
+  fn trim(&self) -> Self;
+  fn trim_start(&self) -> Self;
 }
 
-impl VecStrExtend for Vec<String> {
+impl VecStrExtend for Vec<char> {
   fn try_getword(&self, index: usize, wordlength: usize) -> Result<String, String> {
     if index < self.len() {
       let start = index;
@@ -11,32 +13,43 @@ impl VecStrExtend for Vec<String> {
       if end > self.len() {
         end = self.len();
       }
-      Ok(self[start..end].join(""))
+      Ok(self[start..end].to_vec().iter().collect::<String>())
     } else {
       Err("find index is over vec range!".to_string())
     }
   }
 
   fn poly(&self) -> String {
-    self.join("")
+    self.iter().collect::<String>()
   }
-}
 
-impl VecStrExtend for [String] {
-  fn try_getword(&self, index: usize, wordlength: usize) -> Result<String, String> {
-    if index < self.len() {
-      let start = index;
-      let mut end = index + wordlength;
-      if end > self.len() {
-        end = self.len();
+  fn trim(&self) -> Vec<char> {
+    let mut start = 0;
+    let mut end = self.len();
+    for (index, val) in self.iter().enumerate() {
+      if *val != ' ' && *val != '\r' && *val != '\n' {
+        start = index;
+        break;
       }
-      Ok(self[start..end].join(""))
-    } else {
-      Err("find index is over vec range!".to_string())
     }
+    for (index, val) in self.iter().rev().enumerate() {
+      if *val != ' ' && *val != '\r' && *val != '\n' {
+        end = self.len() - (index);
+        break;
+      }
+    }
+    self[start..end].to_vec()
   }
 
-  fn poly(&self) -> String {
-    self.join("")
+  fn trim_start(&self) -> Vec<char> {
+    let mut start = 0;
+    let end = self.len();
+    for (index, val) in self.iter().enumerate() {
+      if *val != ' ' && *val != '\r' && *val != '\n' {
+        start = index;
+        break;
+      }
+    }
+    self[start..end].to_vec()
   }
 }

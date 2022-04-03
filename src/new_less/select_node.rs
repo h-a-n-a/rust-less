@@ -6,6 +6,7 @@ use crate::new_less::option::OptionExtend;
 use crate::new_less::select::Selector;
 use serde::Serialize;
 use std::ops::{Deref, DerefMut};
+use crate::extend::vec_str::VecStrExtend;
 
 #[derive(Debug, Clone, Serialize)]
 pub enum SelectorNode {
@@ -20,20 +21,20 @@ impl SelectorNode {
   ///
   /// 初始化方法
   ///
-  pub fn new(txt: String, loc: &mut Option<Loc>, parent: NodeWeakRef) -> Result<Self, String> {
+  pub fn new(charlist: Vec<char>, loc: &mut Option<Loc>, parent: NodeWeakRef) -> Result<Self, String> {
     let mut map: Option<LocMap> = None;
     match parent.as_ref().unwrap().upgrade() {
       None => {}
       Some(p) => {
         if p.deref().borrow().get_options().sourcemap {
-          let (calcmap, end) = LocMap::merge(loc.as_ref().unwrap(), &txt);
+          let (calcmap, end) = LocMap::merge(loc.as_ref().unwrap(), &charlist);
           *loc = Some(end);
           map = Some(calcmap);
         }
       }
     }
     // 处理 media
-    match MediaQuery::new(txt.clone(), loc.clone(), map.clone(), parent.clone()) {
+    match MediaQuery::new(charlist.clone(), loc.clone(), map.clone(), parent.clone()) {
       HandleResult::Success(obj) => {
         return Ok(SelectorNode::Media(obj));
       }
@@ -43,7 +44,7 @@ impl SelectorNode {
       HandleResult::Swtich => {}
     };
     // 处理 select
-    match Selector::new(txt.clone(), loc.clone(), map, parent) {
+    match Selector::new(charlist.clone(), loc.clone(), map, parent) {
       HandleResult::Success(obj) => {
         return Ok(SelectorNode::Select(obj));
       }
@@ -52,7 +53,7 @@ impl SelectorNode {
       }
       HandleResult::Swtich => {}
     };
-    Err(format!("nothing node match the txt -> {}", txt))
+    Err(format!("nothing node match the txt -> {}", charlist.poly()))
   }
 
   pub fn value(&self) -> String {
@@ -91,7 +92,7 @@ impl SelectorNode {
         }
       }
       SelectorNode::Media(media) => {
-        tuple.0.push(media.origin_txt.clone());
+        tuple.0.push(media.charlist.poly());
         let rule = media.parent.as_ref().unwrap().upgrade().unwrap();
         if rule.deref().borrow().parent.is_some() {
           let parent_rule = rule

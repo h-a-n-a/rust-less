@@ -1,5 +1,4 @@
 use std::ops::Deref;
-use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::comment::skip_comment;
 use crate::new_less::context::ParseContext;
@@ -56,24 +55,24 @@ impl Rule for RuleNode {
 
 fn parse_rule(
   context: ParseContext,
-  origin_charlist: &[String],
+  origin_charlist: &Vec<char>,
   locmap: &Option<LocMap>,
   file_info: FileWeakRef,
 ) -> Result<Vec<NodeRef>, String> {
   let mut blocklist: Vec<NodeRef> = vec![];
-  let mut templist: Vec<String> = vec![];
+  let mut templist: Vec<char> = vec![];
   let mut index = 0;
 
   // 块等级
   let mut braces_level = 0;
   // 结束标记 & 开始标记
-  let endqueto = ";".to_string();
-  let start_braces = "{".to_string();
-  let end_braces = "}".to_string();
+  let endqueto = ';';
+  let start_braces = '{';
+  let end_braces = '}';
 
   let mut record_loc: Option<Loc> = None;
   let mut skipcall = skip_comment();
-  let mut selector_txt = "".to_string();
+  let mut selector_txt: Vec<char> = vec![];
 
   while index < origin_charlist.len() {
     let char = origin_charlist.get(index).unwrap().clone();
@@ -87,9 +86,9 @@ fn parse_rule(
       continue;
     }
     if context.deref().borrow().option.sourcemap
-      && char != " "
-      && char != "\r"
-      && char != "\n"
+      && char != ' '
+      && char != '\r'
+      && char != '\n'
       && record_loc.is_none()
     {
       record_loc = Some(locmap.as_ref().unwrap().get(&index).unwrap());
@@ -98,11 +97,7 @@ fn parse_rule(
 
     if char == start_braces {
       if braces_level == 0 {
-        selector_txt = templist
-          .poly()
-          .removelast_without_trim()
-          .trim_start()
-          .to_string();
+        selector_txt = templist[0..templist.len() - 1].to_vec().trim();
         templist.clear();
       }
       braces_level += 1;
@@ -117,7 +112,7 @@ fn parse_rule(
       braces_level -= 1;
       if braces_level == 0 {
         match RuleNode::new(
-          templist.poly().removelast_without_trim(),
+          templist[0..templist.len() - 1].to_vec().trim(),
           selector_txt.clone(),
           record_loc,
           file_info.clone(),
@@ -130,7 +125,7 @@ fn parse_rule(
             return Err(msg);
           }
         }
-        selector_txt = "".to_string();
+        selector_txt = vec![];
         templist.clear();
         record_loc = None;
       }

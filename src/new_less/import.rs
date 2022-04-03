@@ -1,5 +1,3 @@
-use crate::extend::str_into::StringInto;
-use crate::extend::string::StringExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::file_manger::FileManger;
 use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
@@ -7,11 +5,11 @@ use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::option::ParseOption;
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
-use crate::new_less::token::import::TokenImport;
 use crate::new_less::token::lib::Token;
 use derivative::Derivative;
 use serde::Serialize;
 use std::rc::Rc;
+use crate::extend::vec_str::VecStrExtend;
 
 ///
 /// import 处理
@@ -19,10 +17,6 @@ use std::rc::Rc;
 #[derive(Derivative, Serialize, Clone)]
 #[derivative(Debug)]
 pub struct ImportNode {
-  // 原始字符
-  #[serde(rename(serialize = "content"))]
-  pub origin_txt: String,
-
   // 节点坐标
   pub loc: Option<Loc>,
 
@@ -40,7 +34,7 @@ pub struct ImportNode {
 
   // 内部快速扫词 字符串 数组
   #[serde(skip_serializing)]
-  charlist: Vec<String>,
+  charlist: Vec<char>,
 
   // 经常 插件 hook 的 计算完的 文件地址
   #[serde(rename(serialize = "path"))]
@@ -57,7 +51,7 @@ impl ImportNode {
   /// 初始化方法
   ///
   pub fn new(
-    txt: String,
+    charlist: Vec<char>,
     loc: Option<Loc>,
     parent: NodeWeakRef,
     fileinfo: FileWeakRef,
@@ -65,17 +59,16 @@ impl ImportNode {
     importfiles: &mut Vec<FileRef>,
   ) -> HandleResult<Self> {
     let map = if loc.is_none() {
-      LocMap::new(txt.clone())
+      LocMap::new(&charlist)
     } else {
-      LocMap::merge(loc.as_ref().unwrap(), &txt).0
+      LocMap::merge(loc.as_ref().unwrap(), &charlist).0
     };
     let mut obj = Self {
-      origin_txt: txt.to_string(),
       loc,
       map,
       parent,
       fileinfo,
-      charlist: txt.trim().to_string().tocharlist(),
+      charlist,
       parse_hook_url: "".to_string(),
       context,
     };
@@ -100,7 +93,7 @@ impl ImportNode {
     let char = self.charlist.get(*index).unwrap().to_string();
     format!(
       "text {}, char {} is not allow, line is {} col is {}",
-      &self.origin_txt, char, error_loc.line, error_loc.col
+      &self.charlist.poly(), char, error_loc.line, error_loc.col
     )
   }
 
@@ -125,10 +118,8 @@ impl ImportNode {
         } = arg;
 
         if has_apost || has_quote {
-          if Token::is_token(&char) {
-            if (TokenImport::Apost.tostr_value() == char && has_apost)
-              || (TokenImport::Quote.tostr_value() == char && has_quote)
-            {
+          if Token::is_token(Some(char)) {
+            if ('\'' == *char && has_apost) || ('"' == *char && has_quote) {
               if index != charlist.len() - 2 {
                 return Err(self.error_msg(&index));
               } else {
@@ -137,16 +128,16 @@ impl ImportNode {
                 hasend = true
               }
             } else {
-              temp += &char;
+              temp.push(char.clone());
             }
           } else {
-            temp += &char;
+            temp.push(char.clone());
           }
-        } else if Token::is_token(&char) {
-          if !Token::is_space_token(&char) {
-            if TokenImport::Apost.tostr_value() == char {
+        } else if Token::is_token(Some(char)) {
+          if !Token::is_space_token(Some(char)) {
+            if '\'' == *char {
               has_apost = true;
-            } else if TokenImport::Quote.tostr_value() == char {
+            } else if '"' == *char {
               has_quote = true;
             } else {
               return Err(self.error_msg(&index));
