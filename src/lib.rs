@@ -2,7 +2,6 @@
 #![feature(test)]
 #[macro_use]
 extern crate strum;
-extern crate derivative;
 extern crate test;
 
 #[cfg(test)]

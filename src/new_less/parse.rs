@@ -1,22 +1,22 @@
+use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::comment::Comment;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::{FileInfo, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{NodeRef, NodeWeakRef, StyleNode, StyleNodeJson, VarRuleNode};
+use crate::new_less::node::{NodeRef, NodeWeakRef, StyleNode, VarRuleNode};
 use crate::new_less::option::OptionExtend;
 use crate::new_less::rule::Rule;
 use crate::new_less::select_node::SelectorNode;
 use crate::new_less::style_rule::StyleRuleNode;
 use crate::new_less::var::Var;
-use derivative::Derivative;
-use serde::Serialize;
+use serde::ser::SerializeStruct;
+use serde::{Serialize, Serializer};
 use std::cell::RefCell;
+use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
 use std::rc::Rc;
-use crate::extend::vec_str::VecStrExtend;
 
-#[derive(Derivative)]
-#[derivative(Debug, Clone)]
+#[derive(Clone)]
 pub struct RuleNode {
   // 选择器 文字
   pub selector: Option<SelectorNode>,
@@ -27,63 +27,43 @@ pub struct RuleNode {
   // 当前所有 索引 对应的 坐标行列 -> 用于执行 sourcemap
   pub locmap: Option<LocMap>,
   // 节点 父节点
-  #[derivative(Debug = "ignore")]
   pub parent: NodeWeakRef,
   // 自己的引用关系
-  #[derivative(Debug = "ignore")]
   pub weak_self: NodeWeakRef,
   // 节点 子节点
   pub block_node: Vec<StyleNode>,
   // 文件弱引用
-  #[derivative(Debug = "ignore")]
   pub file_info: FileWeakRef,
   // 全局上下文
-  #[derivative(Debug = "ignore")]
   pub context: ParseContext,
 }
 
-#[derive(Debug, Clone, Serialize)]
-pub struct RuleNodeJson {
-  // 节点内容
-  pub content: String,
-  // 选择器 文字
-  pub selector_txt: String,
-  // 节点坐标
-  pub loc: Option<Loc>,
-  // 节点 子节点
-  pub block_node: Vec<StyleNodeJson>,
+impl Serialize for RuleNode {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    let mut state = serializer.serialize_struct("RuleNode", 4)?;
+    state.serialize_field("content", &self.origin_charlist.poly())?;
+    state.serialize_field("loc", &self.loc)?;
+    state.serialize_field("select", &self.selector.as_ref().unwrap().value())?;
+    state.serialize_field("block_node", &self.block_node)?;
+    state.end()
+  }
+}
+
+impl Debug for RuleNode {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("RuleNode")
+      .field("content", &self.origin_charlist.poly())
+      .field("loc", &self.loc)
+      .field("select", &self.selector.as_ref().unwrap().value())
+      .field("block_node", &self.block_node)
+      .finish()
+  }
 }
 
 impl RuleNode {
-  ///
-  /// 转 json 标准化
-  ///
-  pub fn tojson(&self) -> RuleNodeJson {
-    let mut block_node = vec![];
-    self
-      .block_node
-      .clone()
-      .into_iter()
-      .for_each(|node| match node {
-        StyleNode::Comment(cc) => {
-          block_node.push(StyleNodeJson::Comment(cc));
-        }
-        StyleNode::Var(vv) => {
-          block_node.push(StyleNodeJson::Var(vv));
-        }
-        StyleNode::Rule(rule) => {
-          let futex_rule = rule.deref().borrow().deref().clone().tojson();
-          block_node.push(StyleNodeJson::Rule(futex_rule));
-        }
-      });
-    RuleNodeJson {
-      selector_txt: self.selector.as_ref().unwrap().value(),
-      content: self.origin_charlist.poly(),
-      loc: self.loc.as_ref().cloned(),
-      block_node,
-    }
-  }
-
   ///
   /// 构造方法
   ///
@@ -97,7 +77,7 @@ impl RuleNode {
     let mut change_loc: Option<Loc> = loc.clone();
     let obj = RuleNode {
       selector: None,
-      origin_charlist:charlist,
+      origin_charlist: charlist,
       loc,
       locmap: None,
       block_node: vec![],
@@ -118,7 +98,10 @@ impl RuleNode {
     };
     heapobj.borrow_mut().selector = Some(selector);
     if heapobj.deref().borrow().get_options().sourcemap {
-      let (calcmap, _) = LocMap::merge(change_loc.as_ref().unwrap(), &heapobj.borrow().origin_charlist);
+      let (calcmap, _) = LocMap::merge(
+        change_loc.as_ref().unwrap(),
+        &heapobj.borrow().origin_charlist,
+      );
       heapobj.borrow_mut().locmap = Some(calcmap);
     }
 

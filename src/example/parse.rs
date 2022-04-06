@@ -14,9 +14,9 @@ fn parse_less_bench(bench: &mut Bencher) {
 }
 
 #[bench]
-fn parse_value_bench(bench: &mut Bencher) {
+fn parse_var_bench(bench: &mut Bencher) {
   bench.iter(|| {
-    let filepath = path_resolve("assets/base.less");
+    let filepath = path_resolve("assets/var.less");
     let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
     context.render(filepath).unwrap();
   });

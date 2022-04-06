@@ -1,34 +1,26 @@
 use crate::extend::string::StringExtend;
+use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::comment::CommentNode;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::{FileRef, FileWeakRef};
 use crate::new_less::import::ImportNode;
 use crate::new_less::loc::Loc;
-use crate::new_less::parse::{RuleNode, RuleNodeJson};
+use crate::new_less::parse::RuleNode;
 use crate::new_less::style_rule::StyleRuleNode;
 use crate::new_less::var_node::VarNode;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
-use crate::extend::vec_str::VecStrExtend;
 
 pub type NodeWeakRef = Option<Weak<RefCell<RuleNode>>>;
 pub type NodeRef = Rc<RefCell<RuleNode>>;
 
 #[allow(clippy::large_enum_variant)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum StyleNode {
   Comment(CommentNode),
   Var(VarRuleNode),
   Rule(NodeRef),
-}
-
-#[allow(clippy::large_enum_variant)]
-#[derive(Debug, Clone, Serialize)]
-pub enum StyleNodeJson {
-  Comment(CommentNode),
-  Var(VarRuleNode),
-  Rule(RuleNodeJson),
 }
 
 ///

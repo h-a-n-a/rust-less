@@ -1,3 +1,4 @@
+use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::loc::{Loc, LocMap};
@@ -6,13 +7,12 @@ use crate::new_less::option::ParseOption;
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
 use crate::new_less::value::ValueNode;
-use derivative::Derivative;
-use serde::Serialize;
+use serde::ser::SerializeStruct;
+use serde::{Serialize, Serializer};
+use std::fmt::{Debug, Formatter};
 use uuid::Uuid;
-use crate::extend::vec_str::VecStrExtend;
 
-#[derive(Derivative, Serialize, Clone)]
-#[derivative(Debug)]
+#[derive(Clone)]
 pub struct VarNode {
   // 节点坐标
   pub loc: Option<Loc>,
@@ -21,19 +21,15 @@ pub struct VarNode {
   pub uuid: String,
 
   // 内部处理 地图
-  #[serde(skip_serializing)]
   map: LocMap,
 
   // 字符串 操作 序列
-  #[serde(skip_serializing)]
   charlist: Vec<char>,
 
   // 节点 父节点
-  #[serde(skip_serializing)]
   pub parent: NodeWeakRef,
 
   // 文件信息
-  #[serde(skip_serializing)]
   pub fileinfo: FileWeakRef,
 
   pub key: Option<String>,
@@ -41,9 +37,34 @@ pub struct VarNode {
   pub value: Option<ValueNode>,
 
   // 上下文
-  #[derivative(Debug = "ignore")]
-  #[serde(skip_serializing)]
   pub context: ParseContext,
+}
+
+impl Serialize for VarNode {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    let mut state = serializer.serialize_struct("VarNode", 5)?;
+    state.serialize_field("content", &self.charlist.poly())?;
+    state.serialize_field("loc", &self.loc)?;
+    state.serialize_field("uuid", &self.uuid)?;
+    state.serialize_field("key", &self.key)?;
+    state.serialize_field("value", &self.value)?;
+    state.end()
+  }
+}
+
+impl Debug for VarNode {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("VarNode")
+      .field("content", &self.charlist.poly())
+      .field("loc", &self.loc)
+      .field("uuid", &self.uuid)
+      .field("key", &self.key)
+      .field("value", &self.value)
+      .finish()
+  }
 }
 
 impl VarNode {
@@ -102,7 +123,10 @@ impl VarNode {
     let char = self.charlist.get(*index).unwrap().to_string();
     format!(
       "text {}, char {} is not allow, line is {} col is {}",
-      &self.charlist.poly(), char, error_loc.line, error_loc.col
+      &self.charlist.poly(),
+      char,
+      error_loc.line,
+      error_loc.col
     )
   }
 

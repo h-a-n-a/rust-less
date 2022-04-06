@@ -18,11 +18,12 @@ fn test_value_parse() {
     r#"rgba(255, 255, 255, 0.12);"#.to_string(),
     r#"rgb(var(--warning-6), 0.35);"#.to_string(),
     r#"50%;"#.to_string(),
+    r#"var(--color-text-2);"#.to_string(),
+    r#"1px + (20px*30px) solid #fff;"#.to_string(),
   ];
   let mut haserror = 0;
-  vars_list
-    .into_iter()
-    .for_each(|tt| match ValueNode::new(tt.tocharlist(), None, None, None) {
+  vars_list.into_iter().for_each(
+    |tt| match ValueNode::new(tt.tocharlist(), None, None, None) {
       Ok(obj) => {
         println!("{:#?}", obj);
       }
@@ -30,6 +31,7 @@ fn test_value_parse() {
         haserror += 1;
         println!("{}", msg);
       }
-    });
+    },
+  );
   assert_eq!(haserror, 0);
 }

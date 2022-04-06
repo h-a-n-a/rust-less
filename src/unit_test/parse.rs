@@ -10,6 +10,6 @@ fn test_less_parse() {
   let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
   let info = context.parse(filepath).unwrap();
   record();
-  let json = serde_json::to_string_pretty(&info.borrow().tojson()).unwrap();
+  let json = serde_json::to_string_pretty(&info).unwrap();
   println!("{}", json);
 }

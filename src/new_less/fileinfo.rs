@@ -3,18 +3,18 @@ use crate::new_less::comment::Comment;
 use crate::new_less::context::ParseContext;
 use crate::new_less::file_manger::FileManger;
 use crate::new_less::loc::LocMap;
-use crate::new_less::node::{NodeRef, StyleNode, StyleNodeJson, VarRuleNode};
+use crate::new_less::node::{NodeRef, StyleNode, VarRuleNode};
 use crate::new_less::rule::Rule;
 use crate::new_less::var::Var;
 use crate::new_less::var_node::VarNode;
-use derivative::Derivative;
-use serde::Serialize;
+use serde::ser::SerializeStruct;
+use serde::{Serialize, Serializer};
 use std::cell::RefCell;
+use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
 use std::rc::{Rc, Weak};
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Clone)]
 pub struct FileInfo {
   // 文件的磁盘位置
   pub disk_location: String,
@@ -27,56 +27,41 @@ pub struct FileInfo {
   // 当前所有 索引 对应的 坐标行列 -> 用于执行 sourcemap
   pub locmap: Option<LocMap>,
   // 全局上下文
-  #[derivative(Debug = "ignore")]
   pub context: ParseContext,
   // 自身弱引用
-  #[derivative(Debug = "ignore")]
   pub self_weak: FileWeakRef,
   // 该文件的引用文件
   pub import_files: Vec<FileRef>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct FileInfoJson {
-  pub disk_location: String,
-  pub block_node: Vec<StyleNodeJson>,
-  pub import_file: Vec<FileInfoJson>,
 }
 
 pub type FileRef = Rc<RefCell<FileInfo>>;
 
 pub type FileWeakRef = Option<Weak<RefCell<FileInfo>>>;
 
-impl FileInfo {
-  ///
-  /// 转 json 标准化
-  ///
-  pub fn tojson(&self) -> FileInfoJson {
-    let mut block_node = vec![];
-    self
-      .block_node
-      .clone()
-      .into_iter()
-      .for_each(|node| match node {
-        StyleNode::Comment(cc) => block_node.push(StyleNodeJson::Comment(cc)),
-        StyleNode::Var(vv) => block_node.push(StyleNodeJson::Var(vv)),
-        StyleNode::Rule(rule) => {
-          let futex_rule = rule.deref().borrow().deref().clone().tojson();
-          block_node.push(StyleNodeJson::Rule(futex_rule));
-        }
-      });
-    let import_file = self
-      .import_files
-      .iter()
-      .map(|x| x.deref().borrow().tojson())
-      .collect();
-    FileInfoJson {
-      disk_location: self.disk_location.clone(),
-      block_node,
-      import_file,
-    }
+impl Serialize for FileInfo {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    let mut state = serializer.serialize_struct("FileInfo", 3)?;
+    state.serialize_field("disk_location", &self.disk_location)?;
+    state.serialize_field("block_node", &self.block_node)?;
+    state.serialize_field("import_file", &self.import_files)?;
+    state.end()
   }
+}
 
+impl Debug for FileInfo {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("FileInfo")
+      .field("disk_location", &self.disk_location)
+      .field("block_node", &self.block_node)
+      .field("import_file", &self.import_files)
+      .finish()
+  }
+}
+
+impl FileInfo {
   ///
   /// 转 heap 堆上对象
   ///

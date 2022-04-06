@@ -1,3 +1,4 @@
+use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::ident::IdentType;
@@ -7,38 +8,33 @@ use crate::new_less::option::ParseOption;
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
 use crate::new_less::value::ValueNode;
-use serde::Serialize;
+use serde::ser::SerializeStruct;
+use serde::{Serialize, Serializer};
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
 use uuid::Uuid;
-use crate::extend::vec_str::VecStrExtend;
 
-#[derive(Serialize, Clone)]
+#[derive(Clone)]
 pub struct StyleRuleNode {
   // 节点坐标
   pub loc: Option<Loc>,
 
   // 字符串 操作 序列
-  #[serde(skip_serializing)]
   charlist: Vec<char>,
 
   // uuid 避免 查找时循环引用
   pub uuid: String,
 
   // 内部处理 地图
-  #[serde(skip_serializing)]
   map: LocMap,
 
   // 文件信息
-  #[serde(skip_serializing)]
   pub fileinfo: FileWeakRef,
 
   // 节点 父节点
-  #[serde(skip_serializing)]
   pub parent: NodeWeakRef,
 
   // 上下文
-  #[serde(skip_serializing)]
   pub context: ParseContext,
 
   // 对应的 key 值
@@ -48,9 +44,24 @@ pub struct StyleRuleNode {
   pub value: Option<ValueNode>,
 }
 
+impl Serialize for StyleRuleNode {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    let mut state = serializer.serialize_struct("StyleRuleNode", 5)?;
+    state.serialize_field("content", &self.charlist.poly())?;
+    state.serialize_field("loc", &self.loc)?;
+    state.serialize_field("uuid", &self.uuid)?;
+    state.serialize_field("key", &self.key)?;
+    state.serialize_field("value", &self.value)?;
+    state.end()
+  }
+}
+
 impl Debug for StyleRuleNode {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("ValueNode")
+    f.debug_struct("StyleRuleNode")
       .field("content", &self.charlist.poly())
       .field("loc", &self.loc)
       .field("uuid", &self.uuid)
@@ -112,7 +123,10 @@ impl StyleRuleNode {
     let char = self.charlist.get(*index).unwrap().to_string();
     format!(
       "text {}, char {} is not allow, line is {} col is {}",
-      &self.charlist.poly(), char, error_loc.line, error_loc.col
+      &self.charlist.poly(),
+      char,
+      error_loc.line,
+      error_loc.col
     )
   }
 
@@ -230,7 +244,7 @@ impl StyleRuleNode {
   pub fn code_gen(&self) -> Result<String, String> {
     let no_var_list = self.get_no_var_ident_list()?;
     let res = Self::group_calc_ident_value(no_var_list)?;
-    let code_res = format!("{} : {}", self.key.as_ref().unwrap(), res);
+    let code_res = format!("{}: {};", self.key.as_ref().unwrap(), res);
     Ok(code_res)
   }
 
@@ -238,10 +252,12 @@ impl StyleRuleNode {
   /// 计算 提纯后 根据所有 词的 性质进行组合
   /// 用于 (运算)
   ///
-  pub fn group_calc_ident_value(mut list: Vec<IdentType>) -> Result<String, String> {
-    list.reverse();
+  pub fn group_calc_ident_value(list: Vec<IdentType>) -> Result<String, String> {
+    // 非计算词性
     let mut nature_list: Vec<IdentType> = vec![];
+    // 计算词性
     let mut calc_list: Vec<IdentType> = vec![];
+    // 下标
     let mut index = 0;
 
     // 逆向查找第一个 非空格 的元素
@@ -266,11 +282,6 @@ impl StyleRuleNode {
             if matches!(last_calc_item, IdentType::Number(..)) {
               calc_list.push(IdentType::Operator(op));
             } else {
-              // let json = serde_json::to_string_pretty(&calc_list).unwrap();
-              // println!("{}", json);
-              let json = serde_json::to_string_pretty(&list).unwrap();
-              println!("{}", json);
-
               return Err(format!("operatar char is repeat {}", op));
             }
           } else {
@@ -417,7 +428,7 @@ impl StyleRuleNode {
     for (index, ident_list) in handle_vec {
       list.remove(index);
       let mut setp = 0;
-      ident_list.iter().rev().for_each(|x| {
+      ident_list.iter().for_each(|x| {
         list.insert(index + setp, x.clone());
         setp += 1;
       });

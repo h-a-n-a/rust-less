@@ -5,6 +5,7 @@ use crate::new_less::node::StyleNode;
 use crate::new_less::option::{OptionExtend, ParseOption};
 use crate::new_less::parse::RuleNode;
 use serde::Serialize;
+use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
 
 pub trait Comment {
@@ -14,16 +15,24 @@ pub trait Comment {
   fn skip_comment() -> Box<dyn FnMut(String, char, &mut usize) -> bool>;
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Clone, Serialize)]
 pub struct CommentNode {
   // 节点内容
   pub content: String,
   // 节点坐标
   pub loc: Option<Loc>,
-
   // 注释开始索引
   #[serde(skip_serializing)]
   startindex: usize,
+}
+
+impl Debug for CommentNode {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("CommentNode")
+      .field("content", &self.content)
+      .field("loc", &self.loc)
+      .finish()
+  }
 }
 
 impl Comment for FileInfo {

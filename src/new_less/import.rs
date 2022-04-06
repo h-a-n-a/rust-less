@@ -1,3 +1,4 @@
+use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::file_manger::FileManger;
 use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
@@ -6,44 +7,59 @@ use crate::new_less::node::{HandleResult, NodeWeakRef};
 use crate::new_less::option::ParseOption;
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
-use derivative::Derivative;
-use serde::Serialize;
+use serde::ser::SerializeStruct;
+use serde::{Serialize, Serializer};
+use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
-use crate::extend::vec_str::VecStrExtend;
 
 ///
 /// import 处理
 ///
-#[derive(Derivative, Serialize, Clone)]
-#[derivative(Debug)]
+#[derive(Clone)]
 pub struct ImportNode {
   // 节点坐标
   pub loc: Option<Loc>,
 
   // 内部处理 地图
-  #[serde(skip_serializing)]
   map: LocMap,
 
   // 自身 Rule 的弱引用
-  #[serde(skip_serializing)]
   parent: NodeWeakRef,
 
   // 文件信息
-  #[serde(skip_serializing)]
   pub fileinfo: FileWeakRef,
 
   // 内部快速扫词 字符串 数组
-  #[serde(skip_serializing)]
   charlist: Vec<char>,
 
   // 经常 插件 hook 的 计算完的 文件地址
-  #[serde(rename(serialize = "path"))]
   parse_hook_url: String,
 
   // 上下文
-  #[derivative(Debug = "ignore")]
-  #[serde(skip_serializing)]
   pub context: ParseContext,
+}
+
+impl Debug for ImportNode {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("ImportNode")
+      .field("content", &self.charlist.poly())
+      .field("loc", &self.loc)
+      .field("path", &self.parse_hook_url)
+      .finish()
+  }
+}
+
+impl Serialize for ImportNode {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    let mut state = serializer.serialize_struct("ImportNode", 3)?;
+    state.serialize_field("content", &self.charlist.poly())?;
+    state.serialize_field("loc", &self.loc)?;
+    state.serialize_field("path", &self.parse_hook_url)?;
+    state.end()
+  }
 }
 
 impl ImportNode {
@@ -93,7 +109,10 @@ impl ImportNode {
     let char = self.charlist.get(*index).unwrap().to_string();
     format!(
       "text {}, char {} is not allow, line is {} col is {}",
-      &self.charlist.poly(), char, error_loc.line, error_loc.col
+      &self.charlist.poly(),
+      char,
+      error_loc.line,
+      error_loc.col
     )
   }
 

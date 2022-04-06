@@ -6,37 +6,45 @@ use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::NodeWeakRef;
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
-use serde::Serialize;
+use serde::ser::SerializeStruct;
+use serde::{Serialize, Serializer};
 use std::fmt::{Debug, Formatter};
 
-#[derive(Serialize, Clone)]
+#[derive(Clone)]
 pub struct ValueNode {
-
   // 字符 向量 只读
-  #[serde(skip_serializing)]
   charlist: Vec<char>,
 
   // rule 父节点
-  #[serde(skip_serializing)]
   pub parent: NodeWeakRef,
 
   // 文件节点
-  #[serde(skip_serializing)]
   pub fileinfo: FileWeakRef,
 
   // 内部处理 地图
-  #[serde(skip_serializing)]
   map: LocMap,
 
   // 单词 范式
   pub word_ident_list: Vec<IdentType>,
 }
 
+impl Serialize for ValueNode {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    let mut state = serializer.serialize_struct("ValueNode", 2)?;
+    state.serialize_field("content", &self.charlist.poly())?;
+    state.serialize_field("ident", &self.word_ident_list)?;
+    state.end()
+  }
+}
+
 impl Debug for ValueNode {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("ValueNode")
       .field("origin_txt", &self.charlist.poly())
-      .field("word_ident_list", &self.word_ident_list)
+      .field("ident", &self.word_ident_list)
       .finish()
   }
 }
@@ -72,14 +80,12 @@ impl ValueNode {
     let char = self.charlist.get(*index).unwrap().to_string();
     format!(
       "text {}, char {} is not allow, line is {} col is {}",
-      &self.charlist.poly(), char, error_loc.line, error_loc.col
+      &self.charlist.poly(),
+      char,
+      error_loc.line,
+      error_loc.col
     )
   }
-
-  ///
-  /// 产生代码
-  ///
-  pub fn code_gen(&self) {}
 
   ///
   /// 是否是数字
@@ -89,6 +95,17 @@ impl ValueNode {
       false
     } else {
       vec!['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].contains(char.unwrap())
+    }
+  }
+
+  ///
+  /// 是否是括号
+  ///
+  pub fn is_brackets(char: Option<&char>) -> bool {
+    if char.is_none() {
+      false
+    } else {
+      vec!['(', ')', '[', ']', '{', '}'].contains(char.unwrap())
     }
   }
 
@@ -278,6 +295,7 @@ impl ValueNode {
   /// 第一个 非空字符串
   ///
   fn find_next_no_space_char(&self, mut index: usize) -> Option<char> {
+    index += 1;
     while index < self.charlist.len() {
       let cur = self.charlist.get(index).unwrap();
       if !Token::is_space_token(Some(cur)) {
@@ -507,7 +525,8 @@ impl ValueNode {
           let next_char_no_space = self.find_next_no_space_char(index).unwrap();
           if last_item.is_some()
             && last_item.unwrap().is_number()
-            && Self::is_number(Some(&next_char_no_space))
+            && (Self::is_number(Some(&next_char_no_space))
+              || Self::is_brackets(Some(&next_char_no_space)))
           {
             self
               .word_ident_list
@@ -543,7 +562,8 @@ impl ValueNode {
     if !vaildate_res.is_empty() {
       return Err(format!(
         "{} contains unclosed parentheses -> {:#?}",
-        &self.charlist.poly(), &vaildate_res
+        &self.charlist.poly(),
+        &vaildate_res
       ));
     }
 
