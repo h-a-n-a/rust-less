@@ -14,6 +14,15 @@ fn parse_less_bench(bench: &mut Bencher) {
 }
 
 #[bench]
+fn parse_value_bench(bench: &mut Bencher) {
+  bench.iter(|| {
+    let filepath = path_resolve("assets/base.less");
+    let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
+    context.render(filepath).unwrap();
+  });
+}
+
+#[bench]
 fn render_less_arco_pro_bench(bench: &mut Bencher) {
   bench.iter(|| {
     // 处理过程
@@ -24,10 +33,10 @@ fn render_less_arco_pro_bench(bench: &mut Bencher) {
 }
 
 #[bench]
-fn parse_less_bench_without_sourcemap(bench: &mut Bencher) {
+fn render_less_arco_pro_bench_without_sourcemap(bench: &mut Bencher) {
   bench.iter(|| {
     // 处理过程
-    let filepath = path_resolve("assets/base.less");
+    let filepath = path_resolve("assets/arco-pro/13.less");
     let context = Context::new(
       ParseOption {
         include_path: vec![],

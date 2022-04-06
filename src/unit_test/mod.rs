@@ -1,3 +1,4 @@
+mod arco_pro;
 mod comment;
 mod import;
 mod loc;
