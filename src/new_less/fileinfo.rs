@@ -2,8 +2,9 @@ use crate::extend::string::StringExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::file_manger::FileManger;
 use crate::new_less::loc::LocMap;
-use crate::new_less::node::{NodeRef, StyleNode, VarRuleNode};
+use crate::new_less::node::{NodeRef, StyleNode};
 use crate::new_less::parse::Parse;
+use crate::new_less::var::VarRuleNode;
 use crate::new_less::var_node::VarNode;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
@@ -134,8 +135,7 @@ impl FileInfo {
       }
     };
     let obj_heap = obj.toheap();
-    // Self::parse_heap(obj_heap.clone())?;
-    obj_heap.borrow_mut().parse_heap_new()?;
+    obj_heap.borrow_mut().parse_heap()?;
     Ok(obj_heap)
   }
 
@@ -165,12 +165,7 @@ impl FileInfo {
       import_files: vec![],
     };
     let obj_heap = obj.toheap();
-    match Self::parse_heap(obj_heap.clone()) {
-      Ok(_) => {}
-      Err(msg) => {
-        return Err(msg);
-      }
-    }
+    obj_heap.borrow_mut().parse_heap()?;
     Ok(obj_heap)
   }
 

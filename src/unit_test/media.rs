@@ -1,6 +1,6 @@
 use crate::extend::string::StringExtend;
 use crate::new_less::media::MediaQuery;
-use crate::new_less::node::HandleResult;
+use crate::new_less::var::HandleResult;
 
 #[test]
 fn test_media_parse() {

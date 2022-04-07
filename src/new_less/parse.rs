@@ -1,35 +1,14 @@
 use crate::extend::vec_str::VecStrExtend;
-use crate::new_less::comment::{Comment, CommentNode};
+use crate::new_less::comment::CommentNode;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{NodeRef, NodeWeakRef, StyleNode, VarRuleNode};
-use crate::new_less::rule::Rule;
-use crate::new_less::rule_node::RuleNode;
-use crate::new_less::var::Var;
-use std::ops::Deref;
-
-impl FileInfo {
-  ///
-  /// 转化 AST
-  ///
-  pub fn parse_heap(obj: FileRef) -> Result<(), String> {
-    // 把当前 节点 的 对象 指针 放到 节点上 缓存中
-    let disk_location_path = obj.deref().borrow().disk_location.clone();
-    obj.deref().borrow().context.borrow_mut().set_cache(
-      disk_location_path.as_str(),
-      obj.deref().borrow().self_weak.clone(),
-    );
-    // 开始转换
-    obj.deref().borrow_mut().parse_comment()?;
-    obj.deref().borrow_mut().parse_var()?;
-    obj.deref().borrow_mut().parse_rule()?;
-    Ok(())
-  }
-}
+use crate::new_less::node::{NodeRef, NodeWeakRef, StyleNode};
+use crate::new_less::rule::RuleNode;
+use crate::new_less::var::VarRuleNode;
 
 impl Parse for FileInfo {
-  fn parse_heap_new(&mut self) -> Result<(), String> {
+  fn parse_heap(&mut self) -> Result<(), String> {
     // 把当前 节点 的 对象 指针 放到 节点上 缓存中
     let disk_location_path = self.disk_location.clone();
     self
@@ -68,17 +47,8 @@ impl Parse for FileInfo {
   }
 }
 
-impl RuleNode {
-  pub fn parse_heap(obj: NodeRef) -> Result<(), String> {
-    obj.deref().borrow_mut().parse_comment()?;
-    obj.deref().borrow_mut().parse_var()?;
-    obj.deref().borrow_mut().parse_rule()?;
-    Ok(())
-  }
-}
-
 impl Parse for RuleNode {
-  fn parse_heap_new(&mut self) -> Result<(), String> {
+  fn parse_heap(&mut self) -> Result<(), String> {
     let mut importfiles: Vec<FileRef> = vec![];
     let (commentlsit, varlist, rulelist) = Self::parse(
       self.context.clone(),
@@ -100,6 +70,9 @@ impl Parse for RuleNode {
         .map(StyleNode::Var)
         .collect::<Vec<StyleNode>>(),
     );
+    rulelist.iter().for_each(|node| {
+      node.borrow_mut().parent = self.weak_self.clone();
+    });
     self.block_node.append(
       &mut rulelist
         .into_iter()
@@ -299,5 +272,5 @@ pub trait Parse {
     Ok((comment_list, var_node_list, rule_node_list))
   }
 
-  fn parse_heap_new(&mut self) -> Result<(), String>;
+  fn parse_heap(&mut self) -> Result<(), String>;
 }

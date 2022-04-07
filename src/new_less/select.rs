@@ -1,11 +1,12 @@
 use crate::extend::enum_extend::EnumExtend;
 use crate::extend::str_into::StringInto;
+use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{HandleResult, NodeWeakRef};
+use crate::new_less::node::NodeWeakRef;
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::select::{TokenAllow, TokenCombina, TokenKeyWord, TokenSelect};
+use crate::new_less::var::HandleResult;
 use serde::Serialize;
-use crate::extend::vec_str::VecStrExtend;
 
 ///
 /// 选择器范式
@@ -27,7 +28,6 @@ pub enum SelectParadigm {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Selector {
-
   // 字符串规则 根据逗号分割
   pub single_select_txt: Vec<String>,
 
@@ -101,7 +101,10 @@ impl Selector {
     let error_loc = self.map.get(index).unwrap();
     Err(format!(
       "select text {}, char {} is not allow, line is {} col is {}",
-      self.charlist.poly(), char, error_loc.line, error_loc.col
+      self.charlist.poly(),
+      char,
+      error_loc.line,
+      error_loc.col
     ))
   }
 
@@ -238,7 +241,10 @@ impl Selector {
       index += 1;
     }
     if !hasend {
-      return Err(format!("select text {}, not found ']'", self.charlist.poly()));
+      return Err(format!(
+        "select text {}, not found ']'",
+        self.charlist.poly()
+      ));
     }
     let obj = SelectParadigm::SelectWrap(temp);
     Ok((obj, index))
@@ -271,7 +277,10 @@ impl Selector {
       index += 1;
     }
     if !hasend {
-      return Err(format!("select text {}, not found ')'", self.charlist.poly()));
+      return Err(format!(
+        "select text {}, not found ')'",
+        self.charlist.poly()
+      ));
     }
     let obj = SelectParadigm::SelectWrap(temp);
     Ok((obj, index))

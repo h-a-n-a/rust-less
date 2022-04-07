@@ -12,7 +12,6 @@ pub mod node;
 pub mod option;
 pub mod parse;
 pub mod rule;
-pub mod rule_node;
 pub mod scan;
 pub mod select;
 pub mod select_node;

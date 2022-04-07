@@ -1,10 +1,11 @@
 use crate::extend::enum_extend::EnumExtend;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{HandleResult, NodeWeakRef};
+use crate::new_less::node::NodeWeakRef;
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::media::{TokenMediaFeature, TokenMediaLogic, TokenMediaType};
+use crate::new_less::var::HandleResult;
 use serde::Serialize;
 use std::ops::Deref;
 

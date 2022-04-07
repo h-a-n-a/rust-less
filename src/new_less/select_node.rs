@@ -1,12 +1,13 @@
 use crate::extend::string::StringExtend;
+use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::media::MediaQuery;
-use crate::new_less::node::{HandleResult, NodeWeakRef};
+use crate::new_less::node::NodeWeakRef;
 use crate::new_less::option::OptionExtend;
 use crate::new_less::select::Selector;
+use crate::new_less::var::HandleResult;
 use serde::Serialize;
 use std::ops::{Deref, DerefMut};
-use crate::extend::vec_str::VecStrExtend;
 
 #[derive(Debug, Clone, Serialize)]
 pub enum SelectorNode {
@@ -21,7 +22,11 @@ impl SelectorNode {
   ///
   /// 初始化方法
   ///
-  pub fn new(charlist: Vec<char>, loc: &mut Option<Loc>, parent: NodeWeakRef) -> Result<Self, String> {
+  pub fn new(
+    charlist: Vec<char>,
+    loc: &mut Option<Loc>,
+    parent: NodeWeakRef,
+  ) -> Result<Self, String> {
     let mut map: Option<LocMap> = None;
     match parent.as_ref().unwrap().upgrade() {
       None => {}
