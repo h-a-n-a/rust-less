@@ -4,7 +4,7 @@ use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{NodeWeakRef, StyleNode, VarRuleNode};
-use crate::new_less::parse::RuleNode;
+use crate::new_less::rule_node::RuleNode;
 
 pub trait Var {
   fn parse_var(&mut self) -> Result<(), String>;

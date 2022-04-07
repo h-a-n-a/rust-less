@@ -3,7 +3,7 @@ use crate::new_less::fileinfo::FileInfo;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::StyleNode;
 use crate::new_less::option::{OptionExtend, ParseOption};
-use crate::new_less::parse::RuleNode;
+use crate::new_less::rule_node::RuleNode;
 use serde::Serialize;
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
@@ -23,7 +23,7 @@ pub struct CommentNode {
   pub loc: Option<Loc>,
   // 注释开始索引
   #[serde(skip_serializing)]
-  startindex: usize,
+  pub startindex: usize,
 }
 
 impl Debug for CommentNode {
@@ -174,6 +174,7 @@ fn parse_comment(
         start_index = Some(index);
       }
       commentlist.push(char.to_string());
+    } else {
     }
     // ignore 忽略 大括号区域
     if char == start_braces {

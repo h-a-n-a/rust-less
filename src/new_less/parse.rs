@@ -1,197 +1,303 @@
 use crate::extend::vec_str::VecStrExtend;
-use crate::new_less::comment::Comment;
+use crate::new_less::comment::{Comment, CommentNode};
 use crate::new_less::context::ParseContext;
-use crate::new_less::fileinfo::{FileInfo, FileWeakRef};
+use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{NodeRef, NodeWeakRef, StyleNode, VarRuleNode};
-use crate::new_less::option::OptionExtend;
 use crate::new_less::rule::Rule;
-use crate::new_less::select_node::SelectorNode;
-use crate::new_less::style_rule::StyleRuleNode;
+use crate::new_less::rule_node::RuleNode;
 use crate::new_less::var::Var;
-use serde::ser::SerializeStruct;
-use serde::{Serialize, Serializer};
-use std::cell::RefCell;
-use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
-use std::rc::Rc;
 
-#[derive(Clone)]
-pub struct RuleNode {
-  // 选择器 文字
-  pub selector: Option<SelectorNode>,
-  // 根据 原始内容 -> 转化的 字符数组
-  pub origin_charlist: Vec<char>,
-  // 节点坐标
-  pub loc: Option<Loc>,
-  // 当前所有 索引 对应的 坐标行列 -> 用于执行 sourcemap
-  pub locmap: Option<LocMap>,
-  // 节点 父节点
-  pub parent: NodeWeakRef,
-  // 自己的引用关系
-  pub weak_self: NodeWeakRef,
-  // 节点 子节点
-  pub block_node: Vec<StyleNode>,
-  // 文件弱引用
-  pub file_info: FileWeakRef,
-  // 全局上下文
-  pub context: ParseContext,
-}
-
-impl Serialize for RuleNode {
-  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: Serializer,
-  {
-    let mut state = serializer.serialize_struct("RuleNode", 4)?;
-    state.serialize_field("content", &self.origin_charlist.poly())?;
-    state.serialize_field("loc", &self.loc)?;
-    state.serialize_field("select", &self.selector.as_ref().unwrap().value())?;
-    state.serialize_field("block_node", &self.block_node)?;
-    state.end()
+impl FileInfo {
+  ///
+  /// 转化 AST
+  ///
+  pub fn parse_heap(obj: FileRef) -> Result<(), String> {
+    // 把当前 节点 的 对象 指针 放到 节点上 缓存中
+    let disk_location_path = obj.deref().borrow().disk_location.clone();
+    obj.deref().borrow().context.borrow_mut().set_cache(
+      disk_location_path.as_str(),
+      obj.deref().borrow().self_weak.clone(),
+    );
+    // 开始转换
+    obj.deref().borrow_mut().parse_comment()?;
+    obj.deref().borrow_mut().parse_var()?;
+    obj.deref().borrow_mut().parse_rule()?;
+    Ok(())
   }
 }
 
-impl Debug for RuleNode {
-  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("RuleNode")
-      .field("content", &self.origin_charlist.poly())
-      .field("loc", &self.loc)
-      .field("select", &self.selector.as_ref().unwrap().value())
-      .field("block_node", &self.block_node)
-      .finish()
+impl Parse for FileInfo {
+  fn parse_heap_new(&mut self) -> Result<(), String> {
+    // 把当前 节点 的 对象 指针 放到 节点上 缓存中
+    let disk_location_path = self.disk_location.clone();
+    self
+      .context
+      .borrow_mut()
+      .set_cache(disk_location_path.as_str(), self.self_weak.clone());
+    let mut importfiles: Vec<FileRef> = vec![];
+    let (commentlsit, varlist, rulelist) = Self::parse(
+      self.context.clone(),
+      &self.origin_charlist,
+      &self.locmap,
+      None,
+      self.self_weak.clone(),
+      &mut importfiles,
+    )?;
+    self.block_node.append(
+      &mut commentlsit
+        .into_iter()
+        .map(StyleNode::Comment)
+        .collect::<Vec<StyleNode>>(),
+    );
+    self.block_node.append(
+      &mut varlist
+        .into_iter()
+        .map(StyleNode::Var)
+        .collect::<Vec<StyleNode>>(),
+    );
+    self.block_node.append(
+      &mut rulelist
+        .into_iter()
+        .map(StyleNode::Rule)
+        .collect::<Vec<StyleNode>>(),
+    );
+    self.import_files = importfiles;
+    Ok(())
   }
 }
 
 impl RuleNode {
-  ///
-  /// 构造方法
-  ///
-  pub fn new(
-    charlist: Vec<char>,
-    selector_txt: Vec<char>,
-    loc: Option<Loc>,
-    file_info: FileWeakRef,
-    context: ParseContext,
-  ) -> Result<NodeRef, String> {
-    let mut change_loc: Option<Loc> = loc.clone();
-    let obj = RuleNode {
-      selector: None,
-      origin_charlist: charlist,
-      loc,
-      locmap: None,
-      block_node: vec![],
-      parent: None,
-      weak_self: None,
-      file_info,
-      context,
-    };
-    let heapobj = Rc::new(RefCell::new(obj));
-    let wek_self = Rc::downgrade(&heapobj);
-    heapobj.borrow_mut().weak_self = Some(wek_self.clone());
-
-    let selector = match SelectorNode::new(selector_txt, &mut change_loc, Some(wek_self)) {
-      Ok(result) => result,
-      Err(msg) => {
-        return Err(msg);
-      }
-    };
-    heapobj.borrow_mut().selector = Some(selector);
-    if heapobj.deref().borrow().get_options().sourcemap {
-      let (calcmap, _) = LocMap::merge(
-        change_loc.as_ref().unwrap(),
-        &heapobj.borrow().origin_charlist,
-      );
-      heapobj.borrow_mut().locmap = Some(calcmap);
-    }
-
-    match Self::parse_heap(heapobj.clone()) {
-      Ok(_) => {}
-      Err(msg) => {
-        return Err(msg);
-      }
-    }
-    Ok(heapobj)
-  }
-
-  pub fn visit_mut_file(&self, fileinfo: &mut FileInfo) {
-    self.block_node.iter().for_each(|x| {
-      if let StyleNode::Rule(rule) = x {
-        rule.borrow().visit_mut_file(fileinfo);
-      }
-    });
-  }
-
-  pub fn getrules(&self) -> Vec<NodeRef> {
-    let mut list = vec![];
-
-    self.block_node.iter().for_each(|x| {
-      if let StyleNode::Rule(rule) = x {
-        list.push(rule.clone());
-      }
-    });
-    list
-  }
-
-  pub fn get_style_rule(&self) -> Vec<StyleRuleNode> {
-    let mut list = vec![];
-    self.block_node.iter().for_each(|x| {
-      if let StyleNode::Var(VarRuleNode::StyleRule(style)) = x {
-        list.push(style.clone());
-      }
-    });
-    list
-  }
-
   pub fn parse_heap(obj: NodeRef) -> Result<(), String> {
     obj.deref().borrow_mut().parse_comment()?;
     obj.deref().borrow_mut().parse_var()?;
     obj.deref().borrow_mut().parse_rule()?;
     Ok(())
   }
+}
 
-  pub fn code_gen(&self, content: &mut String) -> Result<(), String> {
-    let rules = self.get_style_rule();
-
-    if !rules.is_empty() {
-      let (select_txt, media_txt) = self.selector.as_ref().unwrap().code_gen().unwrap();
-
-      let mut tab: String = "".to_string();
-      let mut index = 0;
-      while index < self.get_options().tabspaces {
-        tab += " ";
-        index += 1;
-      }
-
-      let create_rules = |tab: String| -> Result<String, String> {
-        let mut res: String = "".to_string();
-        for rule_res in rules {
-          res += &format!("{}{}{}", tab.clone(), rule_res.code_gen()?, "\n");
-        }
-        Ok(res)
-      };
-
-      if media_txt.is_empty() {
-        *content += format!("\n{}{}\n{}\n{}\n", select_txt, "{", create_rules(tab)?, "}").as_ref();
-      } else {
-        *content += format!(
-          "\n{}{}\n{}{}\n{}\n{}\n{}",
-          media_txt,
-          "{",
-          tab.clone() + &select_txt,
-          "{",
-          create_rules(tab.clone() + &tab.clone())?,
-          "  }",
-          "}"
-        )
-        .as_ref();
-      }
-    }
-
-    for node_ref in self.getrules() {
-      node_ref.deref().borrow().code_gen(content)?;
-    }
-
+impl Parse for RuleNode {
+  fn parse_heap_new(&mut self) -> Result<(), String> {
+    let mut importfiles: Vec<FileRef> = vec![];
+    let (commentlsit, varlist, rulelist) = Self::parse(
+      self.context.clone(),
+      &self.origin_charlist,
+      &self.locmap,
+      self.weak_self.clone(),
+      self.file_info.clone(),
+      &mut importfiles,
+    )?;
+    self.block_node.append(
+      &mut commentlsit
+        .into_iter()
+        .map(StyleNode::Comment)
+        .collect::<Vec<StyleNode>>(),
+    );
+    self.block_node.append(
+      &mut varlist
+        .into_iter()
+        .map(StyleNode::Var)
+        .collect::<Vec<StyleNode>>(),
+    );
+    self.block_node.append(
+      &mut rulelist
+        .into_iter()
+        .map(StyleNode::Rule)
+        .collect::<Vec<StyleNode>>(),
+    );
     Ok(())
   }
+}
+
+pub trait Parse {
+  ///
+  /// 基本 初步解析方法
+  ///
+  fn parse(
+    context: ParseContext,
+    origin_charlist: &Vec<char>,
+    locmap: &Option<LocMap>,
+    parent: NodeWeakRef,
+    fileinfo: FileWeakRef,
+    importfiles: &mut Vec<FileRef>,
+  ) -> Result<(Vec<CommentNode>, Vec<VarRuleNode>, Vec<NodeRef>), String> {
+    let mut comment_list: Vec<CommentNode> = vec![];
+    let mut rule_node_list: Vec<NodeRef> = vec![];
+    let mut var_node_list: Vec<VarRuleNode> = vec![];
+
+    let mut comment_word: Vec<String> = vec![];
+    let mut temp_word: Vec<char> = vec![];
+    let mut selector_txt: Vec<char> = vec![];
+
+    let mut index = 0;
+    // 块等级
+    let mut braces_level = 0;
+    // 结束标记 & 开始标记
+    let endqueto = ';';
+    let start_braces = '{';
+    let end_braces = '}';
+
+    // 是否在 注释 存入中
+    let mut wirte_comment = false;
+    let mut wirte_line_comment = false;
+    let mut wirte_closure_comment = false;
+
+    let single_queto = '\'';
+    let double_queto = '\'';
+    let mut match_queto: Option<char> = None;
+
+    // 注释的内容共
+    let comment_flag = "//".to_string();
+    let comment_mark_strat = "/*".to_string();
+    let comment_mark_end = "*/".to_string();
+
+    // 如果启用 sourcemap 则用来记录坐标
+    let mut record_loc: Option<Loc> = None;
+
+    // 记录 注释开始 索引
+    let mut comment_start_index: Option<usize> = None;
+    while index < origin_charlist.len() {
+      // 处理字符
+      let char = origin_charlist.get(index).unwrap().clone();
+      let word = origin_charlist.try_getword(index, 2).unwrap();
+
+      // 最优先判断 单双引号
+      if (char == single_queto || char == double_queto)
+        && match_queto.is_none()
+        && !wirte_comment
+        && !wirte_line_comment
+      {
+        match_queto = Some(char);
+      }
+
+      if match_queto.is_some()
+        && char == match_queto.unwrap()
+        && !wirte_comment
+        && !wirte_line_comment
+      {
+        match_queto = None;
+      }
+
+      // 优先判断注释
+      if match_queto.is_none() && word == comment_flag && braces_level == 0 && !wirte_comment {
+        wirte_comment = true;
+        wirte_line_comment = true;
+      } else if match_queto.is_none()
+        && word == comment_mark_strat
+        && braces_level == 0
+        && !wirte_comment
+      {
+        wirte_comment = true;
+        wirte_closure_comment = true;
+      }
+
+      // 注释结束
+      if braces_level == 0
+        && wirte_comment
+        && ((wirte_line_comment && (char == '\n' || char == '\r'))
+          || (wirte_closure_comment && word == comment_mark_end))
+      {
+        wirte_comment = false;
+        if wirte_line_comment {
+          index += 1;
+          comment_word.push(char.to_string());
+          wirte_line_comment = false;
+        } else if wirte_closure_comment {
+          index += 2;
+          comment_word.push(word.clone());
+          wirte_closure_comment = false;
+        }
+        let comment = CommentNode {
+          content: comment_word.join(""),
+          loc: record_loc,
+          startindex: comment_start_index.unwrap(),
+        };
+        comment_list.push(comment);
+        comment_word.clear();
+        comment_start_index = None;
+        record_loc = None;
+        continue;
+      }
+      if wirte_comment {
+        // 如果启用 sourcemap 则记录坐标
+        if context.borrow().option.sourcemap && char != '\r' && char != '\n' && record_loc.is_none()
+        {
+          record_loc = Some(locmap.as_ref().unwrap().get(&index).unwrap());
+        }
+        if comment_start_index.is_none() {
+          comment_start_index = Some(index);
+        }
+        comment_word.push(char.to_string());
+      } else {
+        // 进行 var 和 rule 的计算
+
+        // 记录坐标
+        if context.borrow().option.sourcemap
+          && char != ' '
+          && char != '\r'
+          && char != '\n'
+          && record_loc.is_none()
+        {
+          record_loc = Some(locmap.as_ref().unwrap().get(&index).unwrap());
+        }
+
+        // 存入普通字符串
+        temp_word.push(char.clone());
+        if char == endqueto && braces_level == 0 {
+          let style_var = match VarRuleNode::new(
+            temp_word.trim(),
+            record_loc,
+            parent.clone(),
+            fileinfo.clone(),
+            context.clone(),
+            importfiles,
+          ) {
+            Ok(obj) => obj,
+            Err(msg) => {
+              return Err(msg);
+            }
+          };
+          var_node_list.push(style_var);
+          temp_word.clear();
+          record_loc = None;
+        }
+        // 进行层级 叠加 && ignore 忽略 大括号区域 && 忽略引号包裹的 大括号
+        if char == start_braces && match_queto.is_none() {
+          if braces_level == 0 {
+            selector_txt = temp_word[0..temp_word.len() - 1].to_vec().trim();
+            temp_word.clear();
+          }
+          braces_level += 1;
+        }
+        if char == end_braces && match_queto.is_none() {
+          braces_level -= 1;
+          if braces_level == 0 {
+            match RuleNode::new(
+              temp_word[0..temp_word.len() - 1].to_vec().trim(),
+              selector_txt.clone(),
+              record_loc,
+              fileinfo.clone(),
+              context.clone(),
+            ) {
+              Ok(rule) => {
+                rule_node_list.push(rule);
+              }
+              Err(msg) => {
+                return Err(msg);
+              }
+            }
+            selector_txt.clear();
+            temp_word.clear();
+            record_loc = None;
+          }
+        }
+      }
+      index += 1;
+    }
+
+    Ok((comment_list, var_node_list, rule_node_list))
+  }
+
+  fn parse_heap_new(&mut self) -> Result<(), String>;
 }

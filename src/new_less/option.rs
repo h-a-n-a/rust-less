@@ -1,6 +1,6 @@
 use crate::new_less::fileinfo::FileInfo;
 use crate::new_less::hooks::ParseHooks;
-use crate::new_less::parse::RuleNode;
+use crate::new_less::rule_node::RuleNode;
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
 

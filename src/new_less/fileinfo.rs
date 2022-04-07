@@ -1,11 +1,9 @@
 use crate::extend::string::StringExtend;
-use crate::new_less::comment::Comment;
 use crate::new_less::context::ParseContext;
 use crate::new_less::file_manger::FileManger;
 use crate::new_less::loc::LocMap;
 use crate::new_less::node::{NodeRef, StyleNode, VarRuleNode};
-use crate::new_less::rule::Rule;
-use crate::new_less::var::Var;
+use crate::new_less::parse::Parse;
 use crate::new_less::var_node::VarNode;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
@@ -136,7 +134,8 @@ impl FileInfo {
       }
     };
     let obj_heap = obj.toheap();
-    Self::parse_heap(obj_heap.clone())?;
+    // Self::parse_heap(obj_heap.clone())?;
+    obj_heap.borrow_mut().parse_heap_new()?;
     Ok(obj_heap)
   }
 
@@ -186,23 +185,6 @@ impl FileInfo {
       Err(msg) => Err(msg),
     };
     res
-  }
-
-  ///
-  /// 转化 AST
-  ///
-  pub fn parse_heap(obj: FileRef) -> Result<(), String> {
-    // 把当前 节点 的 对象 指针 放到 节点上 缓存中
-    let disk_location_path = obj.deref().borrow().disk_location.clone();
-    obj.deref().borrow().context.borrow_mut().set_cache(
-      disk_location_path.as_str(),
-      obj.deref().borrow().self_weak.clone(),
-    );
-    // 开始转换
-    obj.deref().borrow_mut().parse_comment()?;
-    obj.deref().borrow_mut().parse_var()?;
-    obj.deref().borrow_mut().parse_rule()?;
-    Ok(())
   }
 
   pub fn getrules(&self) -> Vec<NodeRef> {

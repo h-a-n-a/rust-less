@@ -5,7 +5,7 @@ use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::{FileRef, FileWeakRef};
 use crate::new_less::import::ImportNode;
 use crate::new_less::loc::Loc;
-use crate::new_less::parse::RuleNode;
+use crate::new_less::rule_node::RuleNode;
 use crate::new_less::style_rule::StyleRuleNode;
 use crate::new_less::var_node::VarNode;
 use serde::Serialize;

@@ -1,11 +1,11 @@
-use std::ops::Deref;
 use crate::extend::vec_str::VecStrExtend;
 use crate::new_less::comment::skip_comment;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::{FileInfo, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{NodeRef, StyleNode};
-use crate::new_less::parse::RuleNode;
+use crate::new_less::rule_node::RuleNode;
+use std::ops::Deref;
 
 pub trait Rule {
   fn parse_rule(&mut self) -> Result<(), String>;
