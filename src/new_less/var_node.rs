@@ -141,7 +141,7 @@ impl VarNode {
       charlist,
       &mut (|arg, charword| {
         let ScanArg {
-          mut temp,
+          temp,
           index,
           mut hasend,
         } = arg;
@@ -151,7 +151,7 @@ impl VarNode {
           return Ok(ScanResult::Skip);
         } else if hasspace && !Token::is_space_token(Some(char)) {
           if *char == ':' {
-            temp.push(char.clone());
+            temp.borrow_mut().push(*char);
           } else {
             return Err(self.error_msg(&(index - 1)));
           }
@@ -160,16 +160,16 @@ impl VarNode {
             if *char == ':' {
               hasend = true;
             } else {
-              temp.push(char.clone());
+              temp.borrow_mut().push(*char);
             }
           } else if Token::is_space_token(Some(char)) {
             hasspace = true;
-            temp.push(char.clone());
+            temp.borrow_mut().push(*char);
           } else {
             return Err(self.error_msg(&index));
           }
         } else if !Token::is_token(Some(char)) && !hasspace {
-          temp.push(char.clone());
+          temp.borrow_mut().push(*char);
         }
 
         let new_arg = ScanArg {

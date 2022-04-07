@@ -22,16 +22,6 @@ pub enum ScanResult {
   Skip,
 }
 
-impl ScanArg {
-  pub fn addchar(&self, char: &char) {
-    self.temp.borrow_mut().push(char.clone());
-  }
-
-  pub fn tostr(&self) -> String {
-    self.temp.borrow().poly()
-  }
-}
-
 ///
 /// 遍历
 ///
@@ -41,7 +31,7 @@ pub fn traversal<'a>(
   exec: &mut dyn FnMut(ScanArg, CharWord) -> Result<ScanResult, String>,
 ) -> Result<(String, usize), String> {
   let mut index = arg_start.unwrap_or(0);
-  let mut temp = Rc::new(RefCell::new(vec![]));
+  let temp = Rc::new(RefCell::new(vec![]));
   let mut hasend = false;
 
   while index < charlist.len() {
@@ -79,10 +69,6 @@ pub fn traversal<'a>(
     }
     index += 1;
   }
-  let arg = ScanArg {
-    index,
-    temp: temp.clone(),
-    hasend,
-  };
-  Ok((arg.tostr(), index))
+  let final_str = temp.borrow().poly();
+  Ok((final_str, index))
 }

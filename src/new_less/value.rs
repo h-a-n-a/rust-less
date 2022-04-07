@@ -133,12 +133,12 @@ impl ValueNode {
       charlist,
       &mut (|arg, charword| {
         let ScanArg {
-          mut temp,
+          temp,
           index,
           mut hasend,
         } = arg;
         let (_, char, nextchar) = charword;
-        arg.addchar(char);
+        temp.borrow_mut().push(*char);
         if *char == ':' {
           return Err(self.error_msg(&index));
         }
@@ -166,7 +166,7 @@ impl ValueNode {
       charlist,
       &mut (|arg, charword| {
         let ScanArg {
-          mut temp,
+          temp,
           mut index,
           mut hasend,
         } = arg;
@@ -175,17 +175,17 @@ impl ValueNode {
         if temp.borrow().len() == 0 {
           if *char == '\'' || *char == '"' {
             keyword = *char;
-            arg.addchar(char);
+            temp.borrow_mut().push(*char);
           } else {
             return Err(self.error_msg(&index));
           }
         } else {
-          arg.addchar(char);
+          temp.borrow_mut().push(*char);
         }
 
         if nextchar.is_some() && *nextchar.unwrap() == keyword && *char != '\\' {
           hasend = true;
-          arg.addchar(&keyword);
+          temp.borrow_mut().push(keyword);
           index += 1;
         }
 
@@ -222,20 +222,20 @@ impl ValueNode {
       charlist,
       &mut (|arg, charword| {
         let ScanArg {
-          mut temp,
+          temp,
           mut index,
           mut hasend,
         } = arg;
         let (_, char, nextchar) = charword;
         // 第一位必须是 @
         if temp.borrow().len() == 0 && *char == '@' {
-          arg.addchar(&'@');
+          temp.borrow_mut().push('@');
           Ok(ScanResult::Arg(ScanArg {
             index,
             temp,
             hasend,
           }))
-        } else if temp.is_empty() {
+        } else if temp.borrow().is_empty() {
           Err(self.error_msg(&index))
         } else {
           // 后续写词
@@ -245,26 +245,26 @@ impl ValueNode {
                 hasend = true;
                 index -= 1;
               } else if nextchar.is_some() {
-                temp.push(char.clone());
+                temp.borrow_mut().push(*char);
               }
               // @- is error
-              if temp.len() < 2 {
+              if temp.borrow().len() < 2 {
                 return Err(self.error_msg(&index));
               }
             } else if Self::is_end(Some(char), None) {
               // @+ @* is error
-              if temp.len() < 2 {
+              if temp.borrow().len() < 2 {
                 return Err(self.error_msg(&index));
               }
               hasend = true;
               index -= 1;
             } else if *char == '\\' {
-              temp.push(char.clone());
+              temp.borrow_mut().push(*char);
             } else {
               return Err(self.error_msg(&index));
             }
           } else {
-            temp.push(char.clone());
+            temp.borrow_mut().push(*char);
           }
           Ok(ScanResult::Arg(ScanArg {
             index,

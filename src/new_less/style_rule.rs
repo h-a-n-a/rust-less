@@ -141,7 +141,7 @@ impl StyleRuleNode {
       charlist,
       &mut (|arg, charword| {
         let ScanArg {
-          mut temp,
+          temp,
           index,
           mut hasend,
         } = arg;
@@ -151,13 +151,13 @@ impl StyleRuleNode {
             if *char == ':' {
               hasend = true;
             } else {
-              arg.addchar(char);
+              temp.borrow_mut().push(*char);
             }
           } else if Token::is_space_token(Some(char)) {
             if Token::is_space_token(next) {
               return Ok(ScanResult::Skip);
             } else if next.is_some() && *next.unwrap() == ':' {
-              arg.addchar(char);
+              temp.borrow_mut().push(*char);
             } else {
               return Ok(ScanResult::Skip);
             }
@@ -165,7 +165,7 @@ impl StyleRuleNode {
             return Err(self.error_msg(&index));
           }
         } else {
-          arg.addchar(char);
+          temp.borrow_mut().push(*char);
         }
 
         let new_arg = ScanArg {

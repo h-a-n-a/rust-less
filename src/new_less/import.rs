@@ -147,10 +147,10 @@ impl ImportNode {
                 hasend = true
               }
             } else {
-              arg.addchar(char)
+              temp.borrow_mut().push(*char);
             }
           } else {
-            arg.addchar(char)
+            temp.borrow_mut().push(*char);
           }
         } else if Token::is_token(Some(char)) {
           if !Token::is_space_token(Some(char)) {

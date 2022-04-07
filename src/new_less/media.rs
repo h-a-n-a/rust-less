@@ -6,6 +6,7 @@ use crate::new_less::scan::{traversal, ScanArg, ScanResult};
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::media::{TokenMediaFeature, TokenMediaLogic, TokenMediaType};
 use serde::Serialize;
+use std::ops::Deref;
 
 ///
 /// 媒体查询
@@ -86,7 +87,7 @@ impl MediaQuery {
         let (_, char, next) = charword;
         if Token::is_token(Some(char)) {
           if *char == ':' {
-            if TokenMediaFeature::is(arg.tostr().trim()) {
+            if TokenMediaFeature::is(temp.deref().borrow().poly().trim()) {
               // 加冒号之前 先判断是否是有效 key
               hasend = true;
             } else {
@@ -96,15 +97,15 @@ impl MediaQuery {
             if Token::is_space_token(next) {
               return Ok(ScanResult::Skip);
             } else {
-              arg.addchar(char);
+              temp.borrow_mut().push(*char);
             }
           } else if *char == '-' {
-            arg.addchar(&'-');
+            temp.borrow_mut().push('-');
           } else {
             return Err(self.errormsg(&index).err().unwrap());
           }
         } else {
-          arg.addchar(char);
+          temp.borrow_mut().push(*char);
         }
         Ok(ScanResult::Arg(ScanArg {
           temp,
@@ -138,11 +139,11 @@ impl MediaQuery {
             if Token::is_space_token(next) {
               return Ok(ScanResult::Skip);
             } else {
-              arg.addchar(char);
+              temp.borrow_mut().push(*char);
             }
           } else if *char == '-' {
-            if temp.borrow().len() == 0 {
-              arg.addchar(&'-');
+            if temp.deref().borrow().is_empty() {
+              temp.borrow_mut().push('-');
             } else {
               return Err(self.errormsg(&index).err().unwrap());
             }
@@ -150,7 +151,7 @@ impl MediaQuery {
             return Err(self.errormsg(&index).err().unwrap());
           }
         } else {
-          arg.addchar(char);
+          temp.borrow_mut().push(*char);
         }
         Ok(ScanResult::Arg(ScanArg {
           temp,
@@ -221,7 +222,7 @@ impl MediaQuery {
             return Err(self.errormsg(&index).err().unwrap());
           }
         } else {
-          arg.addchar(char);
+          temp.borrow_mut().push(*char);
         }
         Ok(ScanResult::Arg(ScanArg {
           temp,
