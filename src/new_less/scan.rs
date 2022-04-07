@@ -1,4 +1,4 @@
-use crate::extend::vec_str::VecStrExtend;
+use crate::extend::vec_str::VecCharExtend;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -25,9 +25,9 @@ pub enum ScanResult {
 ///
 /// 遍历
 ///
-pub fn traversal<'a>(
+pub fn traversal(
   arg_start: Option<usize>,
-  charlist: &Vec<char>,
+  charlist: &[char],
   exec: &mut dyn FnMut(ScanArg, CharWord) -> Result<ScanResult, String>,
 ) -> Result<(String, usize), String> {
   let mut index = arg_start.unwrap_or(0);

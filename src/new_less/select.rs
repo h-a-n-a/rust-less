@@ -1,6 +1,6 @@
 use crate::extend::enum_extend::EnumExtend;
 use crate::extend::str_into::StringInto;
-use crate::extend::vec_str::VecStrExtend;
+use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::NodeWeakRef;
 use crate::new_less::token::lib::Token;
@@ -97,7 +97,7 @@ impl Selector {
   /// 打印错误信息
   ///
   fn errormsg(&mut self, index: &usize) -> Result<(), String> {
-    let char = self.charlist.get(*index).unwrap().clone();
+    let char = *self.charlist.get(*index).unwrap();
     let error_loc = self.map.get(index).unwrap();
     Err(format!(
       "select text {}, char {} is not allow, line is {} col is {}",
@@ -182,7 +182,7 @@ impl Selector {
       let token_allow = vec!['^', '$', '*', '|'];
       // 如果重复遇到引号 则关闭 引号作用域
       if has_quota && (*char == '"' || *char == '\'') {
-        temp.push(char.clone());
+        temp.push(*char);
         has_quota = false;
         index += 1;
         continue;
@@ -192,7 +192,7 @@ impl Selector {
         // 遇到 "]" 则跳出循环 当前索引即是 "]" 的位置
         if *char == ']' {
           hasend = true;
-          temp.push(char.clone());
+          temp.push(*char);
           break;
         }
         // 遇到 = 需要判断后一个词 只能跟 引号
@@ -203,7 +203,7 @@ impl Selector {
             // 且不能 是 [= 这种组合
             if temp.len() > 1 {
               hasequal = true;
-              temp.push(char.clone());
+              temp.push(*char);
               index += 1;
               continue;
             } else {
@@ -221,7 +221,7 @@ impl Selector {
             // 前一个 符号必须是等号 这里重复判断可以优化!
             if *prevchar.unwrap_or(&'\0') == '=' {
               has_quota = true;
-              temp.push(char.clone());
+              temp.push(*char);
               index += 1;
               continue;
             } else {
@@ -231,12 +231,12 @@ impl Selector {
         }
         // 如果是其他符号 或者没有匹配的情况 则进行下述匹配
         if *nextchar.unwrap_or(&'\0') == '=' && token_allow.contains(char) {
-          temp.push(char.clone())
+          temp.push(*char)
         } else {
           return Err(self.errormsg(&index).err().unwrap());
         }
       } else {
-        temp.push(char.clone())
+        temp.push(*char)
       }
       index += 1;
     }
@@ -265,14 +265,14 @@ impl Selector {
         if *char == '@' {
           return Err(self.errormsg(&index).err().unwrap());
         } else {
-          temp.push(char.clone());
+          temp.push(*char);
           if char.to_string() == TokenSelect::RightBrackets.tostr_value() {
             hasend = true;
             break;
           }
         }
       } else {
-        temp.push(char.clone());
+        temp.push(*char);
       }
       index += 1;
     }
@@ -322,7 +322,7 @@ impl Selector {
       }
       // 有任务则继续填词
       if !Token::is_token(Some(char)) {
-        temp.push(char.clone());
+        temp.push(*char);
         if index + 1 != charlist.len() {
           index += 1;
           continue;
@@ -343,7 +343,7 @@ impl Selector {
             // 第一个词 是 选择符号
             match TokenSelect::try_from(char.to_string().as_str()).unwrap() {
               TokenSelect::ClassToken | TokenSelect::IdToken => {
-                temp.push(char.clone());
+                temp.push(*char);
                 // 起始符 后续不能接 任意 词根符 类似 "#>" ".*"
                 if Token::is_token(nextchar)
                   && !TokenAllow::is(nextchar.unwrap_or(&'\0').to_string().as_str())
@@ -352,7 +352,7 @@ impl Selector {
                 }
               }
               TokenSelect::Colon => {
-                temp.push(char.clone());
+                temp.push(*char);
                 if nextchar.unwrap_or(&'\0').to_string() != TokenSelect::Colon.tostr_value()
                   && Token::is_token(nextchar)
                 {
@@ -467,14 +467,14 @@ impl Selector {
             }
           } else if TokenAllow::is(char.to_string().as_str()) {
             // 安全词 可以考虑按照 普通字符一样处理
-            temp.push(char.clone());
+            temp.push(*char);
           } else {
             // 非安全词 直接报错 排除了 括号 和 中括号 中 被引号处理的情况
             return self.errormsg(&index);
           }
         } else {
           // 第一个词 非符号
-          temp.push(char.clone());
+          temp.push(*char);
         }
       } else if index == charlist.len() - 1 {
         // 结尾处理
@@ -549,7 +549,7 @@ impl Selector {
             // 词 是 选择符号
             match TokenSelect::try_from(char.to_string().as_str()).unwrap() {
               TokenSelect::ClassToken | TokenSelect::IdToken => {
-                temp.push(char.clone());
+                temp.push(*char);
                 // 起始符 后续不能接 任意 词根符 类似 "#>" ".*"
                 if Token::is_token(nextchar)
                   && !TokenAllow::is(nextchar.unwrap_or(&'\0').to_string().as_str())
@@ -558,7 +558,7 @@ impl Selector {
                 }
               }
               TokenSelect::Colon => {
-                temp.push(char.clone());
+                temp.push(*char);
                 if nextchar.unwrap_or(&'\0').to_string() != TokenSelect::Colon.tostr_value()
                   && nextchar.unwrap_or(&'\0').to_string() != TokenAllow::Dash.tostr_value()
                   && Token::is_token(nextchar)
@@ -701,7 +701,7 @@ impl Selector {
               return self.errormsg(&index);
             } else {
               // 安全词 可以考虑按照 普通字符一样处理
-              temp.push(char.clone());
+              temp.push(*char);
             }
           }
         }

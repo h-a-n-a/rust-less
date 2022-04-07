@@ -1,6 +1,6 @@
 use crate::extend::string::StringExtend;
 use crate::extend::time::wastetime;
-use crate::extend::vec_str::VecStrExtend;
+use crate::extend::vec_str::VecCharOptionalExtend;
 use crate::new_less::comment::{skip_comment, Comment};
 use crate::new_less::context::Context;
 use crate::new_less::file::{path_resolve, readfile};

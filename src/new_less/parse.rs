@@ -1,4 +1,5 @@
-use crate::extend::vec_str::VecStrExtend;
+use crate::extend::vec_str::VecCharExtend;
+use crate::extend::vec_str::VecCharOptionalExtend;
 use crate::new_less::comment::CommentNode;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
@@ -83,18 +84,20 @@ impl Parse for RuleNode {
   }
 }
 
+pub type TupleNodeVec = (Vec<CommentNode>, Vec<VarRuleNode>, Vec<NodeRef>);
+
 pub trait Parse {
   ///
   /// 基本 初步解析方法
   ///
   fn parse(
     context: ParseContext,
-    origin_charlist: &Vec<char>,
+    origin_charlist: &[char],
     locmap: &Option<LocMap>,
     parent: NodeWeakRef,
     fileinfo: FileWeakRef,
     importfiles: &mut Vec<FileRef>,
-  ) -> Result<(Vec<CommentNode>, Vec<VarRuleNode>, Vec<NodeRef>), String> {
+  ) -> Result<TupleNodeVec, String> {
     let mut comment_list: Vec<CommentNode> = vec![];
     let mut rule_node_list: Vec<NodeRef> = vec![];
     let mut var_node_list: Vec<VarRuleNode> = vec![];
@@ -132,7 +135,7 @@ pub trait Parse {
     let mut comment_start_index: Option<usize> = None;
     while index < origin_charlist.len() {
       // 处理字符
-      let char = origin_charlist.get(index).unwrap().clone();
+      let char = *origin_charlist.get(index).unwrap();
       let word = origin_charlist.try_getword(index, 2).unwrap();
 
       // 最优先判断 单双引号
@@ -216,7 +219,7 @@ pub trait Parse {
         }
 
         // 存入普通字符串
-        temp_word.push(char.clone());
+        temp_word.push(char);
         if char == endqueto && braces_level == 0 {
           let style_var = match VarRuleNode::new(
             temp_word.trim(),

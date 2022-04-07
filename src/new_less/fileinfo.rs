@@ -73,7 +73,7 @@ impl FileInfo {
   ///
   /// 生成整个文件的 locmap 地图
   ///
-  pub fn get_loc_by_content(chars: &Vec<char>) -> LocMap {
+  pub fn get_loc_by_content(chars: &[char]) -> LocMap {
     LocMap::new(chars)
   }
 
@@ -147,7 +147,7 @@ impl FileInfo {
     context: ParseContext,
     filename: String,
   ) -> Result<FileRef, String> {
-    let text_content: String = content.clone();
+    let text_content: String = content;
     let charlist = text_content.tocharlist();
     let option = context.deref().borrow().get_options();
     let mut locmap: Option<LocMap> = None;

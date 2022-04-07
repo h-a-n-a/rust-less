@@ -1,4 +1,4 @@
-use crate::extend::vec_str::VecStrExtend;
+use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::fileinfo::FileInfo;
 use crate::new_less::loc::Loc;
 use crate::new_less::node::StyleNode;
@@ -88,7 +88,7 @@ fn get_comment_blocknode(block_node: &[StyleNode]) -> Vec<CommentNode> {
 /// 移除注释
 /// 必须依赖开启 sourcemap
 ///
-fn rm_comment(commentlist: &[CommentNode], origin_charlist: &Vec<char>) -> String {
+fn rm_comment(commentlist: &[CommentNode], origin_charlist: &[char]) -> String {
   return if commentlist.is_empty() {
     origin_charlist.iter().collect::<String>()
   } else {

@@ -1,6 +1,7 @@
 use crate::extend::rs_hooks::{create_hooks_str, HookData};
 use crate::extend::string::StringExtend;
-use crate::extend::vec_str::VecStrExtend;
+use crate::extend::vec_str::VecCharExtend;
+use crate::extend::vec_str::VecCharOptionalExtend;
 use std::cell::RefCell;
 use std::ops::{Deref, DerefMut};
 use std::rc::{Rc, Weak};
@@ -264,6 +265,3 @@ fn test_trim() {
   println!("{:#?}", list.trim());
   println!("{:#?}", list.trim_start());
 }
-
-
-

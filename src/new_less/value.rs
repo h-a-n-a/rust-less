@@ -1,5 +1,5 @@
 use crate::extend::string::StringExtend;
-use crate::extend::vec_str::VecStrExtend;
+use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::ident::IdentType;
 use crate::new_less::loc::{Loc, LocMap};
@@ -91,10 +91,10 @@ impl ValueNode {
   /// 是否是数字
   ///
   pub fn is_number(char: Option<&char>) -> bool {
-    if char.is_none() {
-      false
+    if let Some(cc) = char {
+      vec!['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].contains(cc)
     } else {
-      vec!['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].contains(char.unwrap())
+      false
     }
   }
 
@@ -102,24 +102,24 @@ impl ValueNode {
   /// 是否是括号
   ///
   pub fn is_brackets(char: Option<&char>) -> bool {
-    if char.is_none() {
-      false
+    if let Some(cc) = char {
+      vec!['(', ')', '[', ']', '{', '}'].contains(cc)
     } else {
-      vec!['(', ')', '[', ']', '{', '}'].contains(char.unwrap())
+      false
     }
   }
 
   pub fn is_end(char: Option<&char>, extend_char: Option<Vec<char>>) -> bool {
-    if char.is_none() {
-      false
-    } else {
+    if let Some(cc) = char {
       let mut char_list = vec![
         ';', '@', '~', '#', '$', '(', ')', '[', ']', '+', '*', '/', ',',
       ];
       if let Some(mut extend_list) = extend_char {
         char_list.append(&mut extend_list);
       }
-      Token::is_space_token(Some(char.unwrap())) || char_list.contains(char.unwrap())
+      Token::is_space_token(Some(cc)) || char_list.contains(cc)
+    } else {
+      false
     }
   }
 
@@ -299,7 +299,7 @@ impl ValueNode {
     while index < self.charlist.len() {
       let cur = self.charlist.get(index).unwrap();
       if !Token::is_space_token(Some(cur)) {
-        return Some(cur.clone());
+        return Some(*cur);
       }
       index += 1;
     }
@@ -333,16 +333,16 @@ impl ValueNode {
         if Token::is_token(Some(char)) {
           // 判断小数点的 情况
           if *char == '.' && !has_single && Self::is_number(prevchar) && Self::is_number(nextchar) {
-            value.push(char.clone());
+            value.push(*char);
             has_single = true;
           } else if *char == '%' {
-            unit.push(char.clone());
+            unit.push(*char);
           } else {
             return Err(self.error_msg(&index));
           }
         } else if Self::is_number(Some(char)) {
           if !has_record_value {
-            value.push(char.clone());
+            value.push(*char);
           } else {
             index -= 1;
             hasend = true;
@@ -354,7 +354,7 @@ impl ValueNode {
           if !has_record_value {
             has_record_value = true;
           }
-          unit.push(char.clone());
+          unit.push(*char);
         }
         // 判断是否完结
         if Self::is_end(nextchar, Some(vec!['-']))
@@ -404,7 +404,7 @@ impl ValueNode {
             return Err(format!(r#"{} is error "#, char));
           }
         } else {
-          brackets_vaildate.push(char.clone())
+          brackets_vaildate.push(*char)
         }
       } else {
         return Err(format!(r#"{} is not '(' ')' '[' ']' "#, char));
@@ -520,7 +520,7 @@ impl ValueNode {
           }
         }
         // 操作符
-        else if Self::is_operator(&char) {
+        else if Self::is_operator(char) {
           let last_item = self.find_prev_no_space_ident();
           let next_char_no_space = self.find_next_no_space_char(index).unwrap();
           if last_item.is_some()

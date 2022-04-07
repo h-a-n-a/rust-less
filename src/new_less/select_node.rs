@@ -1,5 +1,5 @@
 use crate::extend::string::StringExtend;
-use crate::extend::vec_str::VecStrExtend;
+use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::media::MediaQuery;
 use crate::new_less::node::NodeWeakRef;

@@ -1,5 +1,5 @@
 use crate::extend::string::StringExtend;
-use crate::extend::vec_str::VecStrExtend;
+use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::{FileRef, FileWeakRef};
 use crate::new_less::import::ImportNode;

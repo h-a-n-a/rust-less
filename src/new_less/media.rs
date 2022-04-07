@@ -1,5 +1,5 @@
 use crate::extend::enum_extend::EnumExtend;
-use crate::extend::vec_str::VecStrExtend;
+use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::NodeWeakRef;
 use crate::new_less::scan::{traversal, ScanArg, ScanResult};
@@ -58,7 +58,7 @@ impl MediaQuery {
   /// 打印错误信息
   ///
   pub fn errormsg(&self, index: &usize) -> Result<(), String> {
-    let char = self.charlist.get(*index).unwrap().clone();
+    let char = *self.charlist.get(*index).unwrap();
     let error_loc = self.map.get(index).unwrap();
     Err(format!(
       "select text {}, char {} is not allow,line is {} col is {}",
@@ -266,7 +266,7 @@ impl MediaQuery {
         let temp = arg.temp;
         let mut index = arg.index;
         let (_, char, next) = charword;
-        return if Token::is_token(Some(char)) {
+        if Token::is_token(Some(char)) {
           if Token::is_space_token(Some(char)) {
             if !Token::is_space_token(next) {
               word_vec.push(" ".to_string());
@@ -275,7 +275,7 @@ impl MediaQuery {
               Ok(ScanResult::Skip)
             }
           } else if vec!['(', ')', ':'].contains(char) {
-            return if '(' == *char {
+            if '(' == *char {
               match self.parse_media_feature(&index) {
                 Ok((word, jump)) => {
                   word_vec.push(word);
@@ -290,9 +290,9 @@ impl MediaQuery {
               }
             } else {
               Err(self.errormsg(&index).err().unwrap())
-            };
+            }
           } else {
-            return Err(self.errormsg(&index).err().unwrap());
+            Err(self.errormsg(&index).err().unwrap())
           }
         } else {
           let (word, jump) = match self.parse_media_logicword(&index) {
@@ -309,7 +309,7 @@ impl MediaQuery {
             temp,
             hasend: false,
           }))
-        };
+        }
       }),
     ) {
       Ok(res) => res,
