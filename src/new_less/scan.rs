@@ -1,3 +1,7 @@
+use crate::extend::vec_str::VecStrExtend;
+use std::cell::RefCell;
+use std::rc::Rc;
+
 ///
 /// 扫词的 前 | 中 | 后 字符
 ///
@@ -6,10 +10,10 @@ pub type CharWord<'a> = (Option<&'a char>, &'a char, Option<&'a char>);
 ///
 /// 基础可变参数
 ///
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug)]
 pub struct ScanArg {
   pub index: usize,
-  pub temp: String,
+  pub temp: Rc<RefCell<Vec<char>>>,
   pub hasend: bool,
 }
 
@@ -18,16 +22,26 @@ pub enum ScanResult {
   Skip,
 }
 
+impl ScanArg {
+  pub fn addchar(&self, char: &char) {
+    self.temp.borrow_mut().push(char.clone());
+  }
+
+  pub fn tostr(&self) -> String {
+    self.temp.borrow().poly()
+  }
+}
+
 ///
 /// 遍历
 ///
-pub fn traversal(
+pub fn traversal<'a>(
   arg_start: Option<usize>,
   charlist: &Vec<char>,
   exec: &mut dyn FnMut(ScanArg, CharWord) -> Result<ScanResult, String>,
 ) -> Result<(String, usize), String> {
   let mut index = arg_start.unwrap_or(0);
-  let mut temp: String = "".to_string();
+  let mut temp = Rc::new(RefCell::new(vec![]));
   let mut hasend = false;
 
   while index < charlist.len() {
@@ -56,7 +70,6 @@ pub fn traversal(
     match res {
       ScanResult::Arg(arg) => {
         index = arg.index;
-        temp = arg.temp;
         hasend = arg.hasend;
       }
       ScanResult::Skip => {}
@@ -66,5 +79,10 @@ pub fn traversal(
     }
     index += 1;
   }
-  Ok((temp, index))
+  let arg = ScanArg {
+    index,
+    temp: temp.clone(),
+    hasend,
+  };
+  Ok((arg.tostr(), index))
 }

@@ -60,7 +60,10 @@ impl MediaQuery {
     let error_loc = self.map.get(index).unwrap();
     Err(format!(
       "select text {}, char {} is not allow,line is {} col is {}",
-      self.charlist.poly(), char, error_loc.line, error_loc.col
+      self.charlist.poly(),
+      char,
+      error_loc.line,
+      error_loc.col
     ))
   }
 
@@ -78,12 +81,12 @@ impl MediaQuery {
       charlist,
       &mut (|arg, charword| {
         let mut hasend = arg.hasend;
-        let mut temp = arg.temp;
+        let temp = arg.temp;
         let index = arg.index;
         let (_, char, next) = charword;
         if Token::is_token(Some(char)) {
           if *char == ':' {
-            if TokenMediaFeature::is(temp.trim()) {
+            if TokenMediaFeature::is(arg.tostr().trim()) {
               // 加冒号之前 先判断是否是有效 key
               hasend = true;
             } else {
@@ -93,15 +96,15 @@ impl MediaQuery {
             if Token::is_space_token(next) {
               return Ok(ScanResult::Skip);
             } else {
-              temp.push(char.clone());
+              arg.addchar(char);
             }
           } else if *char == '-' {
-            temp.push('-');
+            arg.addchar(&'-');
           } else {
             return Err(self.errormsg(&index).err().unwrap());
           }
         } else {
-          temp.push(char.clone());
+          arg.addchar(char);
         }
         Ok(ScanResult::Arg(ScanArg {
           temp,
@@ -125,7 +128,7 @@ impl MediaQuery {
       charlist,
       &mut (|arg, charword| {
         let mut hasend = arg.hasend;
-        let mut temp = arg.temp;
+        let temp = arg.temp;
         let index = arg.index;
         let (_, char, next) = charword;
         if Token::is_token(Some(char)) {
@@ -135,11 +138,11 @@ impl MediaQuery {
             if Token::is_space_token(next) {
               return Ok(ScanResult::Skip);
             } else {
-              temp.push(char.clone());
+              arg.addchar(char);
             }
           } else if *char == '-' {
-            if temp.trim().is_empty() {
-              temp.push('-');
+            if temp.borrow().len() == 0 {
+              arg.addchar(&'-');
             } else {
               return Err(self.errormsg(&index).err().unwrap());
             }
@@ -147,7 +150,7 @@ impl MediaQuery {
             return Err(self.errormsg(&index).err().unwrap());
           }
         } else {
-          temp.push(char.clone());
+          arg.addchar(char);
         }
         Ok(ScanResult::Arg(ScanArg {
           temp,
@@ -208,7 +211,7 @@ impl MediaQuery {
       charlist,
       &mut (|arg, charword| {
         let mut hasend = arg.hasend;
-        let mut temp = arg.temp;
+        let temp = arg.temp;
         let index = arg.index;
         let (_, char, _) = charword;
         if Token::is_token(Some(char)) {
@@ -218,7 +221,7 @@ impl MediaQuery {
             return Err(self.errormsg(&index).err().unwrap());
           }
         } else {
-          temp.push(char.clone());
+          arg.addchar(char);
         }
         Ok(ScanResult::Arg(ScanArg {
           temp,

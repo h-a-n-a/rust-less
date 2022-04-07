@@ -132,7 +132,7 @@ impl ImportNode {
       &mut (|arg, (_, char, _)| {
         let ScanArg {
           index,
-          mut temp,
+          temp,
           mut hasend,
         } = arg;
 
@@ -147,10 +147,10 @@ impl ImportNode {
                 hasend = true
               }
             } else {
-              temp.push(char.clone());
+              arg.addchar(char)
             }
           } else {
-            temp.push(char.clone());
+            arg.addchar(char)
           }
         } else if Token::is_token(Some(char)) {
           if !Token::is_space_token(Some(char)) {

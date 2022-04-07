@@ -138,7 +138,7 @@ impl ValueNode {
           mut hasend,
         } = arg;
         let (_, char, nextchar) = charword;
-        temp.push(char.clone());
+        arg.addchar(char);
         if *char == ':' {
           return Err(self.error_msg(&index));
         }
@@ -172,20 +172,20 @@ impl ValueNode {
         } = arg;
         let (_, char, nextchar) = charword;
         // todo @{...} not support
-        if temp.is_empty() {
+        if temp.borrow().len() == 0 {
           if *char == '\'' || *char == '"' {
             keyword = *char;
-            temp.push(char.clone());
+            arg.addchar(char);
           } else {
             return Err(self.error_msg(&index));
           }
         } else {
-          temp.push(char.clone());
+          arg.addchar(char);
         }
 
         if nextchar.is_some() && *nextchar.unwrap() == keyword && *char != '\\' {
           hasend = true;
-          temp.push(keyword.clone());
+          arg.addchar(&keyword);
           index += 1;
         }
 
@@ -228,8 +228,8 @@ impl ValueNode {
         } = arg;
         let (_, char, nextchar) = charword;
         // 第一位必须是 @
-        if temp.is_empty() && *char == '@' {
-          temp += "@";
+        if temp.borrow().len() == 0 && *char == '@' {
+          arg.addchar(&'@');
           Ok(ScanResult::Arg(ScanArg {
             index,
             temp,
