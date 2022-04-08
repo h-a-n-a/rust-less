@@ -338,8 +338,44 @@ impl StyleRuleNode {
         }
         IdentType::Brackets(br) => {
           if !calc_list.is_empty() {
-            calc_list.push(IdentType::Brackets(br));
+            if br == "(" || br == "[" {
+              calc_list.push(IdentType::Brackets(br));
+            } else {
+              let last_bracket = {
+                let mut ident: Option<&IdentType> = None;
+                for item in calc_list.iter().rev() {
+                  if matches!(item, IdentType::Brackets(..)) {
+                    ident = Some(item);
+                  }
+                }
+                ident
+              };
+              if let Some(IdentType::Brackets(cc)) = last_bracket {
+                if cc == "(" || cc == "[" {
+                  calc_list.push(IdentType::Brackets(br));
+                } else {
+                  if !calc_list.is_empty() {
+                    let calc_number = IdentType::calc_value(calc_list.clone())?;
+                    nature_list.push(calc_number);
+                    calc_list.clear();
+                  }
+                  nature_list.push(IdentType::Brackets(br));
+                }
+              } else {
+                if !calc_list.is_empty() {
+                  let calc_number = IdentType::calc_value(calc_list.clone())?;
+                  nature_list.push(calc_number);
+                  calc_list.clear();
+                }
+                nature_list.push(IdentType::Brackets(br));
+              }
+            }
           } else {
+            if !calc_list.is_empty() {
+              let calc_number = IdentType::calc_value(calc_list.clone())?;
+              nature_list.push(calc_number);
+              calc_list.clear();
+            }
             nature_list.push(IdentType::Brackets(br));
           }
         }

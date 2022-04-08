@@ -137,7 +137,7 @@ impl VarNode {
   pub fn parse_var_ident(&self, start: &usize) -> Result<(String, usize), String> {
     let charlist = &self.charlist;
     let mut hasspace = false;
-    match traversal(
+    let res = traversal(
       Some(*start),
       charlist,
       &mut (|arg, charword| {
@@ -180,10 +180,8 @@ impl VarNode {
         };
         Ok(ScanResult::Arg(new_arg))
       }),
-    ) {
-      Ok(obj) => Ok(obj),
-      Err(msg) => Err(msg),
-    }
+    )?;
+    Ok(res)
   }
 
   ///

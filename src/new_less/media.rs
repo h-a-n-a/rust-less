@@ -78,7 +78,7 @@ impl MediaQuery {
   ///
   pub fn parse_media_feature_key(&self, start: &usize) -> Result<(String, usize), String> {
     let charlist = &self.charlist;
-    match traversal(
+    let res = traversal(
       Some(*start),
       charlist,
       &mut (|arg, charword| {
@@ -114,10 +114,8 @@ impl MediaQuery {
           hasend,
         }))
       }),
-    ) {
-      Ok(res) => Ok(res),
-      Err(msg) => Err(msg),
-    }
+    )?;
+    Ok(res)
   }
 
   ///
@@ -125,7 +123,7 @@ impl MediaQuery {
   ///
   pub fn parse_media_value(&self, start: &usize) -> Result<(String, usize), String> {
     let charlist = &self.charlist;
-    match traversal(
+    let res = traversal(
       Some(*start),
       charlist,
       &mut (|arg, charword| {
@@ -160,10 +158,8 @@ impl MediaQuery {
           hasend,
         }))
       }),
-    ) {
-      Ok(res) => Ok(res),
-      Err(msg) => Err(msg),
-    }
+    )?;
+    Ok(res)
   }
 
   ///

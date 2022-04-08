@@ -7,10 +7,10 @@ fn test_less_render() {
   let filepath = path_resolve("assets/test.less");
   let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
   let res = context.render(filepath.clone()).unwrap();
-  let context1 = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let info = context1.parse(filepath).unwrap();
-  let json = serde_json::to_string_pretty(&info).unwrap();
-  println!("{}", json);
+  // let context1 = Context::new(Default::default(), Some(filepath.clone())).unwrap();
+  // let info = context1.parse(filepath).unwrap();
+  // let json = serde_json::to_string_pretty(&info).unwrap();
+  // println!("{}", json);
   println!("{}", res);
 }
 

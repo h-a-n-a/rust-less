@@ -88,17 +88,14 @@ impl FileInfo {
       .context
       .borrow_mut()
       .clear_codegen();
-    let res = match obj_heap.deref().borrow().code_gen() {
-      Ok(res) => Ok(res),
-      Err(msg) => Err(msg),
-    };
+    let res = obj_heap.deref().borrow().code_gen()?;
     obj_heap
       .deref()
       .borrow()
       .context
       .borrow_mut()
       .clear_codegen();
-    res
+    Ok(res)
   }
 
   ///
@@ -175,11 +172,8 @@ impl FileInfo {
     filename: String,
   ) -> Result<String, String> {
     let obj = Self::create_txt_content_parse(content, context, filename)?;
-    let res = match obj.deref().borrow().code_gen() {
-      Ok(res) => Ok(res),
-      Err(msg) => Err(msg),
-    };
-    res
+    let res = obj.deref().borrow().code_gen()?;
+    Ok(res)
   }
 
   pub fn getrules(&self) -> Vec<NodeRef> {
