@@ -28,3 +28,12 @@ fn render_4_less_bench(bench: &mut Bencher) {
     context.render(filepath).unwrap();
   });
 }
+
+#[bench]
+fn render_6_less_bench(bench: &mut Bencher) {
+  bench.iter(|| {
+    let filepath = path_resolve("assets/arco-pro/6.less");
+    let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
+    context.render(filepath).unwrap();
+  });
+}

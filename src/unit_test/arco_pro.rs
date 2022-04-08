@@ -4,7 +4,7 @@ use crate::new_less::file::path_resolve;
 
 #[test]
 fn test_arco_pro_less_render() {
-  let white_list = vec![2, 3, 4, 5];
+  // let white_list = vec![2, 3, 4, 5, 6];
   let white_list = vec![5];
   let mut index = 1;
   while index < 44 {
@@ -139,6 +139,23 @@ fn test_arco_pro_5_less() {
 
 .icon-button > svg{
   vertical-align: -3px;
+}
+  "#;
+  assert_eq!(
+    css.simple_compare(),
+    target_code.to_string().simple_compare()
+  );
+}
+
+#[test]
+fn test_arco_pro_6_less() {
+  let filepath = path_resolve("assets/arco-pro/6.less");
+  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
+  let css = context.render(filepath).unwrap();
+  let target_code = r#"
+.panel{
+  background-color: var(--color-bg-2);
+  border-radius: 4px;
 }
   "#;
   assert_eq!(
