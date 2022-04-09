@@ -1,7 +1,9 @@
 use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::NodeWeakRef;
+use crate::new_less::scan::{ScanArg, ScanResult, traversal};
 use crate::new_less::var::HandleResult;
+use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct NewSelector {
@@ -67,6 +69,23 @@ impl NewSelector {
   }
 
   fn parse(&mut self) -> Result<(), String> {
+    let charlist = &self.charlist;
+    let index: usize = 0;
+    let res = traversal(
+      Some(index),
+      charlist,
+      &mut (|arg, charword| {
+        let ScanArg {
+          temp,
+          mut index,
+          mut hasend,
+        } = arg;
+        Ok(ScanResult::Arg(ScanArg {
+          index,
+          temp,
+          hasend,
+        }))
+      }))?;
     Ok(())
   }
 
