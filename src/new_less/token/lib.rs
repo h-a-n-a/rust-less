@@ -1,4 +1,12 @@
+use std::slice::Iter;
+
 pub struct Token(String);
+
+pub trait TokenInterface {
+  fn to_str(&self) -> char;
+  fn iterator() -> Iter<'static, Self> where Self: Sized;
+  fn is(cc: &char) -> bool;
+}
 
 ///
 /// 词根处理
