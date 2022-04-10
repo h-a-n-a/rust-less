@@ -78,10 +78,10 @@ fn scan_oirgin_bench(bench: &mut Bencher) {
 fn traversal(
   arg_start: Option<usize>,
   charlist: &[char],
-  exec: &mut dyn FnMut((&usize,&mut Vec<char>), &char) -> Result<(), String>,
+  exec: &mut dyn FnMut((&usize, &mut Vec<char>), &char) -> Result<(), String>,
 ) -> Result<(Vec<char>, usize), String> {
   let mut index = arg_start.unwrap_or(0);
-  let mut temp:Vec<char> = vec![];
+  let mut temp: Vec<char> = vec![];
   while index < charlist.len() {
     let char = charlist.get(index).unwrap();
     let arg = (&index, &mut temp);
@@ -102,7 +102,7 @@ fn scan_bench(bench: &mut Bencher) {
   }
   let list = txt.chars().map(|x| x).collect::<Vec<char>>();
   bench.iter(|| {
-    traversal(None, &list, &mut (|arg, charword| {
+    let res = traversal(None, &list, &mut (|arg, charword| {
       let (
         _,
         temp,
@@ -110,5 +110,13 @@ fn scan_bench(bench: &mut Bencher) {
       temp.push(*charword);
       Ok(())
     }));
+    match res {
+      Ok(_) => {
+        2
+      }
+      Err(_) => {
+        1
+      }
+    };
   });
 }

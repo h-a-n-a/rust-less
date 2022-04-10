@@ -34,5 +34,5 @@ pub fn traversal(
     index += 1;
   }
   let final_str = temp.poly();
-  Ok((final_str, 0))
+  Ok((final_str, index))
 }
