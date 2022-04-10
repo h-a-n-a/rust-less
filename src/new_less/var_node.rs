@@ -4,7 +4,7 @@ use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::NodeWeakRef;
 use crate::new_less::option::ParseOption;
-use crate::new_less::scan::{traversal, ScanArg, ScanResult};
+use crate::new_less::scan::traversal;
 use crate::new_less::token::lib::Token;
 use crate::new_less::value::ValueNode;
 use crate::new_less::var::HandleResult;
@@ -43,8 +43,8 @@ pub struct VarNode {
 
 impl Serialize for VarNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: Serializer,
+    where
+      S: Serializer,
   {
     let mut state = serializer.serialize_struct("VarNode", 5)?;
     state.serialize_field("content", &self.charlist.poly())?;
@@ -141,44 +141,34 @@ impl VarNode {
       Some(*start),
       charlist,
       &mut (|arg, charword| {
-        let ScanArg {
-          temp,
-          index,
-          mut hasend,
-        } = arg;
+        let (index, temp, hasend) = arg;
         let (_, char, next) = charword;
         // 变量声明 只允许 冒号前后有空格
         if hasspace && Token::is_space_token(next) {
-          return Ok(ScanResult::Skip);
+          return Ok(());
         } else if hasspace && !Token::is_space_token(Some(char)) {
           if *char == ':' {
-            temp.borrow_mut().push(*char);
+            temp.push(*char);
           } else {
-            return Err(self.error_msg(&(index - 1)));
+            return Err(self.error_msg(&(*index - 1)));
           }
         } else if Token::is_token(Some(char)) && !hasspace {
           if vec![':', '-'].contains(char) {
             if *char == ':' {
-              hasend = true;
+              *hasend = true;
             } else {
-              temp.borrow_mut().push(*char);
+              temp.push(*char);
             }
           } else if Token::is_space_token(Some(char)) {
             hasspace = true;
-            temp.borrow_mut().push(*char);
+            temp.push(*char);
           } else {
             return Err(self.error_msg(&index));
           }
         } else if !Token::is_token(Some(char)) && !hasspace {
-          temp.borrow_mut().push(*char);
+          temp.push(*char);
         }
-
-        let new_arg = ScanArg {
-          index,
-          temp,
-          hasend,
-        };
-        Ok(ScanResult::Arg(new_arg))
+        Ok(())
       }),
     )?;
     Ok(res)
@@ -222,24 +212,19 @@ impl VarNode {
       Some(index),
       charlist,
       &mut (|arg, _| {
-        let mut index = arg.index;
+        let ( index, _, _) = arg;
         if obj_key.is_none() {
-          let (key, jump) = self.parse_var_ident(&arg.index)?;
-          index = jump;
+          let (key, jump) = self.parse_var_ident(index)?;
+          *index = jump;
           obj_key = Some("@".to_string() + &key);
         } else if obj_value.is_none() {
-          let (value, jump) = self.parse_var_value(&arg.index)?;
-          index = jump;
+          let (value, jump) = self.parse_var_value(index)?;
+          *index = jump;
           obj_value = Some(value);
         } else if obj_key.is_some() && obj_value.is_some() {
-          return Err(self.error_msg(&index));
+          return Err(self.error_msg(index));
         }
-        let new_arg = ScanArg {
-          index,
-          temp: arg.temp,
-          hasend: false,
-        };
-        Ok(ScanResult::Arg(new_arg))
+        Ok(())
       }),
     ) {
       Ok(_) => {

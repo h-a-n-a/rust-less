@@ -5,7 +5,7 @@ use crate::new_less::ident::IdentType;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{NodeWeakRef, StyleNode};
 use crate::new_less::option::ParseOption;
-use crate::new_less::scan::{traversal, ScanArg, ScanResult};
+use crate::new_less::scan::traversal;
 use crate::new_less::token::lib::Token;
 use crate::new_less::value::ValueNode;
 use crate::new_less::var::{HandleResult, VarRuleNode};
@@ -47,8 +47,8 @@ pub struct StyleRuleNode {
 
 impl Serialize for StyleRuleNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: Serializer,
+    where
+      S: Serializer,
   {
     let mut state = serializer.serialize_struct("StyleRuleNode", 5)?;
     state.serialize_field("content", &self.charlist.poly())?;
@@ -141,40 +141,30 @@ impl StyleRuleNode {
       Some(*start),
       charlist,
       &mut (|arg, charword| {
-        let ScanArg {
-          temp,
-          index,
-          mut hasend,
-        } = arg;
+        let (index, temp, hasend, ) = arg;
         let (_, char, next) = charword;
         if Token::is_token(Some(char)) {
           if vec![':', '-'].contains(char) {
             if *char == ':' {
-              hasend = true;
+              *hasend = true;
             } else {
-              temp.borrow_mut().push(*char);
+              temp.push(*char);
             }
           } else if Token::is_space_token(Some(char)) {
             if Token::is_space_token(next) {
-              return Ok(ScanResult::Skip);
+              return Ok(());
             } else if next.is_some() && *next.unwrap() == ':' {
-              temp.borrow_mut().push(*char);
+              temp.push(*char);
             } else {
-              return Ok(ScanResult::Skip);
+              return Ok(());
             }
           } else {
-            return Err(self.error_msg(&index));
+            return Err(self.error_msg(index));
           }
         } else {
-          temp.borrow_mut().push(*char);
+          temp.push(*char);
         }
-
-        let new_arg = ScanArg {
-          index,
-          temp,
-          hasend,
-        };
-        Ok(ScanResult::Arg(new_arg))
+        Ok(())
       }),
     )?;
 
@@ -215,24 +205,19 @@ impl StyleRuleNode {
       None,
       charlist,
       &mut (|arg, _| {
-        let mut index = arg.index;
+        let (index, _, _) = arg;
         if self.key.is_none() {
-          let (key, jump) = self.parse_var_ident(&arg.index)?;
-          index = jump;
+          let (key, jump) = self.parse_var_ident(index)?;
+          *index = jump;
           self.key = Some(key);
         } else if self.value.is_none() {
-          let (value, jump) = self.parse_var_value(&arg.index)?;
-          index = jump;
+          let (value, jump) = self.parse_var_value(index)?;
+          *index = jump;
           self.value = Some(value);
         } else if self.value.is_some() && self.key.is_some() {
-          return Err(self.error_msg(&index));
+          return Err(self.error_msg(index));
         }
-        let new_arg = ScanArg {
-          index,
-          temp: arg.temp,
-          hasend: false,
-        };
-        Ok(ScanResult::Arg(new_arg))
+        Ok(())
       }),
     )?;
 

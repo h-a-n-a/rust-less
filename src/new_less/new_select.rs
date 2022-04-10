@@ -1,7 +1,7 @@
 use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::NodeWeakRef;
-use crate::new_less::scan::{ScanArg, ScanResult, traversal};
+use crate::new_less::scan::traversal;
 use crate::new_less::var::HandleResult;
 use serde::Serialize;
 use crate::new_less::token::lib::{Token, TokenInterface};
@@ -85,7 +85,7 @@ impl NewSelector {
   ///
   /// 打印错误信息
   ///
-  fn errormsg(&mut self, index: &usize) -> Result<(), String> {
+  pub fn errormsg(&mut self, index: &usize) -> Result<(), String> {
     let char = *self.charlist.get(*index).unwrap();
     let error_loc = self.map.get(index).unwrap();
     Err(format!(
@@ -125,42 +125,34 @@ impl NewSelector {
   ///
   /// parse select txt
   ///
-  fn parse(&mut self) -> Result<(), String> {
+  pub fn parse(&mut self) -> Result<(), String> {
     let charlist = &self.charlist.clone();
     let index: usize = 0;
     traversal(
       Some(index),
       charlist,
       &mut (|arg, charword| {
-        let ScanArg {
-          temp,
-          mut index,
-          hasend,
-        } = arg;
+        let (index, _, _) = arg;
         let (_, char, _) = charword;
         if Token::is_token(Some(char)) {
           if TokenSelectChar::is(char) {
             // example a, li , h2
             let (select_word, end) = self.parse_select(&index)?;
             self.paradigm_vec.push(SelectParadigm::SelectWrap(select_word));
-            index = end;
+            *index = end;
           } else if TokenCombinaChar::is(char) {} else if TokenKeyWordChar::is(char) {} else if TokenAllowChar::is(char) {
             // example a, li , h2
             let (select_word, end) = self.parse_select(&index)?;
             self.paradigm_vec.push(SelectParadigm::SelectWrap(select_word));
-            index = end;
+            *index = end;
           }
         } else {
           // example a, li , h2
           let (select_word, end) = self.parse_select(&index)?;
           self.paradigm_vec.push(SelectParadigm::SelectWrap(select_word));
-          index = end;
+          *index = end;
         }
-        Ok(ScanResult::Arg(ScanArg {
-          index,
-          temp,
-          hasend,
-        }))
+        Ok(())
       }))?;
     Ok(())
   }
@@ -171,18 +163,10 @@ impl NewSelector {
       Some(*start),
       charlist,
       &mut (|arg, charword| {
-        let ScanArg {
-          temp,
-          index,
-          hasend,
-        } = arg;
+        let (_, _, _) = arg;
         let (_, char, _) = charword;
         if Token::is_token(Some(char)) {} else {}
-        Ok(ScanResult::Arg(ScanArg {
-          index,
-          temp,
-          hasend,
-        }))
+        Ok(())
       }))?;
     Ok(res)
   }

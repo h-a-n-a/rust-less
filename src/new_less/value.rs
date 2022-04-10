@@ -4,7 +4,7 @@ use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::ident::IdentType;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::NodeWeakRef;
-use crate::new_less::scan::{traversal, ScanArg, ScanResult};
+use crate::new_less::scan::traversal;
 use crate::new_less::token::lib::Token;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
@@ -30,8 +30,8 @@ pub struct ValueNode {
 
 impl Serialize for ValueNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: Serializer,
+    where
+      S: Serializer,
   {
     let mut state = serializer.serialize_struct("ValueNode", 2)?;
     state.serialize_field("content", &self.charlist.poly())?;
@@ -132,24 +132,20 @@ impl ValueNode {
       Some(*start),
       charlist,
       &mut (|arg, charword| {
-        let ScanArg {
-          temp,
-          index,
-          mut hasend,
-        } = arg;
-        let (_, char, nextchar) = charword;
-        temp.borrow_mut().push(*char);
-        if *char == ':' {
-          return Err(self.error_msg(&index));
-        }
-        if Self::is_end(nextchar, None) {
-          hasend = true;
-        }
-        Ok(ScanResult::Arg(ScanArg {
+        let (
           index,
           temp,
           hasend,
-        }))
+        ) = arg;
+        let (_, char, nextchar) = charword;
+        temp.push(*char);
+        if *char == ':' {
+          return Err(self.error_msg(index));
+        }
+        if Self::is_end(nextchar, None) {
+          *hasend = true;
+        }
+        Ok(())
       }),
     )?;
     Ok(res)
@@ -165,35 +161,31 @@ impl ValueNode {
       Some(*start),
       charlist,
       &mut (|arg, charword| {
-        let ScanArg {
+        let (
+          index,
           temp,
-          mut index,
-          mut hasend,
-        } = arg;
+          hasend,
+        ) = arg;
         let (_, char, nextchar) = charword;
         // todo @{...} not support
-        if temp.borrow().len() == 0 {
+        if temp.len() == 0 {
           if *char == '\'' || *char == '"' {
             keyword = *char;
-            temp.borrow_mut().push(*char);
+            temp.push(*char);
           } else {
             return Err(self.error_msg(&index));
           }
         } else {
-          temp.borrow_mut().push(*char);
+          temp.push(*char);
         }
 
         if nextchar.is_some() && *nextchar.unwrap() == keyword && *char != '\\' {
-          hasend = true;
-          temp.borrow_mut().push(keyword);
-          index += 1;
+          *hasend = true;
+          temp.push(keyword);
+          *index += 1;
         }
 
-        Ok(ScanResult::Arg(ScanArg {
-          index,
-          temp,
-          hasend,
-        }))
+        Ok(())
       }),
     )?;
 
@@ -221,56 +213,48 @@ impl ValueNode {
       Some(*start),
       charlist,
       &mut (|arg, charword| {
-        let ScanArg {
+        let (
+          index,
           temp,
-          mut index,
-          mut hasend,
-        } = arg;
+          hasend,
+        ) = arg;
         let (_, char, nextchar) = charword;
         // 第一位必须是 @
-        if temp.borrow().len() == 0 && *char == '@' {
-          temp.borrow_mut().push('@');
-          Ok(ScanResult::Arg(ScanArg {
-            index,
-            temp,
-            hasend,
-          }))
-        } else if temp.borrow().is_empty() {
+        if temp.len() == 0 && *char == '@' {
+          temp.push('@');
+          Ok(())
+        } else if temp.is_empty() {
           Err(self.error_msg(&index))
         } else {
           // 后续写词
           if Token::is_token(Some(char)) {
             if *char == '-' {
               if Token::is_token(nextchar) {
-                hasend = true;
-                index -= 1;
+                *hasend = true;
+                *index -= 1;
               } else if nextchar.is_some() {
-                temp.borrow_mut().push(*char);
+                temp.push(*char);
               }
               // @- is error
-              if temp.borrow().len() < 2 {
+              if temp.len() < 2 {
                 return Err(self.error_msg(&index));
               }
             } else if Self::is_end(Some(char), None) {
               // @+ @* is error
-              if temp.borrow().len() < 2 {
+              if temp.len() < 2 {
                 return Err(self.error_msg(&index));
               }
-              hasend = true;
-              index -= 1;
+              *hasend = true;
+              *index -= 1;
             } else if *char == '\\' {
-              temp.borrow_mut().push(*char);
+              temp.push(*char);
             } else {
               return Err(self.error_msg(&index));
             }
           } else {
-            temp.borrow_mut().push(*char);
+            temp.push(*char);
           }
-          Ok(ScanResult::Arg(ScanArg {
-            index,
-            temp,
-            hasend,
-          }))
+          Ok(())
         }
       }),
     )?;
@@ -323,13 +307,8 @@ impl ValueNode {
       Some(*start),
       charlist,
       &mut (|arg, charword| {
-        let ScanArg {
-          temp,
-          mut index,
-          mut hasend,
-        } = arg;
+        let (index, _, hasend, ) = arg;
         let (prevchar, char, nextchar) = charword;
-
         if Token::is_token(Some(char)) {
           // 判断小数点的 情况
           if *char == '.' && !has_single && Self::is_number(prevchar) && Self::is_number(nextchar) {
@@ -338,18 +317,18 @@ impl ValueNode {
           } else if *char == '%' {
             unit.push(*char);
           } else {
-            return Err(self.error_msg(&index));
+            return Err(self.error_msg(index));
           }
         } else if Self::is_number(Some(char)) {
           if !has_record_value {
             value.push(*char);
           } else {
-            index -= 1;
-            hasend = true;
+            *index -= 1;
+            *hasend = true;
           }
         } else {
           if value.is_empty() {
-            return Err(self.error_msg(&index));
+            return Err(self.error_msg(index));
           }
           if !has_record_value {
             has_record_value = true;
@@ -361,14 +340,10 @@ impl ValueNode {
           || (has_single && nextchar.is_some() && *nextchar.unwrap() == '.')
           || *char == '%'
         {
-          hasend = true;
+          *hasend = true;
         }
 
-        Ok(ScanResult::Arg(ScanArg {
-          index,
-          temp,
-          hasend,
-        }))
+        Ok(())
       }),
     )?;
     if unit.is_empty() {
@@ -429,11 +404,7 @@ impl ValueNode {
       Some(index),
       charlist,
       &mut (|arg, charword| {
-        let ScanArg {
-          temp,
-          mut index,
-          hasend,
-        } = arg;
+        let (index, _, _) = arg;
         let (_, char, _) = charword;
 
         // 处理空格
@@ -442,7 +413,7 @@ impl ValueNode {
             None => {}
             Some(val) => match val {
               IdentType::Space => {
-                return Ok(ScanResult::Skip);
+                return Ok(());
               }
               _ => {
                 self.word_ident_list.push(IdentType::Space);
@@ -452,14 +423,14 @@ impl ValueNode {
         } else if *char == '@' {
           let (var, end) = self.parse_value_var(&index)?;
           self.word_ident_list.push(IdentType::Var(var));
-          index = end;
+          *index = end;
         }
         // 处理结尾词 ignore
         else if *char == ';' {
-          return if index == self.charlist.len() - 1 {
-            Ok(ScanResult::Skip)
+          return if *index == self.charlist.len() - 1 {
+            Ok(())
           } else {
-            Err(self.error_msg(&index))
+            Err(self.error_msg(index))
           };
         }
         // 处理prop
@@ -468,38 +439,38 @@ impl ValueNode {
           // todo! ~ reference
           return Err(format!(
             "$ style_rule or ~ reference has not support \n {}",
-            self.error_msg(&index)
+            self.error_msg(index)
           ));
         }
         // 处理 引用
         else if *char == '#' {
-          let (color, end) = self.parse_value_word(&index)?;
+          let (color, end) = self.parse_value_word(index)?;
           self.word_ident_list.push(IdentType::Color(color));
-          index = end;
+          *index = end;
         }
         // 处理 keyword
         else if *char == '!' {
-          let end = index + 10;
+          let end = *index + 10;
           if self.charlist.len() >= end
-            && &self.charlist[index..end].to_vec().poly() == "!important"
+            && &self.charlist[*index..end].to_vec().poly() == "!important"
           {
             self
               .word_ident_list
               .push(IdentType::KeyWord("!important".to_string()));
-            index += 10;
+            *index += 10;
           } else {
-            let (word, end) = self.parse_value_word(&index)?;
+            let (word, end) = self.parse_value_word(index)?;
             self.word_ident_list.push(IdentType::Word(word));
-            index = end;
+            *index = end;
           }
         }
         // 处理引号词
         else if *char == '"' || *char == '\'' {
-          let (string_const, end) = self.parse_value_string_const(&index)?;
+          let (string_const, end) = self.parse_value_string_const(index)?;
           self
             .word_ident_list
             .push(IdentType::StringConst(string_const));
-          index = end;
+          *index = end;
         }
         // 处理括号
         else if vec!['(', ')', '[', ']', '\\'].contains(char) {
@@ -512,49 +483,44 @@ impl ValueNode {
                   .push(IdentType::Brackets(char.to_string()));
               }
               Err(..) => {
-                return Err(self.error_msg(&index));
+                return Err(self.error_msg(index));
               }
             };
           } else {
-            return Ok(ScanResult::Skip);
+            return Ok(());
           }
         }
         // 操作符
         else if Self::is_operator(char) {
           let last_item = self.find_prev_no_space_ident();
-          let next_char_no_space = self.find_next_no_space_char(index).unwrap();
+          let next_char_no_space = self.find_next_no_space_char(*index).unwrap();
           if last_item.is_some()
             && last_item.unwrap().is_number()
             && (Self::is_number(Some(&next_char_no_space))
-              || Self::is_brackets(Some(&next_char_no_space)))
+            || Self::is_brackets(Some(&next_char_no_space)))
           {
             self
               .word_ident_list
               .push(IdentType::Operator(char.to_string()));
           } else {
-            let (word, end) = self.parse_value_word(&index)?;
+            let (word, end) = self.parse_value_word(index)?;
             self.word_ident_list.push(IdentType::Word(word));
-            index = end;
+            *index = end;
           }
         }
         // 处理 数值
         else if Self::is_number(Some(char)) {
-          let ((val, unit), end) = self.parse_value_number(&index)?;
+          let ((val, unit), end) = self.parse_value_number(index)?;
           self.word_ident_list.push(IdentType::Number(val, unit));
-          index = end;
+          *index = end;
         }
         // 处理单词
         else {
-          let (word, end) = self.parse_value_word(&index)?;
+          let (word, end) = self.parse_value_word(index)?;
           self.word_ident_list.push(IdentType::Word(word));
-          index = end;
+          *index = end;
         }
-        let new_arg = ScanArg {
-          index,
-          temp,
-          hasend,
-        };
-        Ok(ScanResult::Arg(new_arg))
+        Ok(())
       }),
     )?;
 

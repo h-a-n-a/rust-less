@@ -5,7 +5,7 @@ use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::NodeWeakRef;
 use crate::new_less::option::ParseOption;
-use crate::new_less::scan::{traversal, ScanArg, ScanResult};
+use crate::new_less::scan::traversal;
 use crate::new_less::token::lib::Token;
 use crate::new_less::var::HandleResult;
 use serde::ser::SerializeStruct;
@@ -52,8 +52,8 @@ impl Debug for ImportNode {
 
 impl Serialize for ImportNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: Serializer,
+    where
+      S: Serializer,
   {
     let mut state = serializer.serialize_struct("ImportNode", 3)?;
     state.serialize_field("content", &self.charlist.poly())?;
@@ -131,27 +131,27 @@ impl ImportNode {
       Some(index),
       charlist,
       &mut (|arg, (_, char, _)| {
-        let ScanArg {
+        let (
           index,
           temp,
-          mut hasend,
-        } = arg;
+          hasend,
+        ) = arg;
 
         if has_apost || has_quote {
           if Token::is_token(Some(char)) {
             if ('\'' == *char && has_apost) || ('"' == *char && has_quote) {
-              if index != charlist.len() - 2 {
+              if *index != charlist.len() - 2 {
                 return Err(self.error_msg(&index));
               } else {
                 has_apost = false;
                 has_quote = false;
-                hasend = true
+                *hasend = true
               }
             } else {
-              temp.borrow_mut().push(*char);
+              temp.push(*char);
             }
           } else {
-            temp.borrow_mut().push(*char);
+            temp.push(*char);
           }
         } else if Token::is_token(Some(char)) {
           if !Token::is_space_token(Some(char)) {
@@ -166,12 +166,7 @@ impl ImportNode {
         } else {
           return Err(self.error_msg(&index));
         }
-
-        Ok(ScanResult::Arg(ScanArg {
-          index,
-          temp,
-          hasend,
-        }))
+        Ok(())
       }),
     ) {
       Ok(res) => res.0,
