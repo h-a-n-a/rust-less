@@ -6,6 +6,7 @@ pub type ScanArg<'a> = (&'a mut usize, &'a mut Vec<char>, &'a mut bool);
 ///
 /// 遍历
 ///
+#[inline]
 pub fn traversal(
   arg_start: Option<usize>,
   charlist: &[char],
@@ -27,7 +28,10 @@ pub fn traversal(
     } else {
       None
     };
-    exec((&mut index, &mut temp, &mut hasend), (prevchar, char, nextchar))?;
+    exec(
+      (&mut index, &mut temp, &mut hasend),
+      (prevchar, char, nextchar),
+    )?;
     if hasend {
       break;
     }

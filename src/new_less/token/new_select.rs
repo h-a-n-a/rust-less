@@ -1,5 +1,5 @@
-use std::slice::Iter;
 use crate::new_less::token::lib::TokenInterface;
+use std::slice::Iter;
 
 #[derive(Debug)]
 pub enum TokenSelectChar {
@@ -23,7 +23,7 @@ impl TokenInterface for TokenSelectChar {
       TokenSelectChar::LeftBrackets => '(',
       TokenSelectChar::RightBrackets => ')',
       TokenSelectChar::WildCard => '*',
-      TokenSelectChar::Colon => ':'
+      TokenSelectChar::Colon => ':',
     }
   }
 
@@ -36,7 +36,7 @@ impl TokenInterface for TokenSelectChar {
       TokenSelectChar::LeftBrackets,
       TokenSelectChar::RightBrackets,
       TokenSelectChar::WildCard,
-      TokenSelectChar::Colon
+      TokenSelectChar::Colon,
     ];
     TOKENS.iter()
   }
@@ -64,8 +64,8 @@ pub enum TokenCombinaChar {
   ColumnChar,
   BrotherNextChar,
   BrotherMatchChar,
+  AddChar,
 }
-
 
 impl TokenInterface for TokenCombinaChar {
   fn to_str(&self) -> char {
@@ -77,12 +77,13 @@ impl TokenInterface for TokenCombinaChar {
       TokenCombinaChar::ExtendChar => '>',
       TokenCombinaChar::ColumnChar => '|',
       TokenCombinaChar::BrotherNextChar => '|',
-      TokenCombinaChar::BrotherMatchChar => '~'
+      TokenCombinaChar::BrotherMatchChar => '~',
+      TokenCombinaChar::AddChar => '+',
     }
   }
 
   fn iterator() -> Iter<'static, TokenCombinaChar> {
-    static TOKENS: [TokenCombinaChar; 8] = [
+    static TOKENS: [TokenCombinaChar; 9] = [
       TokenCombinaChar::Comma,
       TokenCombinaChar::Space,
       TokenCombinaChar::NewLineOs,
@@ -90,7 +91,8 @@ impl TokenInterface for TokenCombinaChar {
       TokenCombinaChar::ExtendChar,
       TokenCombinaChar::ColumnChar,
       TokenCombinaChar::BrotherNextChar,
-      TokenCombinaChar::BrotherMatchChar
+      TokenCombinaChar::BrotherMatchChar,
+      TokenCombinaChar::AddChar,
     ];
     TOKENS.iter()
   }
@@ -112,7 +114,6 @@ pub enum TokenAllowChar {
   Dash,
 }
 
-
 impl TokenInterface for TokenAllowChar {
   fn to_str(&self) -> char {
     match self {
@@ -126,7 +127,7 @@ impl TokenInterface for TokenAllowChar {
     static TOKENS: [TokenAllowChar; 3] = [
       TokenAllowChar::LeftSlant,
       TokenAllowChar::Underscore,
-      TokenAllowChar::Dash
+      TokenAllowChar::Dash,
     ];
     TOKENS.iter()
   }
@@ -140,7 +141,6 @@ impl TokenInterface for TokenAllowChar {
     false
   }
 }
-
 
 #[derive(Debug)]
 pub enum TokenKeyWordChar {
@@ -157,10 +157,8 @@ impl TokenInterface for TokenKeyWordChar {
   }
 
   fn iterator() -> Iter<'static, TokenKeyWordChar> {
-    static TOKENS: [TokenKeyWordChar; 2] = [
-      TokenKeyWordChar::PranedRefer,
-      TokenKeyWordChar::VarRefer
-    ];
+    static TOKENS: [TokenKeyWordChar; 2] =
+      [TokenKeyWordChar::PranedRefer, TokenKeyWordChar::VarRefer];
     TOKENS.iter()
   }
 
@@ -173,5 +171,3 @@ impl TokenInterface for TokenKeyWordChar {
     false
   }
 }
-
-

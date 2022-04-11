@@ -2,10 +2,12 @@ use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::NodeWeakRef;
 use crate::new_less::scan::traversal;
+use crate::new_less::token::lib::{Token, TokenInterface};
+use crate::new_less::token::new_select::{
+  TokenAllowChar, TokenCombinaChar, TokenKeyWordChar, TokenSelectChar,
+};
 use crate::new_less::var::HandleResult;
 use serde::Serialize;
-use crate::new_less::token::lib::{Token, TokenInterface};
-use crate::new_less::token::new_select::{TokenAllowChar, TokenCombinaChar, TokenKeyWordChar, TokenSelectChar};
 
 #[derive(Debug, Clone, Serialize)]
 pub enum SelectParadigm {
@@ -21,19 +23,14 @@ pub trait Paradigm {
 impl Paradigm for Vec<SelectParadigm> {
   fn join(&self) -> String {
     let mut txt = "".to_string();
-    self.iter().for_each(|par| {
-      match par {
-        SelectParadigm::SelectWrap(cc) |
-        SelectParadigm::CominaWrap(cc) |
-        SelectParadigm::VarWrap(cc) => {
-          txt += cc
-        }
-      }
+    self.iter().for_each(|par| match par {
+      SelectParadigm::SelectWrap(cc)
+      | SelectParadigm::CominaWrap(cc)
+      | SelectParadigm::VarWrap(cc) => txt += cc,
     });
     txt
   }
 }
-
 
 #[derive(Debug, Clone, Serialize)]
 pub struct NewSelector {
@@ -56,7 +53,6 @@ pub struct NewSelector {
   #[serde(skip_serializing)]
   pub parent: NodeWeakRef,
 }
-
 
 impl NewSelector {
   pub fn new(
@@ -85,7 +81,7 @@ impl NewSelector {
   ///
   /// 打印错误信息
   ///
-  pub fn errormsg(&mut self, index: &usize) -> Result<(), String> {
+  pub fn errormsg(&self, index: &usize) -> Result<(), String> {
     let char = *self.charlist.get(*index).unwrap();
     let error_loc = self.map.get(index).unwrap();
     Err(format!(
@@ -103,17 +99,20 @@ impl NewSelector {
       if let Some(mut extend_list) = extend_char {
         charlist.append(&mut extend_list);
       }
-      charlist.append(&mut TokenAllowChar::iterator()
-        .map(|x| x.to_str())
-        .collect::<Vec<char>>()
+      charlist.append(
+        &mut TokenSelectChar::iterator()
+          .map(|x| x.to_str())
+          .collect::<Vec<char>>(),
       );
-      charlist.append(&mut TokenCombinaChar::iterator()
-        .map(|x| x.to_str())
-        .collect::<Vec<char>>()
+      charlist.append(
+        &mut TokenCombinaChar::iterator()
+          .map(|x| x.to_str())
+          .collect::<Vec<char>>(),
       );
-      charlist.append(&mut TokenKeyWordChar::iterator()
-        .map(|x| x.to_str())
-        .collect::<Vec<char>>()
+      charlist.append(
+        &mut TokenKeyWordChar::iterator()
+          .map(|x| x.to_str())
+          .collect::<Vec<char>>(),
       );
       charlist.contains(cc)
     } else {
@@ -121,9 +120,9 @@ impl NewSelector {
     }
   }
 
-
   ///
   /// parse select txt
+  /// https://www.w3schools.com/cssref/css_selectors.asp
   ///
   pub fn parse(&mut self) -> Result<(), String> {
     let charlist = &self.charlist.clone();
@@ -137,37 +136,88 @@ impl NewSelector {
         if Token::is_token(Some(char)) {
           if TokenSelectChar::is(char) {
             // example a, li , h2
-            let (select_word, end) = self.parse_select(&index)?;
-            self.paradigm_vec.push(SelectParadigm::SelectWrap(select_word));
+            let (select_word, end) = self.parse_selector_word(&index)?;
+            self
+              .paradigm_vec
+              .push(SelectParadigm::SelectWrap(select_word));
             *index = end;
-          } else if TokenCombinaChar::is(char) {} else if TokenKeyWordChar::is(char) {} else if TokenAllowChar::is(char) {
+          } else if TokenCombinaChar::is(char) {
+          } else if TokenKeyWordChar::is(char) {
+          } else if TokenAllowChar::is(char) {
             // example a, li , h2
-            let (select_word, end) = self.parse_select(&index)?;
-            self.paradigm_vec.push(SelectParadigm::SelectWrap(select_word));
+            let (select_word, end) = self.parse_selector_word(&index)?;
+            self
+              .paradigm_vec
+              .push(SelectParadigm::SelectWrap(select_word));
             *index = end;
           }
         } else {
           // example a, li , h2
-          let (select_word, end) = self.parse_select(&index)?;
-          self.paradigm_vec.push(SelectParadigm::SelectWrap(select_word));
+          let (select_word, end) = self.parse_selector_word(&index)?;
+          self
+            .paradigm_vec
+            .push(SelectParadigm::SelectWrap(select_word));
           *index = end;
         }
         Ok(())
-      }))?;
+      }),
+    )?;
     Ok(())
   }
 
-  fn parse_select(&mut self, start: &usize) -> Result<(String, usize), String> {
+  fn parse_combina_word(&mut self, index: &usize) -> Result<(String, usize), String> {
     let charlist = &self.charlist;
-    let res = traversal(
+    let char = charlist.get(*index).unwrap();
+    if Token::is_space_token(Some(char)) {}
+    Ok((char.to_string(), *index))
+  }
+
+  fn parse_selector_word(&mut self, start: &usize) -> Result<(String, usize), String> {
+    let mut res: (String, usize) = ("".to_string(), 0);
+    let charlist = &self.charlist;
+    let char = charlist.get(*start).unwrap();
+    if *char == '.' || *char == '#' {
+      res = self.parse_selector_class_or_id_word(start)?;
+    } else if *char == ':' {
+    } else if *char == '*' {
+    } else if *char == '[' {
+    } else if *char == '(' {
+    } else {
+      if !Token::is_token(Some(char)) || TokenAllowChar::is(char) {
+      } else {
+        return Err(self.errormsg(start).err().unwrap());
+      }
+    }
+    Ok(res)
+  }
+
+  fn parse_selector_class_or_id_word(&mut self, start: &usize) -> Result<(String, usize), String> {
+    let charlist = &self.charlist;
+    traversal(
       Some(*start),
       charlist,
       &mut (|arg, charword| {
-        let (_, _, _) = arg;
+        let (index, temp, end) = arg;
         let (_, char, _) = charword;
-        if Token::is_token(Some(char)) {} else {}
+        if Token::is_token(Some(char)) {
+          if TokenAllowChar::is(char) {
+            temp.push(*char);
+            return Ok(());
+          }
+          if Self::is_end(Some(&char), None) {
+            if temp.len() < 2 {
+              // . , # single word is error
+              return Err(self.errormsg(index).err().unwrap());
+            }
+            *end = true;
+          } else {
+            return Err(self.errormsg(index).err().unwrap());
+          }
+        } else {
+          temp.push(*char);
+        }
         Ok(())
-      }))?;
-    Ok(res)
+      }),
+    )
   }
 }

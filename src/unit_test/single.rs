@@ -265,3 +265,14 @@ fn test_trim() {
   println!("{:#?}", list.trim());
   println!("{:#?}", list.trim_start());
 }
+
+#[test]
+fn test_vec_equal() {
+  let cc = "@importx";
+  let list = cc.chars().collect::<Vec<char>>();
+  let mut res = 0;
+  if list[0..7] == vec!['@', 'i', 'm', 'p', 'o', 'r', 't'] {
+    res = 1;
+  }
+  assert_eq!(res, 1);
+}

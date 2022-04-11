@@ -1,5 +1,3 @@
-use crate::extend::string::StringExtend;
-use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::{FileRef, FileWeakRef};
 use crate::new_less::import::ImportNode;
@@ -54,7 +52,8 @@ impl VarRuleNode {
     importfiles: &mut Vec<FileRef>,
   ) -> Result<Self, String> {
     // 处理 导入
-    if charlist.len() > "@import".len() && charlist.poly().indexOf("@import", None) > -1 {
+    if charlist.len() > "@import".len() && charlist[0..7] == vec!['@', 'i', 'm', 'p', 'o', 'r', 't']
+    {
       match ImportNode::new(charlist, loc, parent, fileinfo, context, importfiles) {
         HandleResult::Success(obj) => return Ok(VarRuleNode::Import(obj)),
         HandleResult::Fail(msg) => {
