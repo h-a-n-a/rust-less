@@ -9,10 +9,10 @@ use crate::new_less::token::new_select::{
 use crate::new_less::var::HandleResult;
 use serde::Serialize;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
 pub enum SelectParadigm {
   SelectWrap(String),
-  CominaWrap(String),
+  CominaWrap(TokenCombinaChar),
   VarWrap(String),
 }
 
@@ -24,9 +24,10 @@ impl Paradigm for Vec<SelectParadigm> {
   fn join(&self) -> String {
     let mut txt = "".to_string();
     self.iter().for_each(|par| match par {
-      SelectParadigm::SelectWrap(cc)
-      | SelectParadigm::CominaWrap(cc)
-      | SelectParadigm::VarWrap(cc) => txt += cc,
+      SelectParadigm::SelectWrap(cc) | SelectParadigm::VarWrap(cc) => txt += cc,
+      SelectParadigm::CominaWrap(cc) => {
+        txt.push(cc.to_str());
+      }
     });
     txt
   }
@@ -35,7 +36,7 @@ impl Paradigm for Vec<SelectParadigm> {
 #[derive(Debug, Clone, Serialize)]
 pub struct NewSelector {
   // 字符串规则 根据逗号分割
-  pub paradigm_vec: Vec<SelectParadigm>,
+  pub paradigm_vec: Vec<Vec<SelectParadigm>>,
 
   // 坐标位置
   pub loc: Option<Loc>,
@@ -74,6 +75,9 @@ impl NewSelector {
     }
   }
 
+  ///
+  /// 尽量减少调用次数
+  ///
   pub fn value(&self) -> String {
     self.charlist.poly()
   }
@@ -93,6 +97,91 @@ impl NewSelector {
     ))
   }
 
+  ///
+  /// 在二维数组 的最后 追加 词
+  ///
+  pub fn add_paradigm(&mut self, obj: SelectParadigm) {
+    if self.paradigm_vec.is_empty() {
+      self.paradigm_vec.push(vec![obj]);
+    } else {
+      let list = self.paradigm_vec.last_mut().unwrap();
+      list.push(obj);
+    }
+  }
+
+  ///
+  /// 最后一组词 的 最后一位 非空
+  /// 逗号情况 调用
+  ///
+  pub fn clear_paraigm(&mut self, index: &usize) -> Result<(), String> {
+    if let Some(list) = self.paradigm_vec.last_mut() {
+      let mut rm_index_list: Vec<usize> = vec![];
+      for (index, word) in list.iter().rev().enumerate() {
+        match word {
+          SelectParadigm::CominaWrap(_) => {
+            rm_index_list.push(list.len() - 1 - index);
+          }
+          _ => {
+            break;
+          }
+        }
+      }
+      let mut num = 0;
+      for index in rm_index_list {
+        list.remove(index - num);
+        num += 1;
+      }
+      if list.is_empty() {
+        return Err(self.errormsg(&index).err().unwrap());
+      }
+      Ok(())
+    } else {
+      Err(self.errormsg(&index).err().unwrap())
+    }
+  }
+
+  ///
+  /// 在二维数组中 开辟 一组 新词 序列
+  ///
+  pub fn add_paradigm_vec(&mut self) {
+    self.paradigm_vec.push(vec![]);
+  }
+
+  ///
+  /// 获取 最后 词
+  ///
+  pub fn last_paradigm(&self) -> Option<&SelectParadigm> {
+    if self.paradigm_vec.last().is_some() {
+      return self.paradigm_vec.last().unwrap().last();
+    }
+    None
+  }
+
+  ///
+  /// 获取 最后 非空格 词
+  ///
+  pub fn last_paradigm_without_space(&self) -> Option<&SelectParadigm> {
+    if let Some(list) = self.paradigm_vec.last() {
+      for p in list.iter().rev() {
+        if !matches!(p, SelectParadigm::CominaWrap(..)) {
+          return Some(p);
+        } else {
+          if *p != SelectParadigm::CominaWrap(TokenCombinaChar::Space) {
+            return Some(p);
+          } else {
+            continue;
+          }
+        }
+      }
+      None
+    } else {
+      None
+    }
+  }
+
+  ///
+  /// 是否 停词 的判断
+  ///
   pub fn is_end(char: Option<&char>, extend_char: Option<Vec<char>>) -> bool {
     if let Some(cc) = char {
       let mut charlist: Vec<char> = vec![];
@@ -127,36 +216,34 @@ impl NewSelector {
   pub fn parse(&mut self) -> Result<(), String> {
     let charlist = &self.charlist.clone();
     let index: usize = 0;
+
     traversal(
       Some(index),
       charlist,
       &mut (|arg, charword| {
         let (index, _, _) = arg;
         let (_, char, _) = charword;
+
         if Token::is_token(Some(char)) {
           if TokenSelectChar::is(char) {
             // example a, li , h2
             let (select_word, end) = self.parse_selector_word(&index)?;
-            self
-              .paradigm_vec
-              .push(SelectParadigm::SelectWrap(select_word));
+            self.add_paradigm(SelectParadigm::SelectWrap(select_word));
             *index = end;
           } else if TokenCombinaChar::is(char) {
+            let (_, end) = self.parse_combina_word(&index)?;
+            *index = end;
           } else if TokenKeyWordChar::is(char) {
           } else if TokenAllowChar::is(char) {
             // example a, li , h2
             let (select_word, end) = self.parse_selector_word(&index)?;
-            self
-              .paradigm_vec
-              .push(SelectParadigm::SelectWrap(select_word));
+            self.add_paradigm(SelectParadigm::SelectWrap(select_word));
             *index = end;
           }
         } else {
           // example a, li , h2
           let (select_word, end) = self.parse_selector_word(&index)?;
-          self
-            .paradigm_vec
-            .push(SelectParadigm::SelectWrap(select_word));
+          self.add_paradigm(SelectParadigm::SelectWrap(select_word));
           *index = end;
         }
         Ok(())
@@ -165,13 +252,43 @@ impl NewSelector {
     Ok(())
   }
 
+  ///
+  /// 连接词的处理
+  ///
   fn parse_combina_word(&mut self, index: &usize) -> Result<(String, usize), String> {
-    let charlist = &self.charlist;
-    let char = charlist.get(*index).unwrap();
-    if Token::is_space_token(Some(char)) {}
-    Ok((char.to_string(), *index))
+    let char = *self.charlist.get(*index).unwrap();
+    if Token::is_space_token(Some(&char)) {
+      let last_pardigm = self.last_paradigm();
+      if let Some(SelectParadigm::CominaWrap(token)) = last_pardigm {
+        if *token != TokenCombinaChar::Space {
+          self.add_paradigm(SelectParadigm::CominaWrap(TokenCombinaChar::Space));
+        }
+      } else {
+        self.add_paradigm(SelectParadigm::CominaWrap(TokenCombinaChar::Space));
+      }
+    } else if char == TokenCombinaChar::AddChar.to_str()
+      || char == TokenCombinaChar::ExtendChar.to_str()
+      || char == TokenCombinaChar::BrotherMatchChar.to_str()
+      || char == TokenCombinaChar::ColumnChar.to_str()
+    {
+      let last_pardigm = self.last_paradigm_without_space();
+      // 只要最后一个非空字符是 非链接符 即可
+      if !matches!(last_pardigm, Some(SelectParadigm::CominaWrap(..))) {
+        let combin_token = TokenCombinaChar::get(&char).unwrap();
+        self.add_paradigm(SelectParadigm::CominaWrap(combin_token));
+      } else {
+        return Err(self.errormsg(&index).err().unwrap());
+      }
+    } else if char == TokenCombinaChar::Comma.to_str() {
+      self.clear_paraigm(index)?;
+      self.add_paradigm_vec();
+    }
+    Ok((char.to_string(), *index + 1))
   }
 
+  ///
+  /// parse select word
+  ///
   fn parse_selector_word(&mut self, start: &usize) -> Result<(String, usize), String> {
     let mut res: (String, usize) = ("".to_string(), 0);
     let charlist = &self.charlist;
@@ -191,6 +308,9 @@ impl NewSelector {
     Ok(res)
   }
 
+  ///
+  /// parse example #h2 .abc
+  ///
   fn parse_selector_class_or_id_word(&mut self, start: &usize) -> Result<(String, usize), String> {
     let charlist = &self.charlist;
     traversal(

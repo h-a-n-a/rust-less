@@ -276,3 +276,11 @@ fn test_vec_equal() {
   }
   assert_eq!(res, 1);
 }
+
+#[test]
+fn test_rev() {
+  let list = vec![1, 2, 3];
+  for (index, val) in list.iter().rev().enumerate() {
+    println!("{:#?} {:#?}", list.len() - 1 - index, val)
+  }
+}

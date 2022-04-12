@@ -4,8 +4,13 @@ pub struct Token(String);
 
 pub trait TokenInterface {
   fn to_str(&self) -> char;
-  fn iterator() -> Iter<'static, Self> where Self: Sized;
+  fn iterator() -> Iter<'static, Self>
+  where
+    Self: Sized;
   fn is(cc: &char) -> bool;
+  fn get(cc: &char) -> Option<Self>
+  where
+    Self: Sized;
 }
 
 ///

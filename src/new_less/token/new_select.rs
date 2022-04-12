@@ -1,7 +1,8 @@
 use crate::new_less::token::lib::TokenInterface;
+use serde::Serialize;
 use std::slice::Iter;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, PartialEq, Clone)]
 pub enum TokenSelectChar {
   ClassToken,
   IdToken,
@@ -49,12 +50,21 @@ impl TokenInterface for TokenSelectChar {
     }
     false
   }
+
+  fn get(cc: &char) -> Option<TokenSelectChar> {
+    for token in Self::iterator() {
+      if *cc == token.to_str() {
+        return Some(token.clone());
+      }
+    }
+    None
+  }
 }
 
 ///
 /// Select 允许的连接符
 ///
-#[derive(Debug)]
+#[derive(Debug, Serialize, PartialEq, Clone)]
 pub enum TokenCombinaChar {
   Comma,
   Space,
@@ -62,7 +72,6 @@ pub enum TokenCombinaChar {
   NewLineWindos,
   ExtendChar,
   ColumnChar,
-  BrotherNextChar,
   BrotherMatchChar,
   AddChar,
 }
@@ -76,21 +85,19 @@ impl TokenInterface for TokenCombinaChar {
       TokenCombinaChar::NewLineWindos => '\r',
       TokenCombinaChar::ExtendChar => '>',
       TokenCombinaChar::ColumnChar => '|',
-      TokenCombinaChar::BrotherNextChar => '|',
       TokenCombinaChar::BrotherMatchChar => '~',
       TokenCombinaChar::AddChar => '+',
     }
   }
 
   fn iterator() -> Iter<'static, TokenCombinaChar> {
-    static TOKENS: [TokenCombinaChar; 9] = [
+    static TOKENS: [TokenCombinaChar; 8] = [
       TokenCombinaChar::Comma,
       TokenCombinaChar::Space,
       TokenCombinaChar::NewLineOs,
       TokenCombinaChar::NewLineWindos,
       TokenCombinaChar::ExtendChar,
       TokenCombinaChar::ColumnChar,
-      TokenCombinaChar::BrotherNextChar,
       TokenCombinaChar::BrotherMatchChar,
       TokenCombinaChar::AddChar,
     ];
@@ -105,9 +112,18 @@ impl TokenInterface for TokenCombinaChar {
     }
     false
   }
+
+  fn get(cc: &char) -> Option<TokenCombinaChar> {
+    for token in Self::iterator() {
+      if *cc == token.to_str() {
+        return Some(token.clone());
+      }
+    }
+    None
+  }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, PartialEq, Clone)]
 pub enum TokenAllowChar {
   LeftSlant,
   Underscore,
@@ -140,9 +156,18 @@ impl TokenInterface for TokenAllowChar {
     }
     false
   }
+
+  fn get(cc: &char) -> Option<TokenAllowChar> {
+    for token in Self::iterator() {
+      if *cc == token.to_str() {
+        return Some(token.clone());
+      }
+    }
+    None
+  }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, PartialEq, Clone)]
 pub enum TokenKeyWordChar {
   PranedRefer,
   VarRefer,
@@ -169,5 +194,14 @@ impl TokenInterface for TokenKeyWordChar {
       }
     }
     false
+  }
+
+  fn get(cc: &char) -> Option<TokenKeyWordChar> {
+    for token in Self::iterator() {
+      if *cc == token.to_str() {
+        return Some(token.clone());
+      }
+    }
+    None
   }
 }
