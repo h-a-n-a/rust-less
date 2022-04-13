@@ -217,7 +217,7 @@ impl NewSelector {
     let charlist = &self.charlist.clone();
     let index: usize = 0;
 
-    traversal(
+    let (_, end) = traversal(
       Some(index),
       charlist,
       &mut (|arg, charword| {
@@ -249,6 +249,7 @@ impl NewSelector {
         Ok(())
       }),
     )?;
+    self.clear_paraigm(&end)?;
     Ok(())
   }
 
@@ -290,17 +291,22 @@ impl NewSelector {
   /// parse select word
   ///
   fn parse_selector_word(&mut self, start: &usize) -> Result<(String, usize), String> {
-    let mut res: (String, usize) = ("".to_string(), 0);
+    let res: (String, usize);
     let charlist = &self.charlist;
     let char = charlist.get(*start).unwrap();
     if *char == '.' || *char == '#' {
       res = self.parse_selector_class_or_id_word(start)?;
     } else if *char == ':' {
+      res = self.parse_selector_pseudo_class_word(start)?;
     } else if *char == '*' {
+      res = ('*'.to_string(), *start + 1);
     } else if *char == '[' {
+      res = self.parse_selector_attr(start)?;
     } else if *char == '(' {
+      res = self.parse_selector_brackets(start)?;
     } else {
       if !Token::is_token(Some(char)) || TokenAllowChar::is(char) {
+        res = self.parse_selector_ele(start)?;
       } else {
         return Err(self.errormsg(start).err().unwrap());
       }
@@ -309,10 +315,39 @@ impl NewSelector {
   }
 
   ///
+  /// parse example h2 span div
+  ///
+  fn parse_selector_ele(&mut self, start: &usize) -> Result<(String, usize), String> {
+    traversal(
+      Some(*start),
+      &self.charlist,
+      &mut (|arg, charword| {
+        let (index, temp, end) = arg;
+        let (_, char, _) = charword;
+        if Token::is_token(Some(char)) {
+          if TokenAllowChar::is(char) {
+            temp.push(*char);
+            return Ok(());
+          }
+          if Self::is_end(Some(&char), None) {
+            *end = true;
+          } else {
+            return Err(self.errormsg(index).err().unwrap());
+          }
+        } else {
+          temp.push(*char);
+        }
+        Ok(())
+      }),
+    )
+  }
+
+  ///
   /// parse example #h2 .abc
   ///
   fn parse_selector_class_or_id_word(&mut self, start: &usize) -> Result<(String, usize), String> {
     let charlist = &self.charlist;
+    let mut record = false;
     traversal(
       Some(*start),
       charlist,
@@ -324,7 +359,12 @@ impl NewSelector {
             temp.push(*char);
             return Ok(());
           }
-          if Self::is_end(Some(&char), None) {
+          if TokenSelectChar::is(char) && !record {
+            record = true;
+            temp.push(*char);
+            return Ok(());
+          }
+          if Self::is_end(Some(&char), None) && record {
             if temp.len() < 2 {
               // . , # single word is error
               return Err(self.errormsg(index).err().unwrap());
@@ -339,5 +379,187 @@ impl NewSelector {
         Ok(())
       }),
     )
+  }
+
+  ///
+  /// parse example ::hide :next
+  ///
+  fn parse_selector_pseudo_class_word(&mut self, start: &usize) -> Result<(String, usize), String> {
+    let charlist = &self.charlist;
+    let mut record = false;
+    traversal(
+      Some(*start),
+      charlist,
+      &mut (|arg, charword| {
+        let (index, temp, end) = arg;
+        let (_, char, next) = charword;
+        if Token::is_token(Some(char)) {
+          if !record && *char == ':' {
+            if next == Some(&':') {
+              temp.push(*char);
+              *index += 1;
+            }
+            temp.push(*char);
+            record = true;
+            return Ok(());
+          }
+          if TokenAllowChar::is(char) {
+            temp.push(*char);
+            return Ok(());
+          }
+          if Self::is_end(Some(&char), None) && record {
+            if (temp.len() < 2 && *temp == vec![':']) || (temp.len() < 3 && *temp == vec![':', ':'])
+            {
+              // . , # single word is error
+              return Err(self.errormsg(index).err().unwrap());
+            }
+            *end = true;
+          } else {
+            return Err(self.errormsg(index).err().unwrap());
+          }
+        } else {
+          temp.push(*char);
+        }
+        Ok(())
+      }),
+    )
+  }
+
+  ///
+  /// parse example (language)
+  ///
+  fn parse_selector_brackets(&mut self, start: &usize) -> Result<(String, usize), String> {
+    let mut level = 0;
+    let res = traversal(
+      Some(*start),
+      &self.charlist,
+      &mut (|arg, charword| {
+        let (index, temp, end) = arg;
+        let (_, char, next) = charword;
+        if Token::is_token(Some(char)) {
+          if TokenAllowChar::is(char) {
+            temp.push(*char);
+            return Ok(());
+          }
+          if *char == ')' {
+            level -= 1;
+            if level < 0 {
+              return Err(self.errormsg(index).err().unwrap());
+            } else if level == 0 {
+              *end = true;
+              return Ok(());
+            } else if *char == '@' && next != Some(&'{') {
+              return Err(self.errormsg(index).err().unwrap());
+            }
+          }
+          if *char == '(' {
+            level += 1;
+          }
+          temp.push(*char);
+        } else {
+          temp.push(*char);
+        }
+        Ok(())
+      }),
+    )?;
+    if level > 0 {
+      return Err(self.errormsg(&res.1).err().unwrap());
+    }
+    Ok(res)
+  }
+
+  ///
+  /// parse example '[arco-theme='dark']'
+  ///
+  fn parse_selector_attr(&mut self, start: &usize) -> Result<(String, usize), String> {
+    // example ~= *= ^=
+    let equal_chars = vec!['~', '|', '^', '$', '*'];
+    let mut hasequal = false;
+    let mut has_brackest = false;
+    let mut queto: Option<char> = None;
+
+    let res = traversal(
+      Some(*start),
+      &self.charlist,
+      &mut (|arg, charword| {
+        let (index, temp, end) = arg;
+        let (prev, char, next) = charword;
+        if let Some(token_queto) = queto {
+          if has_brackest {
+            if *char == token_queto && prev != Some(&'\\') {
+              queto = None;
+            }
+            temp.push(*char);
+          } else {
+            return Err(self.errormsg(index).err().unwrap());
+          }
+        } else {
+          if Token::is_token(Some(char)) {
+            if has_brackest {
+              if *char == '[' {
+                return Err(self.errormsg(index).err().unwrap());
+              } else if *char == ']' {
+                let prev_char_without_space = {
+                  let mut res: Option<char> = None;
+                  for tc in temp.iter().rev() {
+                    if *tc == ' ' {
+                      continue;
+                    } else {
+                      res = Some(*tc);
+                      break;
+                    }
+                  }
+                  res
+                };
+                if prev_char_without_space == Some('=') {
+                  return Err(self.errormsg(index).err().unwrap());
+                }
+                // is attr end record
+                temp.push(*char);
+                has_brackest = false;
+                *end = true;
+              } else if TokenAllowChar::is(char) {
+                temp.push(*char);
+              } else if equal_chars.contains(char) {
+                if next == Some(&'=') && !hasequal {
+                  temp.push(*char);
+                  temp.push('=');
+                  hasequal = true;
+                  *index += 1;
+                } else {
+                  return Err(self.errormsg(index).err().unwrap());
+                }
+              } else if *char == '=' {
+                if !hasequal {
+                  temp.push('=');
+                  hasequal = true;
+                } else {
+                  return Err(self.errormsg(index).err().unwrap());
+                }
+              }
+            } else {
+              // start record attr
+              if *char == '[' {
+                temp.push(*char);
+                has_brackest = true;
+              } else {
+                return Err(self.errormsg(index).err().unwrap());
+              }
+            }
+          } else {
+            if has_brackest {
+              temp.push(*char);
+            } else {
+              return Err(self.errormsg(index).err().unwrap());
+            }
+          }
+        }
+        Ok(())
+      }),
+    )?;
+    if has_brackest {
+      return Err(self.errormsg(&res.1).err().unwrap());
+    }
+    Ok(res)
   }
 }
