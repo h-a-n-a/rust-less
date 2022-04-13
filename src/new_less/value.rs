@@ -30,8 +30,8 @@ pub struct ValueNode {
 
 impl Serialize for ValueNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-      S: Serializer,
+  where
+    S: Serializer,
   {
     let mut state = serializer.serialize_struct("ValueNode", 2)?;
     state.serialize_field("content", &self.charlist.poly())?;
@@ -132,11 +132,7 @@ impl ValueNode {
       Some(*start),
       charlist,
       &mut (|arg, charword| {
-        let (
-          index,
-          temp,
-          hasend,
-        ) = arg;
+        let (index, temp, hasend) = arg;
         let (_, char, nextchar) = charword;
         temp.push(*char);
         if *char == ':' {
@@ -161,19 +157,15 @@ impl ValueNode {
       Some(*start),
       charlist,
       &mut (|arg, charword| {
-        let (
-          index,
-          temp,
-          hasend,
-        ) = arg;
+        let (index, temp, hasend) = arg;
         let (_, char, nextchar) = charword;
         // todo @{...} not support
-        if temp.len() == 0 {
+        if temp.is_empty() {
           if *char == '\'' || *char == '"' {
             keyword = *char;
             temp.push(*char);
           } else {
-            return Err(self.error_msg(&index));
+            return Err(self.error_msg(index));
           }
         } else {
           temp.push(*char);
@@ -213,18 +205,14 @@ impl ValueNode {
       Some(*start),
       charlist,
       &mut (|arg, charword| {
-        let (
-          index,
-          temp,
-          hasend,
-        ) = arg;
+        let (index, temp, hasend) = arg;
         let (_, char, nextchar) = charword;
         // 第一位必须是 @
-        if temp.len() == 0 && *char == '@' {
+        if temp.is_empty() && *char == '@' {
           temp.push('@');
           Ok(())
         } else if temp.is_empty() {
-          Err(self.error_msg(&index))
+          Err(self.error_msg(index))
         } else {
           // 后续写词
           if Token::is_token(Some(char)) {
@@ -237,19 +225,19 @@ impl ValueNode {
               }
               // @- is error
               if temp.len() < 2 {
-                return Err(self.error_msg(&index));
+                return Err(self.error_msg(index));
               }
             } else if Self::is_end(Some(char), None) {
               // @+ @* is error
               if temp.len() < 2 {
-                return Err(self.error_msg(&index));
+                return Err(self.error_msg(index));
               }
               *hasend = true;
               *index -= 1;
             } else if *char == '\\' {
               temp.push(*char);
             } else {
-              return Err(self.error_msg(&index));
+              return Err(self.error_msg(index));
             }
           } else {
             temp.push(*char);
@@ -307,7 +295,7 @@ impl ValueNode {
       Some(*start),
       charlist,
       &mut (|arg, charword| {
-        let (index, _, hasend, ) = arg;
+        let (index, _, hasend) = arg;
         let (prevchar, char, nextchar) = charword;
         if Token::is_token(Some(char)) {
           // 判断小数点的 情况
@@ -421,7 +409,7 @@ impl ValueNode {
             },
           }
         } else if *char == '@' {
-          let (var, end) = self.parse_value_var(&index)?;
+          let (var, end) = self.parse_value_var(index)?;
           self.word_ident_list.push(IdentType::Var(var));
           *index = end;
         }
@@ -497,7 +485,7 @@ impl ValueNode {
           if last_item.is_some()
             && last_item.unwrap().is_number()
             && (Self::is_number(Some(&next_char_no_space))
-            || Self::is_brackets(Some(&next_char_no_space)))
+              || Self::is_brackets(Some(&next_char_no_space)))
           {
             self
               .word_ident_list

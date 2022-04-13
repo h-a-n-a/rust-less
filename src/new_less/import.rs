@@ -52,8 +52,8 @@ impl Debug for ImportNode {
 
 impl Serialize for ImportNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-      S: Serializer,
+  where
+    S: Serializer,
   {
     let mut state = serializer.serialize_struct("ImportNode", 3)?;
     state.serialize_field("content", &self.charlist.poly())?;
@@ -131,17 +131,13 @@ impl ImportNode {
       Some(index),
       charlist,
       &mut (|arg, (_, char, _)| {
-        let (
-          index,
-          temp,
-          hasend,
-        ) = arg;
+        let (index, temp, hasend) = arg;
 
         if has_apost || has_quote {
           if Token::is_token(Some(char)) {
             if ('\'' == *char && has_apost) || ('"' == *char && has_quote) {
               if *index != charlist.len() - 2 {
-                return Err(self.error_msg(&index));
+                return Err(self.error_msg(index));
               } else {
                 has_apost = false;
                 has_quote = false;
@@ -160,11 +156,11 @@ impl ImportNode {
             } else if '"' == *char {
               has_quote = true;
             } else {
-              return Err(self.error_msg(&index));
+              return Err(self.error_msg(index));
             }
           }
         } else {
-          return Err(self.error_msg(&index));
+          return Err(self.error_msg(index));
         }
         Ok(())
       }),

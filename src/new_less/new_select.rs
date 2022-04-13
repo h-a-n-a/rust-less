@@ -116,6 +116,7 @@ impl NewSelector {
   pub fn clear_paraigm(&mut self, index: &usize) -> Result<(), String> {
     if let Some(list) = self.paradigm_vec.last_mut() {
       let mut rm_index_list: Vec<usize> = vec![];
+      let mut num = 0;
       for (index, word) in list.iter().rev().enumerate() {
         match word {
           SelectParadigm::CominaWrap(_) => {
@@ -126,17 +127,16 @@ impl NewSelector {
           }
         }
       }
-      let mut num = 0;
-      for index in rm_index_list {
-        list.remove(index - num);
+      for (_, val) in rm_index_list.into_iter().enumerate() {
+        list.remove(val - num);
         num += 1;
       }
       if list.is_empty() {
-        return Err(self.errormsg(&index).err().unwrap());
+        return Err(self.errormsg(index).err().unwrap());
       }
       Ok(())
     } else {
-      Err(self.errormsg(&index).err().unwrap())
+      Err(self.errormsg(index).err().unwrap())
     }
   }
 
@@ -163,14 +163,12 @@ impl NewSelector {
   pub fn last_paradigm_without_space(&self) -> Option<&SelectParadigm> {
     if let Some(list) = self.paradigm_vec.last() {
       for p in list.iter().rev() {
-        if !matches!(p, SelectParadigm::CominaWrap(..)) {
+        if !matches!(p, SelectParadigm::CominaWrap(..))
+          || *p != SelectParadigm::CominaWrap(TokenCombinaChar::Space)
+        {
           return Some(p);
         } else {
-          if *p != SelectParadigm::CominaWrap(TokenCombinaChar::Space) {
-            return Some(p);
-          } else {
-            continue;
-          }
+          continue;
         }
       }
       None
@@ -227,22 +225,22 @@ impl NewSelector {
         if Token::is_token(Some(char)) {
           if TokenSelectChar::is(char) {
             // example a, li , h2
-            let (select_word, end) = self.parse_selector_word(&index)?;
+            let (select_word, end) = self.parse_selector_word(index)?;
             self.add_paradigm(SelectParadigm::SelectWrap(select_word));
             *index = end;
           } else if TokenCombinaChar::is(char) {
-            let (_, end) = self.parse_combina_word(&index)?;
+            let (_, end) = self.parse_combina_word(index)?;
             *index = end;
           } else if TokenKeyWordChar::is(char) {
           } else if TokenAllowChar::is(char) {
             // example a, li , h2
-            let (select_word, end) = self.parse_selector_word(&index)?;
+            let (select_word, end) = self.parse_selector_word(index)?;
             self.add_paradigm(SelectParadigm::SelectWrap(select_word));
             *index = end;
           }
         } else {
           // example a, li , h2
-          let (select_word, end) = self.parse_selector_word(&index)?;
+          let (select_word, end) = self.parse_selector_word(index)?;
           self.add_paradigm(SelectParadigm::SelectWrap(select_word));
           *index = end;
         }
@@ -278,7 +276,7 @@ impl NewSelector {
         let combin_token = TokenCombinaChar::get(&char).unwrap();
         self.add_paradigm(SelectParadigm::CominaWrap(combin_token));
       } else {
-        return Err(self.errormsg(&index).err().unwrap());
+        return Err(self.errormsg(index).err().unwrap());
       }
     } else if char == TokenCombinaChar::Comma.to_str() {
       self.clear_paraigm(index)?;
@@ -304,12 +302,10 @@ impl NewSelector {
       res = self.parse_selector_attr(start)?;
     } else if *char == '(' {
       res = self.parse_selector_brackets(start)?;
+    } else if !Token::is_token(Some(char)) || TokenAllowChar::is(char) {
+      res = self.parse_selector_ele(start)?;
     } else {
-      if !Token::is_token(Some(char)) || TokenAllowChar::is(char) {
-        res = self.parse_selector_ele(start)?;
-      } else {
-        return Err(self.errormsg(start).err().unwrap());
-      }
+      return Err(self.errormsg(start).err().unwrap());
     }
     Ok(res)
   }
@@ -329,7 +325,7 @@ impl NewSelector {
             temp.push(*char);
             return Ok(());
           }
-          if Self::is_end(Some(&char), None) {
+          if Self::is_end(Some(char), None) {
             *end = true;
           } else {
             return Err(self.errormsg(index).err().unwrap());
@@ -364,7 +360,7 @@ impl NewSelector {
             temp.push(*char);
             return Ok(());
           }
-          if Self::is_end(Some(&char), None) && record {
+          if Self::is_end(Some(char), None) && record {
             if temp.len() < 2 {
               // . , # single word is error
               return Err(self.errormsg(index).err().unwrap());
@@ -407,7 +403,7 @@ impl NewSelector {
             temp.push(*char);
             return Ok(());
           }
-          if Self::is_end(Some(&char), None) && record {
+          if Self::is_end(Some(char), None) && record {
             if (temp.len() < 2 && *temp == vec![':']) || (temp.len() < 3 && *temp == vec![':', ':'])
             {
               // . , # single word is error
@@ -493,66 +489,62 @@ impl NewSelector {
           } else {
             return Err(self.errormsg(index).err().unwrap());
           }
-        } else {
-          if Token::is_token(Some(char)) {
-            if has_brackest {
-              if *char == '[' {
-                return Err(self.errormsg(index).err().unwrap());
-              } else if *char == ']' {
-                let prev_char_without_space = {
-                  let mut res: Option<char> = None;
-                  for tc in temp.iter().rev() {
-                    if *tc == ' ' {
-                      continue;
-                    } else {
-                      res = Some(*tc);
-                      break;
-                    }
+        } else if Token::is_token(Some(char)) {
+          if has_brackest {
+            if *char == '[' {
+              return Err(self.errormsg(index).err().unwrap());
+            } else if *char == ']' {
+              let prev_char_without_space = {
+                let mut res: Option<char> = None;
+                for tc in temp.iter().rev() {
+                  if *tc == ' ' {
+                    continue;
+                  } else {
+                    res = Some(*tc);
+                    break;
                   }
-                  res
-                };
-                if prev_char_without_space == Some('=') {
-                  return Err(self.errormsg(index).err().unwrap());
                 }
-                // is attr end record
-                temp.push(*char);
-                has_brackest = false;
-                *end = true;
-              } else if TokenAllowChar::is(char) {
-                temp.push(*char);
-              } else if equal_chars.contains(char) {
-                if next == Some(&'=') && !hasequal {
-                  temp.push(*char);
-                  temp.push('=');
-                  hasequal = true;
-                  *index += 1;
-                } else {
-                  return Err(self.errormsg(index).err().unwrap());
-                }
-              } else if *char == '=' {
-                if !hasequal {
-                  temp.push('=');
-                  hasequal = true;
-                } else {
-                  return Err(self.errormsg(index).err().unwrap());
-                }
+                res
+              };
+              if prev_char_without_space == Some('=') {
+                return Err(self.errormsg(index).err().unwrap());
               }
-            } else {
-              // start record attr
-              if *char == '[' {
+              // is attr end record
+              temp.push(*char);
+              has_brackest = false;
+              *end = true;
+            } else if TokenAllowChar::is(char) {
+              temp.push(*char);
+            } else if equal_chars.contains(char) {
+              if next == Some(&'=') && !hasequal {
                 temp.push(*char);
-                has_brackest = true;
+                temp.push('=');
+                hasequal = true;
+                *index += 1;
+              } else {
+                return Err(self.errormsg(index).err().unwrap());
+              }
+            } else if *char == '=' {
+              if !hasequal {
+                temp.push('=');
+                hasequal = true;
               } else {
                 return Err(self.errormsg(index).err().unwrap());
               }
             }
           } else {
-            if has_brackest {
+            // start record attr
+            if *char == '[' {
               temp.push(*char);
+              has_brackest = true;
             } else {
               return Err(self.errormsg(index).err().unwrap());
             }
           }
+        } else if has_brackest {
+          temp.push(*char);
+        } else {
+          return Err(self.errormsg(index).err().unwrap());
         }
         Ok(())
       }),

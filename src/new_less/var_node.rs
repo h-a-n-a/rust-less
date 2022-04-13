@@ -43,8 +43,8 @@ pub struct VarNode {
 
 impl Serialize for VarNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-      S: Serializer,
+  where
+    S: Serializer,
   {
     let mut state = serializer.serialize_struct("VarNode", 5)?;
     state.serialize_field("content", &self.charlist.poly())?;
@@ -163,7 +163,7 @@ impl VarNode {
             hasspace = true;
             temp.push(*char);
           } else {
-            return Err(self.error_msg(&index));
+            return Err(self.error_msg(index));
           }
         } else if !Token::is_token(Some(char)) && !hasspace {
           temp.push(*char);
@@ -212,7 +212,7 @@ impl VarNode {
       Some(index),
       charlist,
       &mut (|arg, _| {
-        let ( index, _, _) = arg;
+        let (index, _, _) = arg;
         if obj_key.is_none() {
           let (key, jump) = self.parse_var_ident(index)?;
           *index = jump;

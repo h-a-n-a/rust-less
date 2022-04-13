@@ -89,7 +89,7 @@ impl MediaQuery {
               // 加冒号之前 先判断是否是有效 key
               *hasend = true;
             } else {
-              return Err(self.errormsg(&index).err().unwrap());
+              return Err(self.errormsg(index).err().unwrap());
             }
           } else if Token::is_space_token(Some(char)) {
             if Token::is_space_token(next) {
@@ -100,7 +100,7 @@ impl MediaQuery {
           } else if *char == '-' {
             temp.push('-');
           } else {
-            return Err(self.errormsg(&index).err().unwrap());
+            return Err(self.errormsg(index).err().unwrap());
           }
         } else {
           temp.push(*char);
@@ -135,10 +135,10 @@ impl MediaQuery {
             if temp.is_empty() {
               temp.push('-');
             } else {
-              return Err(self.errormsg(&index).err().unwrap());
+              return Err(self.errormsg(index).err().unwrap());
             }
           } else {
-            return Err(self.errormsg(&index).err().unwrap());
+            return Err(self.errormsg(index).err().unwrap());
           }
         } else {
           temp.push(*char);
@@ -169,7 +169,7 @@ impl MediaQuery {
     index = jump + 1;
 
     // 分析value
-    let (value, jump) = match self.parse_media_value(&index.clone()) {
+    let (value, jump) = match self.parse_media_value(&index) {
       Ok(res) => res,
       Err(msg) => {
         return Err(msg);
@@ -201,7 +201,7 @@ impl MediaQuery {
           if Token::is_space_token(Some(char)) {
             *hasend = true;
           } else {
-            return Err(self.errormsg(&index).err().unwrap());
+            return Err(self.errormsg(index).err().unwrap());
           }
         } else {
           temp.push(*char);
@@ -252,7 +252,7 @@ impl MediaQuery {
             }
           } else if vec!['(', ')', ':'].contains(char) {
             if '(' == *char {
-              match self.parse_media_feature(&index) {
+              match self.parse_media_feature(index) {
                 Ok((word, jump)) => {
                   word_vec.push(word);
                   *index = jump;
@@ -261,13 +261,13 @@ impl MediaQuery {
                 Err(msg) => Err(msg),
               }
             } else {
-              Err(self.errormsg(&index).err().unwrap())
+              Err(self.errormsg(index).err().unwrap())
             }
           } else {
-            Err(self.errormsg(&index).err().unwrap())
+            Err(self.errormsg(index).err().unwrap())
           }
         } else {
-          let (word, jump) = match self.parse_media_logicword(&index) {
+          let (word, jump) = match self.parse_media_logicword(index) {
             Ok(res) => res,
             Err(msg) => {
               return Err(msg);
