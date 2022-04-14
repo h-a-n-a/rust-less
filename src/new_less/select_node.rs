@@ -67,25 +67,34 @@ impl SelectorNode {
     }
   }
 
-
   ///
   /// 代码生成方法
   ///
   pub fn code_gen(&self) -> Result<(String, String), String> {
-    // 处理收集的 select 字符串
-    let select_txt: Vec<String> = vec![];
-    // 处理收集的 media 字符串
-    let media_txt: Vec<String> = vec![];
+    let mut node = None;
+    if let Self::Select(ss) = &self {
+      node = ss.parent.clone();
+    } else if let Self::Media(ss) = &self {
+      node = ss.parent.clone();
+    }
 
-    // media_rules.reverse();
-    // for media_word in media_rules {
-    //   if media_txt.is_empty() {
-    //     media_txt.push(media_word);
-    //   } else {
-    //     media_txt.push(media_word[6..].to_string())
-    //   }
-    // }
-    let res = (select_txt.join(","), media_txt.join(" and "));
-    Ok(res)
+    let nearly_select_node = NewSelector::find_up_select_node(node.clone());
+    let nearly_media_node = MediaQuery::find_up_media_node(node);
+
+    let mut select_res = "".to_string();
+    if let Some(snode) = nearly_select_node {
+      if let SelectorNode::Select(s) = snode.upgrade().unwrap().borrow().selector.as_ref().unwrap() {
+        select_res = s.code_gen().join(",");
+      }
+    }
+
+    let media_res = "".to_string();
+    if let Some(mnode) = nearly_media_node {
+      if let SelectorNode::Media(m) = mnode.upgrade().unwrap().borrow().selector.as_ref().unwrap(){
+        select_res = m.code_gen().join(" and ");
+      }
+    }
+
+    Ok((select_res, media_res))
   }
 }

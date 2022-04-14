@@ -11,8 +11,9 @@ fn test_media_parse() {
   let mut haserror = 0;
   demo_select_list.into_iter().for_each(|tt| {
     match MediaQuery::new(tt.tocharlist(), None, None, None) {
-      HandleResult::Success(_) => {
+      HandleResult::Success(obj) => {
         haserror += 0;
+        println!("{:#?}", obj);
       }
       HandleResult::Fail(msg) => {
         haserror += 1;

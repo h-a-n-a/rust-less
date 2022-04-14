@@ -111,23 +111,26 @@ impl NewSelector {
   ///
   /// 生成当前 select 字符
   ///
-  pub fn code_gen(&self) -> String {
+  pub fn code_gen(&self) -> Vec<String> {
     let mut split_select_txt = vec![];
     for list in self.paradigm_vec.iter() {
-      let mut txt = "".to_string();
-      let mut has_var = false;
 
       // 计算父 表达式
       let self_rule = self.parent.as_ref().unwrap().upgrade().unwrap();
       let node = self_rule.borrow().parent.clone();
       let select_rule_node = Self::find_up_select_node(node);
-      let mut parent_select_txt = "".to_string();
+      let mut parent_select_txt = vec![];
       if let Some(any_parent_rule) = select_rule_node {
         let heap_any_parent_rule = any_parent_rule.upgrade().unwrap();
         if let Some(SelectorNode::Select(ps)) = heap_any_parent_rule.borrow().selector.as_ref() {
           parent_select_txt = ps.code_gen()
         };
       }
+
+      let mut txt = "".to_string();
+      let mut has_var = false;
+
+      // 计算自己
       list.iter().for_each(|par| {
         match par {
           SelectParadigm::SelectWrap(cc) => txt += cc,
@@ -136,7 +139,9 @@ impl NewSelector {
           }
           SelectParadigm::VarWrap(_) => {
             has_var = true;
-            txt += &parent_select_txt
+            for expr in parent_select_txt.iter() {
+              txt += expr;
+            }
           }
         }
       });
@@ -145,11 +150,14 @@ impl NewSelector {
       if has_var || parent_select_txt.is_empty() {
         split_select_txt.push(txt)
       } else {
-        split_select_txt.push(format!("{} {}", parent_select_txt, txt))
+        for expr in parent_select_txt {
+          split_select_txt.push(format!("{} {}", expr, txt))
+        }
       }
     }
-    // 交叉相乘
-    split_select_txt.join(",")
+
+    // 最终结果
+    split_select_txt
   }
 
   ///

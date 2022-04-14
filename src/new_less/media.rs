@@ -7,6 +7,7 @@ use crate::new_less::token::lib::Token;
 use crate::new_less::token::media::{TokenMediaFeature, TokenMediaLogic, TokenMediaType};
 use crate::new_less::var::HandleResult;
 use serde::Serialize;
+use crate::new_less::select_node::SelectorNode;
 
 ///
 /// 媒体查询
@@ -70,6 +71,50 @@ impl MediaQuery {
 
   pub fn value(&self) -> String {
     self.charlist.poly()
+  }
+
+  ///
+  /// 向上查找 最近 select 节点 非 media
+  ///
+  pub fn find_up_media_node(node: NodeWeakRef) -> NodeWeakRef {
+    if let Some(ref heap_node) = node {
+      let rule = heap_node.upgrade().unwrap();
+      if matches!(*rule.borrow().selector.as_ref().unwrap(),SelectorNode::Media(..)) {
+        node.clone()
+      } else {
+        let parent = rule.borrow().parent.clone();
+        Self::find_up_media_node(parent)
+      }
+    } else {
+      None
+    }
+  }
+
+  ///
+  /// 生成当前 media 字符
+  ///
+  pub fn code_gen(&self) -> Vec<String> {
+    let mut split_media_txt = vec![];
+
+    // 计算父 表达式
+    let self_rule = self.parent.as_ref().unwrap().upgrade().unwrap();
+    let node = self_rule.borrow().parent.clone();
+    let meida_rule_node = Self::find_up_media_node(node);
+    if let Some(any_parent_rule) = meida_rule_node {
+      let heap_any_parent_rule = any_parent_rule.upgrade().unwrap();
+      if let Some(SelectorNode::Media(ps)) = heap_any_parent_rule.borrow().selector.as_ref() {
+        split_media_txt = ps.code_gen()
+      };
+    }
+
+    // 计算自己
+    if split_media_txt.is_empty(){
+      split_media_txt.push(self.charlist.poly());
+    }else{
+      split_media_txt.push(self.charlist.poly()[6..].to_string())
+    }
+
+    split_media_txt
   }
 
   ///
