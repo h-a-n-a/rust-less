@@ -86,8 +86,12 @@ impl NewSelector {
   /// 打印错误信息
   ///
   pub fn errormsg(&self, index: &usize) -> Result<(), String> {
-    let char = *self.charlist.get(*index).unwrap();
-    let error_loc = self.map.get(index).unwrap();
+    let mut safe_index = *index;
+    if *index > self.charlist.len() - 1 {
+      safe_index = self.charlist.len() - 1;
+    }
+    let char = *self.charlist.get(safe_index).unwrap();
+    let error_loc = self.map.get(&safe_index).unwrap();
     Err(format!(
       "select text {}, char {} is not allow, line is {} col is {}",
       self.charlist.poly(),
@@ -99,13 +103,27 @@ impl NewSelector {
 
   ///
   /// 在二维数组 的最后 追加 词
+  /// 需要在 连接词 前后适当 保持 1个 空格！
   ///
   pub fn add_paradigm(&mut self, obj: SelectParadigm) {
     if self.paradigm_vec.is_empty() {
-      self.paradigm_vec.push(vec![obj]);
+      if !matches!(obj,SelectParadigm::CominaWrap(..)) {
+        self.paradigm_vec.push(vec![obj]);
+      } else {
+        self.paradigm_vec.push(vec![obj, SelectParadigm::CominaWrap(TokenCombinaChar::Space)]);
+      }
     } else {
       let list = self.paradigm_vec.last_mut().unwrap();
-      list.push(obj);
+      if !matches!(obj,SelectParadigm::CominaWrap(..)) || matches!(obj,SelectParadigm::CominaWrap(TokenCombinaChar::Space)) {
+        list.push(obj);
+      } else {
+        let last_paradigm = list.last();
+        if last_paradigm.is_some() && !matches!(last_paradigm,Some(SelectParadigm::CominaWrap(TokenCombinaChar::Space))) {
+          list.push(SelectParadigm::CominaWrap(TokenCombinaChar::Space));
+        }
+        list.push(obj);
+        list.push(SelectParadigm::CominaWrap(TokenCombinaChar::Space));
+      }
     }
   }
 
@@ -227,21 +245,25 @@ impl NewSelector {
             // example a, li , h2
             let (select_word, end) = self.parse_selector_word(index)?;
             self.add_paradigm(SelectParadigm::SelectWrap(select_word));
-            *index = end - 1;
+            *index = end;
           } else if TokenCombinaChar::is(char) {
             let (_, end) = self.parse_combina_word(index)?;
-            *index = end - 1;
-          } else if TokenKeyWordChar::is(char) {} else if TokenAllowChar::is(char) {
+            *index = end;
+          } else if TokenKeyWordChar::is(char) {
+            // todo!
+          } else if TokenAllowChar::is(char) {
             // example a, li , h2
             let (select_word, end) = self.parse_selector_word(index)?;
             self.add_paradigm(SelectParadigm::SelectWrap(select_word));
-            *index = end - 1;
+            *index = end;
+          } else {
+            return Err(self.errormsg(index).err().unwrap());
           }
         } else {
           // example a, li , h2
           let (select_word, end) = self.parse_selector_word(index)?;
           self.add_paradigm(SelectParadigm::SelectWrap(select_word));
-          *index = end - 1;
+          *index = end;
         }
         Ok(())
       }),
@@ -281,7 +303,7 @@ impl NewSelector {
       self.clear_paraigm(index)?;
       self.add_paradigm_vec();
     }
-    Ok((char.to_string(), *index + 1))
+    Ok((char.to_string(), *index))
   }
 
   ///
@@ -296,7 +318,7 @@ impl NewSelector {
     } else if *char == ':' {
       res = self.parse_selector_pseudo_class_word(start)?;
     } else if *char == '*' {
-      res = ('*'.to_string(), *start + 1);
+      res = ('*'.to_string(), *start);
     } else if *char == '[' {
       res = self.parse_selector_attr(start)?;
     } else if *char == '(' {
@@ -318,19 +340,18 @@ impl NewSelector {
       &self.charlist,
       &mut (|arg, charword| {
         let (index, temp, end) = arg;
-        let (_, char, _) = charword;
+        let (_, char, next) = charword;
         if Token::is_token(Some(char)) {
           if TokenAllowChar::is(char) {
             temp.push(*char);
-            return Ok(());
-          }
-          if Self::is_end(Some(char), None) {
-            *end = true;
           } else {
             return Err(self.errormsg(index).err().unwrap());
           }
         } else {
           temp.push(*char);
+        }
+        if next.is_none() || Self::is_end(next, None) {
+          *end = true;
         }
         Ok(())
       }),
@@ -348,28 +369,26 @@ impl NewSelector {
       charlist,
       &mut (|arg, charword| {
         let (index, temp, end) = arg;
-        let (_, char, _) = charword;
+        let (_, char, next) = charword;
         if Token::is_token(Some(char)) {
           if TokenAllowChar::is(char) {
             temp.push(*char);
-            return Ok(());
-          }
-          if TokenSelectChar::is(char) && !record {
+          } else if TokenSelectChar::is(char) && !record {
             record = true;
             temp.push(*char);
-            return Ok(());
-          }
-          if Self::is_end(Some(char), None) && record {
-            if temp.len() < 2 {
-              // . , # single word is error
-              return Err(self.errormsg(index).err().unwrap());
-            }
-            *end = true;
           } else {
             return Err(self.errormsg(index).err().unwrap());
           }
         } else {
           temp.push(*char);
+        }
+        // 执行结束检查
+        if (next.is_none() || Self::is_end(next, None)) && record {
+          if temp.len() < 2 {
+            // . , # single word is error
+            return Err(self.errormsg(index).err().unwrap());
+          }
+          *end = true;
         }
         Ok(())
       }),
@@ -388,32 +407,38 @@ impl NewSelector {
       &mut (|arg, charword| {
         let (index, temp, end) = arg;
         let (_, char, next) = charword;
+        let mut next_fix = next;
         if Token::is_token(Some(char)) {
           if !record && *char == ':' {
             if next == Some(&':') {
               temp.push(*char);
               *index += 1;
+              next_fix = {
+                if *index + 1 < charlist.len() {
+                  charlist.get(*index + 1)
+                } else {
+                  None
+                }
+              };
             }
             temp.push(*char);
             record = true;
-            return Ok(());
-          }
-          if TokenAllowChar::is(char) {
+          } else if TokenAllowChar::is(char) {
             temp.push(*char);
-            return Ok(());
-          }
-          if Self::is_end(Some(char), None) && record {
-            if (temp.len() < 2 && *temp == vec![':']) || (temp.len() < 3 && *temp == vec![':', ':'])
-            {
-              // . , # single word is error
-              return Err(self.errormsg(index).err().unwrap());
-            }
-            *end = true;
           } else {
             return Err(self.errormsg(index).err().unwrap());
           }
         } else {
           temp.push(*char);
+        }
+        // 执行结束检查
+        if (next.is_none() || Self::is_end(next_fix, None)) && record {
+          if (temp.len() < 2 && *temp == vec![':']) || (temp.len() < 3 && *temp == vec![':', ':'])
+          {
+            // . , # single word is error
+            return Err(self.errormsg(index).err().unwrap());
+          }
+          *end = true;
         }
         Ok(())
       }),
@@ -443,14 +468,16 @@ impl NewSelector {
             } else if level == 0 {
               *end = true;
               return Ok(());
-            } else if *char == '@' && next != Some(&'{') {
-              return Err(self.errormsg(index).err().unwrap());
+            } else {
+              temp.push(*char);
             }
-          }
-          if *char == '(' {
+          } else if *char == '@' && next != Some(&'{') {
+            return Err(self.errormsg(index).err().unwrap());
+          } else if *char == '(' {
             level += 1;
+          } else {
+            return Err(self.errormsg(index).err().unwrap());
           }
-          temp.push(*char);
         } else {
           temp.push(*char);
         }
@@ -479,6 +506,19 @@ impl NewSelector {
       &mut (|arg, charword| {
         let (index, temp, end) = arg;
         let (prev, char, next) = charword;
+        let get_prev_char_without_space = || -> Option<char> {
+          let mut res: Option<char> = None;
+          for tc in temp.iter().rev() {
+            if *tc == ' ' {
+              continue;
+            } else {
+              res = Some(*tc);
+              break;
+            }
+          }
+          res
+        };
+
         if let Some(token_queto) = queto {
           if has_brackest {
             if *char == token_queto && prev != Some(&'\\') {
@@ -493,18 +533,7 @@ impl NewSelector {
             if *char == '[' {
               return Err(self.errormsg(index).err().unwrap());
             } else if *char == ']' {
-              let prev_char_without_space = {
-                let mut res: Option<char> = None;
-                for tc in temp.iter().rev() {
-                  if *tc == ' ' {
-                    continue;
-                  } else {
-                    res = Some(*tc);
-                    break;
-                  }
-                }
-                res
-              };
+              let prev_char_without_space = get_prev_char_without_space();
               if prev_char_without_space == Some('=') {
                 return Err(self.errormsg(index).err().unwrap());
               }
@@ -524,12 +553,21 @@ impl NewSelector {
                 return Err(self.errormsg(index).err().unwrap());
               }
             } else if *char == '=' {
+              let prev_char_without_space = get_prev_char_without_space();
+              if prev_char_without_space == Some('[') {
+                return Err(self.errormsg(index).err().unwrap());
+              }
               if !hasequal {
                 temp.push('=');
                 hasequal = true;
               } else {
                 return Err(self.errormsg(index).err().unwrap());
               }
+            } else if *char == '"' || *char == '\'' {
+              queto = Some(*char);
+              temp.push(*char);
+            } else {
+              return Err(self.errormsg(index).err().unwrap());
             }
           } else {
             // start record attr

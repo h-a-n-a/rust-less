@@ -22,6 +22,7 @@ fn test_select_parse() {
     r#".b > a"#.to_string(),
     r#"p::first-line"#.to_string(),
     r#"selector:pseudo-class"#.to_string(),
+    r#".a[id="xyz"]"#.to_string(),
   ];
 
   let target = r#"
@@ -41,6 +42,7 @@ h1~img
 .b>a
 p::first-line
 selector:pseudo-class
+.a[id="xyz"]
   "#;
 
 
@@ -83,5 +85,36 @@ selector:pseudo-class
 
 #[test]
 fn test_select_error_parse() {
-
+  let mut haserror = 0;
+  let demo_select_list = vec![
+    r#"."#.to_string(),
+    r#"$"#.to_string(),
+    r#".b > > a"#.to_string(),
+    r#".b$"#.to_string(),
+    r#".b.c!"#.to_string(),
+    r#".a[*id="xyz"]>.c"#.to_string(),
+    r#"(@id)>.c"#.to_string(),
+    r#"(id>.c"#.to_string(),
+    r#".a[="xyz"]>.c"#.to_string(),
+    r#".a[id="xyz">.c"#.to_string(),
+    r#".a[id="xyz>.c"#.to_string(),
+    // ------
+    // r#".b@"#.to_string(),
+    // r#">&c"#.to_string(),
+    // r#"+&c"#.to_string(),
+    // ------
+  ];
+  demo_select_list.into_iter().for_each(|tt| {
+    match NewSelector::new(tt.tocharlist(), None, None, None) {
+      HandleResult::Success(_) => {
+        haserror += 1;
+      }
+      HandleResult::Fail(msg) => {
+        haserror += 0;
+        println!("{:?}", msg);
+      }
+      HandleResult::Swtich => {}
+    };
+  });
+  assert_eq!(haserror, 0)
 }
