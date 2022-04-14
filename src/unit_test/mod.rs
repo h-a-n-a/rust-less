@@ -11,3 +11,4 @@ mod style_rule;
 mod token;
 mod value;
 mod var;
+mod new_select;

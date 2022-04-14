@@ -17,11 +17,11 @@ pub enum SelectParadigm {
 }
 
 pub trait Paradigm {
-  fn join(&self) -> String;
+  fn tostr(&self) -> String;
 }
 
 impl Paradigm for Vec<SelectParadigm> {
-  fn join(&self) -> String {
+  fn tostr(&self) -> String {
     let mut txt = "".to_string();
     self.iter().for_each(|par| match par {
       SelectParadigm::SelectWrap(cc) | SelectParadigm::VarWrap(cc) => txt += cc,
@@ -227,22 +227,21 @@ impl NewSelector {
             // example a, li , h2
             let (select_word, end) = self.parse_selector_word(index)?;
             self.add_paradigm(SelectParadigm::SelectWrap(select_word));
-            *index = end;
+            *index = end - 1;
           } else if TokenCombinaChar::is(char) {
             let (_, end) = self.parse_combina_word(index)?;
-            *index = end;
-          } else if TokenKeyWordChar::is(char) {
-          } else if TokenAllowChar::is(char) {
+            *index = end - 1;
+          } else if TokenKeyWordChar::is(char) {} else if TokenAllowChar::is(char) {
             // example a, li , h2
             let (select_word, end) = self.parse_selector_word(index)?;
             self.add_paradigm(SelectParadigm::SelectWrap(select_word));
-            *index = end;
+            *index = end - 1;
           }
         } else {
           // example a, li , h2
           let (select_word, end) = self.parse_selector_word(index)?;
           self.add_paradigm(SelectParadigm::SelectWrap(select_word));
-          *index = end;
+          *index = end - 1;
         }
         Ok(())
       }),
