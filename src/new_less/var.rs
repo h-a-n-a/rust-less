@@ -1,150 +1,85 @@
-use crate::extend::vec_str::VecStrExtend;
-use crate::new_less::comment::skip_comment;
 use crate::new_less::context::ParseContext;
-use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
-use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{NodeWeakRef, StyleNode, VarRuleNode};
-use crate::new_less::parse::RuleNode;
+use crate::new_less::fileinfo::{FileRef, FileWeakRef};
+use crate::new_less::import::ImportNode;
+use crate::new_less::loc::Loc;
+use crate::new_less::node::NodeWeakRef;
+use crate::new_less::style_rule::StyleRuleNode;
+use crate::new_less::var_node::VarNode;
+use serde::Serialize;
 
-pub trait Var {
-  fn parse_var(&mut self) -> Result<(), String>;
-}
+///
+/// 处理类型
+///
+pub enum HandleResult<T> {
+  /// 匹配成功 且 处理成功
+  Success(T),
 
-impl Var for FileInfo {
-  fn parse_var(&mut self) -> Result<(), String> {
-    let mut importfiles: Vec<FileRef> = vec![];
-    let nodes = parse_var(
-      self.context.clone(),
-      &self.origin_charlist,
-      &self.locmap,
-      None,
-      self.self_weak.clone(),
-      &mut importfiles,
-    )?;
-    self.block_node.append(
-      &mut nodes
-        .into_iter()
-        .map(StyleNode::Var)
-        .collect::<Vec<StyleNode>>(),
-    );
-    self.import_files = importfiles;
-    Ok(())
-  }
-}
+  /// 匹配成功 且 处理失败
+  Fail(String),
 
-impl Var for RuleNode {
-  fn parse_var(&mut self) -> Result<(), String> {
-    let mut importfiles: Vec<FileRef> = vec![];
-    let nodes = parse_var(
-      self.context.clone(),
-      &self.origin_charlist,
-      &self.locmap,
-      self.weak_self.clone(),
-      self.file_info.clone(),
-      &mut importfiles,
-    )?;
-    self.block_node.append(
-      &mut nodes
-        .into_iter()
-        .map(StyleNode::Var)
-        .collect::<Vec<StyleNode>>(),
-    );
-    Ok(())
-  }
+  /// 匹配失败
+  Swtich,
 }
 
 ///
-/// 转化当前层变量
+/// 变量内容
 ///
-fn parse_var(
-  context: ParseContext,
-  origin_charlist: &Vec<char>,
-  locmap: &Option<LocMap>,
-  parent: NodeWeakRef,
-  fileinfo: FileWeakRef,
-  importfiles: &mut Vec<FileRef>,
-) -> Result<Vec<VarRuleNode>, String> {
-  let mut blocklist: Vec<VarRuleNode> = vec![];
-  let mut templist: Vec<char> = vec![];
-  let mut index = 0;
+#[derive(Debug, Clone, Serialize)]
+pub enum VarRuleNode {
+  /// 引用
+  Import(ImportNode),
 
-  // 块等级
-  let mut braces_level = 0;
-  // 结束标记 & 开始标记
-  let endqueto = ';';
-  let start_braces = '{';
-  let end_braces = '}';
+  /// 变量声明
+  Var(VarNode),
 
-  let mut record_loc: Option<Loc> = None;
-  let mut skipcall = skip_comment();
+  /// 样式规则
+  StyleRule(StyleRuleNode),
+}
 
-  while index < origin_charlist.len() {
-    let char = origin_charlist.get(index).unwrap().clone();
-    let word = origin_charlist.try_getword(index, 2).unwrap();
-    let prev_index = index;
-    let skip_res = skipcall(word, char.clone(), &mut index);
-    if skip_res || prev_index != index {
-      record_loc = None;
-      index += 1;
-      continue;
-    }
-
-    // 记录第一个非空字符 起始位置
-    if context.borrow().option.sourcemap
-      && char != ' '
-      && char != '\r'
-      && char != '\n'
-      && record_loc.is_none()
+///
+/// 联合 节点 声明
+///
+impl VarRuleNode {
+  ///
+  /// 初始化
+  ///
+  pub fn new(
+    charlist: Vec<char>,
+    loc: Option<Loc>,
+    parent: NodeWeakRef,
+    fileinfo: FileWeakRef,
+    context: ParseContext,
+    importfiles: &mut Vec<FileRef>,
+  ) -> Result<Self, String> {
+    // 处理 导入
+    if charlist.len() > "@import".len() && charlist[0..7] == vec!['@', 'i', 'm', 'p', 'o', 'r', 't']
     {
-      record_loc = Some(locmap.as_ref().unwrap().get(&index).unwrap());
-    }
-
-    templist.push(char.clone());
-    if char == endqueto && braces_level == 0 {
-      let style_var = match VarRuleNode::new(
-        templist.trim(),
-        record_loc,
-        parent.clone(),
-        fileinfo.clone(),
-        context.clone(),
-        importfiles,
-      ) {
-        Ok(obj) => obj,
-        Err(msg) => {
+      match ImportNode::new(charlist, loc, parent, fileinfo, context, importfiles) {
+        HandleResult::Success(obj) => return Ok(VarRuleNode::Import(obj)),
+        HandleResult::Fail(msg) => {
           return Err(msg);
         }
+        HandleResult::Swtich => {}
       };
-      blocklist.push(style_var);
-      templist.clear();
-      record_loc = None;
+    } else if charlist.len() > "@".len() && *charlist.get(0).unwrap() == '@' {
+      // 处理 变量声明
+      match VarNode::new(charlist, loc, parent, fileinfo, context) {
+        HandleResult::Success(obj) => return Ok(VarRuleNode::Var(obj)),
+        HandleResult::Fail(msg) => {
+          return Err(msg);
+        }
+        HandleResult::Swtich => {}
+      };
+    } else {
+      // 处理 规则
+      match StyleRuleNode::new(charlist, loc, parent, fileinfo, context) {
+        HandleResult::Success(obj) => return Ok(VarRuleNode::StyleRule(obj)),
+        HandleResult::Fail(msg) => {
+          return Err(msg);
+        }
+        HandleResult::Swtich => {}
+      };
     }
-
-    // ignore 忽略 大括号区域
-    if char == start_braces {
-      braces_level += 1;
-    }
-    if char == end_braces {
-      braces_level -= 1;
-      if braces_level == 0 {
-        templist.clear();
-        record_loc = None;
-      }
-    }
-
-    // 最后检查 分号闭合情况
-    if index == origin_charlist.len() - 1 {
-      let checkstr = templist.poly().trim().to_string();
-      if !checkstr.is_empty() {
-        return Err(format!("the word is not with endqueto -> {}", checkstr));
-      }
-    }
-
-    index += 1;
+    Err("nothing node match the txt!".to_string())
   }
-
-  if braces_level != 0 {
-    return Err("the content contains braces that are not closed!".to_string());
-  }
-
-  Ok(blocklist)
 }

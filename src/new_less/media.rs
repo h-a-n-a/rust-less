@@ -1,11 +1,13 @@
 use crate::extend::enum_extend::EnumExtend;
-use crate::extend::vec_str::VecStrExtend;
+use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{HandleResult, NodeWeakRef};
-use crate::new_less::scan::{traversal, ScanArg, ScanResult};
+use crate::new_less::node::NodeWeakRef;
+use crate::new_less::scan::traversal;
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::media::{TokenMediaFeature, TokenMediaLogic, TokenMediaType};
+use crate::new_less::var::HandleResult;
 use serde::Serialize;
+use crate::new_less::select_node::SelectorNode;
 
 ///
 /// 媒体查询
@@ -56,11 +58,14 @@ impl MediaQuery {
   /// 打印错误信息
   ///
   pub fn errormsg(&self, index: &usize) -> Result<(), String> {
-    let char = self.charlist.get(*index).unwrap().clone();
+    let char = *self.charlist.get(*index).unwrap();
     let error_loc = self.map.get(index).unwrap();
     Err(format!(
       "select text {}, char {} is not allow,line is {} col is {}",
-      self.charlist.poly(), char, error_loc.line, error_loc.col
+      self.charlist.poly(),
+      char,
+      error_loc.line,
+      error_loc.col
     ))
   }
 
@@ -69,50 +74,86 @@ impl MediaQuery {
   }
 
   ///
+  /// 向上查找 最近 select 节点 非 media
+  ///
+  pub fn find_up_media_node(node: NodeWeakRef) -> NodeWeakRef {
+    if let Some(ref heap_node) = node {
+      let rule = heap_node.upgrade().unwrap();
+      if matches!(*rule.borrow().selector.as_ref().unwrap(),SelectorNode::Media(..)) {
+        node.clone()
+      } else {
+        let parent = rule.borrow().parent.clone();
+        Self::find_up_media_node(parent)
+      }
+    } else {
+      None
+    }
+  }
+
+  ///
+  /// 生成当前 media 字符
+  ///
+  pub fn code_gen(&self) -> Vec<String> {
+    let mut split_media_txt = vec![];
+
+    // 计算父 表达式
+    let self_rule = self.parent.as_ref().unwrap().upgrade().unwrap();
+    let node = self_rule.borrow().parent.clone();
+    let meida_rule_node = Self::find_up_media_node(node);
+    if let Some(any_parent_rule) = meida_rule_node {
+      let heap_any_parent_rule = any_parent_rule.upgrade().unwrap();
+      if let Some(SelectorNode::Media(ps)) = heap_any_parent_rule.borrow().selector.as_ref() {
+        split_media_txt = ps.code_gen()
+      };
+    }
+
+    // 计算自己
+    if split_media_txt.is_empty(){
+      split_media_txt.push(self.charlist.poly());
+    }else{
+      split_media_txt.push(self.charlist.poly()[6..].to_string())
+    }
+
+    split_media_txt
+  }
+
+  ///
   /// 子转化 媒体功能 转化 key
   ///
   pub fn parse_media_feature_key(&self, start: &usize) -> Result<(String, usize), String> {
     let charlist = &self.charlist;
-    match traversal(
+    let res = traversal(
       Some(*start),
       charlist,
       &mut (|arg, charword| {
-        let mut hasend = arg.hasend;
-        let mut temp = arg.temp;
-        let index = arg.index;
+        let (index, temp, hasend) = arg;
         let (_, char, next) = charword;
         if Token::is_token(Some(char)) {
           if *char == ':' {
-            if TokenMediaFeature::is(temp.trim()) {
+            if TokenMediaFeature::is(temp.poly().trim()) {
               // 加冒号之前 先判断是否是有效 key
-              hasend = true;
+              *hasend = true;
             } else {
-              return Err(self.errormsg(&index).err().unwrap());
+              return Err(self.errormsg(index).err().unwrap());
             }
           } else if Token::is_space_token(Some(char)) {
             if Token::is_space_token(next) {
-              return Ok(ScanResult::Skip);
+              return Ok(());
             } else {
-              temp.push(char.clone());
+              temp.push(*char);
             }
           } else if *char == '-' {
             temp.push('-');
           } else {
-            return Err(self.errormsg(&index).err().unwrap());
+            return Err(self.errormsg(index).err().unwrap());
           }
         } else {
-          temp.push(char.clone());
+          temp.push(*char);
         }
-        Ok(ScanResult::Arg(ScanArg {
-          temp,
-          index,
-          hasend,
-        }))
+        Ok(())
       }),
-    ) {
-      Ok(res) => Ok(res),
-      Err(msg) => Err(msg),
-    }
+    )?;
+    Ok(res)
   }
 
   ///
@@ -120,45 +161,37 @@ impl MediaQuery {
   ///
   pub fn parse_media_value(&self, start: &usize) -> Result<(String, usize), String> {
     let charlist = &self.charlist;
-    match traversal(
+    let res = traversal(
       Some(*start),
       charlist,
       &mut (|arg, charword| {
-        let mut hasend = arg.hasend;
-        let mut temp = arg.temp;
-        let index = arg.index;
+        let (index, temp, hasend) = arg;
         let (_, char, next) = charword;
         if Token::is_token(Some(char)) {
           if *char == ')' {
-            hasend = true;
+            *hasend = true;
           } else if Token::is_space_token(Some(char)) {
             if Token::is_space_token(next) {
-              return Ok(ScanResult::Skip);
+              return Ok(());
             } else {
-              temp.push(char.clone());
+              temp.push(*char);
             }
           } else if *char == '-' {
-            if temp.trim().is_empty() {
+            if temp.is_empty() {
               temp.push('-');
             } else {
-              return Err(self.errormsg(&index).err().unwrap());
+              return Err(self.errormsg(index).err().unwrap());
             }
           } else {
-            return Err(self.errormsg(&index).err().unwrap());
+            return Err(self.errormsg(index).err().unwrap());
           }
         } else {
-          temp.push(char.clone());
+          temp.push(*char);
         }
-        Ok(ScanResult::Arg(ScanArg {
-          temp,
-          index,
-          hasend,
-        }))
+        Ok(())
       }),
-    ) {
-      Ok(res) => Ok(res),
-      Err(msg) => Err(msg),
-    }
+    )?;
+    Ok(res)
   }
 
   ///
@@ -181,7 +214,7 @@ impl MediaQuery {
     index = jump + 1;
 
     // 分析value
-    let (value, jump) = match self.parse_media_value(&index.clone()) {
+    let (value, jump) = match self.parse_media_value(&index) {
       Ok(res) => res,
       Err(msg) => {
         return Err(msg);
@@ -207,24 +240,18 @@ impl MediaQuery {
       Some(*start),
       charlist,
       &mut (|arg, charword| {
-        let mut hasend = arg.hasend;
-        let mut temp = arg.temp;
-        let index = arg.index;
+        let (index, temp, hasend) = arg;
         let (_, char, _) = charword;
         if Token::is_token(Some(char)) {
           if Token::is_space_token(Some(char)) {
-            hasend = true;
+            *hasend = true;
           } else {
-            return Err(self.errormsg(&index).err().unwrap());
+            return Err(self.errormsg(index).err().unwrap());
           }
         } else {
-          temp.push(char.clone());
+          temp.push(*char);
         }
-        Ok(ScanResult::Arg(ScanArg {
-          temp,
-          index,
-          hasend,
-        }))
+        Ok(())
       }),
     ) {
       Ok(res) => res,
@@ -258,53 +285,44 @@ impl MediaQuery {
       Some(index),
       charlist,
       &mut (|arg, charword| {
-        let temp = arg.temp;
-        let mut index = arg.index;
+        let (index, _, _) = arg;
         let (_, char, next) = charword;
-        return if Token::is_token(Some(char)) {
+        if Token::is_token(Some(char)) {
           if Token::is_space_token(Some(char)) {
             if !Token::is_space_token(next) {
               word_vec.push(" ".to_string());
-              Ok(ScanResult::Skip)
+              Ok(())
             } else {
-              Ok(ScanResult::Skip)
+              Ok(())
             }
           } else if vec!['(', ')', ':'].contains(char) {
-            return if '(' == *char {
-              match self.parse_media_feature(&index) {
+            if '(' == *char {
+              match self.parse_media_feature(index) {
                 Ok((word, jump)) => {
                   word_vec.push(word);
-                  index = jump;
-                  Ok(ScanResult::Arg(ScanArg {
-                    index,
-                    temp,
-                    hasend: false,
-                  }))
+                  *index = jump;
+                  Ok(())
                 }
                 Err(msg) => Err(msg),
               }
             } else {
-              Err(self.errormsg(&index).err().unwrap())
-            };
+              Err(self.errormsg(index).err().unwrap())
+            }
           } else {
-            return Err(self.errormsg(&index).err().unwrap());
+            Err(self.errormsg(index).err().unwrap())
           }
         } else {
-          let (word, jump) = match self.parse_media_logicword(&index) {
+          let (word, jump) = match self.parse_media_logicword(index) {
             Ok(res) => res,
             Err(msg) => {
               return Err(msg);
             }
           };
-          index = jump;
+          *index = jump;
           word_vec.push(word);
           word_vec.push(" ".to_string());
-          Ok(ScanResult::Arg(ScanArg {
-            index,
-            temp,
-            hasend: false,
-          }))
-        };
+          Ok(())
+        }
       }),
     ) {
       Ok(res) => res,

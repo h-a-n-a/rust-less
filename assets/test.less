@@ -1,6 +1,24 @@
-@abc: 1px + (20px*30px) solid #fff;
 
-textarea {
-  border: @abc;
-  border: var(--color-text-2);
+.message-box {
+  width: 400px;
+  max-height: 800px;
+  background-color: var(--color-bg-popup);
+  border: 1px solid var(--color-border-2);
+
+  :global(.arco-tabs-header-nav) {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--color-border-2);
+  }
+
+  :global(.arco-list-item-meta) {
+    align-items: flex-start;
+  }
+
+  :global(.arco-list-item-meta-content) {
+    width: 100%;
+  }
+
+  :global(.arco-tabs-content) {
+    padding-top: 0;
+  }
 }

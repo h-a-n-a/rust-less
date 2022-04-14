@@ -19,7 +19,7 @@ impl LocMap {
   /// 初始化对象
   /// 根据传入的 字符串 txt 构造索引 行|列
   ///
-  pub fn new(chars: &Vec<char>) -> Self {
+  pub fn new(chars: &[char]) -> Self {
     let map = HashMap::new();
     let mut line = 1;
     let mut col = 1;
@@ -30,7 +30,7 @@ impl LocMap {
         loc = Loc {
           col,
           line,
-          char: cc.clone(),
+          char: *cc,
           index,
         };
         col += 1;
@@ -38,7 +38,7 @@ impl LocMap {
         loc = Loc {
           col,
           line,
-          char: cc.clone(),
+          char: *cc,
           index,
         };
         col = 1;
@@ -64,7 +64,7 @@ impl LocMap {
     loc
   }
 
-  pub fn merge(start: &Loc, chars: &Vec<char>) -> (Self, Loc) {
+  pub fn merge(start: &Loc, chars: &[char]) -> (Self, Loc) {
     let map = HashMap::new();
     let mut line = start.line;
     let mut col = start.col;
@@ -76,7 +76,7 @@ impl LocMap {
         loc = Loc {
           col,
           line,
-          char: cc.clone(),
+          char: *cc,
           index,
         };
         col += 1;
@@ -84,7 +84,7 @@ impl LocMap {
         loc = Loc {
           col,
           line,
-          char: cc.clone(),
+          char: *cc,
           index,
         };
         col = 1;

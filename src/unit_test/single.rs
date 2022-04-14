@@ -1,6 +1,7 @@
 use crate::extend::rs_hooks::{create_hooks_str, HookData};
 use crate::extend::string::StringExtend;
-use crate::extend::vec_str::VecStrExtend;
+use crate::extend::vec_str::VecCharExtend;
+use crate::extend::vec_str::VecCharOptionalExtend;
 use std::cell::RefCell;
 use std::ops::{Deref, DerefMut};
 use std::rc::{Rc, Weak};
@@ -265,5 +266,21 @@ fn test_trim() {
   println!("{:#?}", list.trim_start());
 }
 
+#[test]
+fn test_vec_equal() {
+  let cc = "@importx";
+  let list = cc.chars().collect::<Vec<char>>();
+  let mut res = 0;
+  if list[0..7] == vec!['@', 'i', 'm', 'p', 'o', 'r', 't'] {
+    res = 1;
+  }
+  assert_eq!(res, 1);
+}
 
-
+#[test]
+fn test_rev() {
+  let list = vec![1, 2, 3];
+  for (index, val) in list.iter().rev().enumerate() {
+    println!("{:#?} {:#?}", list.len() - 1 - index, val)
+  }
+}

@@ -1,11 +1,10 @@
 use crate::extend::string::StringExtend;
-use crate::new_less::comment::Comment;
 use crate::new_less::context::ParseContext;
 use crate::new_less::file_manger::FileManger;
 use crate::new_less::loc::LocMap;
-use crate::new_less::node::{NodeRef, StyleNode, VarRuleNode};
-use crate::new_less::rule::Rule;
-use crate::new_less::var::Var;
+use crate::new_less::node::{NodeRef, StyleNode};
+use crate::new_less::parse::Parse;
+use crate::new_less::var::VarRuleNode;
 use crate::new_less::var_node::VarNode;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
@@ -74,7 +73,7 @@ impl FileInfo {
   ///
   /// 生成整个文件的 locmap 地图
   ///
-  pub fn get_loc_by_content(chars: &Vec<char>) -> LocMap {
+  pub fn get_loc_by_content(chars: &[char]) -> LocMap {
     LocMap::new(chars)
   }
 
@@ -89,17 +88,14 @@ impl FileInfo {
       .context
       .borrow_mut()
       .clear_codegen();
-    let res = match obj_heap.deref().borrow().code_gen() {
-      Ok(res) => Ok(res),
-      Err(msg) => Err(msg),
-    };
+    let res = obj_heap.deref().borrow().code_gen()?;
     obj_heap
       .deref()
       .borrow()
       .context
       .borrow_mut()
       .clear_codegen();
-    res
+    Ok(res)
   }
 
   ///
@@ -136,7 +132,7 @@ impl FileInfo {
       }
     };
     let obj_heap = obj.toheap();
-    Self::parse_heap(obj_heap.clone())?;
+    obj_heap.borrow_mut().parse_heap()?;
     Ok(obj_heap)
   }
 
@@ -148,7 +144,7 @@ impl FileInfo {
     context: ParseContext,
     filename: String,
   ) -> Result<FileRef, String> {
-    let text_content: String = content.clone();
+    let text_content: String = content;
     let charlist = text_content.tocharlist();
     let option = context.deref().borrow().get_options();
     let mut locmap: Option<LocMap> = None;
@@ -166,12 +162,7 @@ impl FileInfo {
       import_files: vec![],
     };
     let obj_heap = obj.toheap();
-    match Self::parse_heap(obj_heap.clone()) {
-      Ok(_) => {}
-      Err(msg) => {
-        return Err(msg);
-      }
-    }
+    obj_heap.borrow_mut().parse_heap()?;
     Ok(obj_heap)
   }
 
@@ -181,28 +172,8 @@ impl FileInfo {
     filename: String,
   ) -> Result<String, String> {
     let obj = Self::create_txt_content_parse(content, context, filename)?;
-    let res = match obj.deref().borrow().code_gen() {
-      Ok(res) => Ok(res),
-      Err(msg) => Err(msg),
-    };
-    res
-  }
-
-  ///
-  /// 转化 AST
-  ///
-  pub fn parse_heap(obj: FileRef) -> Result<(), String> {
-    // 把当前 节点 的 对象 指针 放到 节点上 缓存中
-    let disk_location_path = obj.deref().borrow().disk_location.clone();
-    obj.deref().borrow().context.borrow_mut().set_cache(
-      disk_location_path.as_str(),
-      obj.deref().borrow().self_weak.clone(),
-    );
-    // 开始转换
-    obj.deref().borrow_mut().parse_comment()?;
-    obj.deref().borrow_mut().parse_var()?;
-    obj.deref().borrow_mut().parse_rule()?;
-    Ok(())
+    let res = obj.deref().borrow().code_gen()?;
+    Ok(res)
   }
 
   pub fn getrules(&self) -> Vec<NodeRef> {

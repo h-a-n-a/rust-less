@@ -1,6 +1,6 @@
 use crate::extend::string::StringExtend;
 use crate::new_less::context::Context;
-use crate::new_less::node::HandleResult;
+use crate::new_less::var::HandleResult;
 use crate::new_less::var_node::VarNode;
 
 #[test]

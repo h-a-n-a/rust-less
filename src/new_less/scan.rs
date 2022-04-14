@@ -1,33 +1,19 @@
-///
-/// 扫词的 前 | 中 | 后 字符
-///
+use crate::extend::vec_str::VecCharExtend;
+
 pub type CharWord<'a> = (Option<&'a char>, &'a char, Option<&'a char>);
-
-///
-/// 基础可变参数
-///
-#[derive(Clone, Debug, PartialEq)]
-pub struct ScanArg {
-  pub index: usize,
-  pub temp: String,
-  pub hasend: bool,
-}
-
-pub enum ScanResult {
-  Arg(ScanArg),
-  Skip,
-}
+pub type ScanArg<'a> = (&'a mut usize, &'a mut Vec<char>, &'a mut bool);
 
 ///
 /// 遍历
 ///
+#[inline]
 pub fn traversal(
   arg_start: Option<usize>,
-  charlist: &Vec<char>,
-  exec: &mut dyn FnMut(ScanArg, CharWord) -> Result<ScanResult, String>,
+  charlist: &[char],
+  exec: &mut dyn for<'a> FnMut(ScanArg<'a>, CharWord) -> Result<(), String>,
 ) -> Result<(String, usize), String> {
   let mut index = arg_start.unwrap_or(0);
-  let mut temp: String = "".to_string();
+  let mut temp: Vec<char> = vec![];
   let mut hasend = false;
 
   while index < charlist.len() {
@@ -42,29 +28,15 @@ pub fn traversal(
     } else {
       None
     };
-    let arg = ScanArg {
-      index,
-      temp: temp.clone(),
-      hasend,
-    };
-    let res: ScanResult = match exec(arg, (prevchar, char, nextchar)) {
-      Err(msg) => {
-        return Err(msg);
-      }
-      Ok(obj) => obj,
-    };
-    match res {
-      ScanResult::Arg(arg) => {
-        index = arg.index;
-        temp = arg.temp;
-        hasend = arg.hasend;
-      }
-      ScanResult::Skip => {}
-    }
+    exec(
+      (&mut index, &mut temp, &mut hasend),
+      (prevchar, char, nextchar),
+    )?;
     if hasend {
       break;
     }
     index += 1;
   }
-  Ok((temp, index))
+  let final_str = temp.poly();
+  Ok((final_str, index))
 }

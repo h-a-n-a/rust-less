@@ -5,3 +5,4 @@ pub mod select;
 pub mod style_rule;
 pub mod value;
 pub mod var;
+pub mod new_select;

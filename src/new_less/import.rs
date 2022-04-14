@@ -1,12 +1,13 @@
-use crate::extend::vec_str::VecStrExtend;
+use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::file_manger::FileManger;
 use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{HandleResult, NodeWeakRef};
+use crate::new_less::node::NodeWeakRef;
 use crate::new_less::option::ParseOption;
-use crate::new_less::scan::{traversal, ScanArg, ScanResult};
+use crate::new_less::scan::traversal;
 use crate::new_less::token::lib::Token;
+use crate::new_less::var::HandleResult;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
 use std::fmt::{Debug, Formatter};
@@ -130,27 +131,23 @@ impl ImportNode {
       Some(index),
       charlist,
       &mut (|arg, (_, char, _)| {
-        let ScanArg {
-          index,
-          mut temp,
-          mut hasend,
-        } = arg;
+        let (index, temp, hasend) = arg;
 
         if has_apost || has_quote {
           if Token::is_token(Some(char)) {
             if ('\'' == *char && has_apost) || ('"' == *char && has_quote) {
-              if index != charlist.len() - 2 {
-                return Err(self.error_msg(&index));
+              if *index != charlist.len() - 2 {
+                return Err(self.error_msg(index));
               } else {
                 has_apost = false;
                 has_quote = false;
-                hasend = true
+                *hasend = true
               }
             } else {
-              temp.push(char.clone());
+              temp.push(*char);
             }
           } else {
-            temp.push(char.clone());
+            temp.push(*char);
           }
         } else if Token::is_token(Some(char)) {
           if !Token::is_space_token(Some(char)) {
@@ -159,18 +156,13 @@ impl ImportNode {
             } else if '"' == *char {
               has_quote = true;
             } else {
-              return Err(self.error_msg(&index));
+              return Err(self.error_msg(index));
             }
           }
         } else {
-          return Err(self.error_msg(&index));
+          return Err(self.error_msg(index));
         }
-
-        Ok(ScanResult::Arg(ScanArg {
-          index,
-          temp,
-          hasend,
-        }))
+        Ok(())
       }),
     ) {
       Ok(res) => res.0,
