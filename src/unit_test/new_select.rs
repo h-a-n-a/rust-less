@@ -100,8 +100,6 @@ fn test_select_error_parse() {
     r#".a[id="xyz>.c"#.to_string(),
     // ------
     // r#".b@"#.to_string(),
-    // r#">&c"#.to_string(),
-    // r#"+&c"#.to_string(),
     // ------
   ];
   demo_select_list.into_iter().for_each(|tt| {

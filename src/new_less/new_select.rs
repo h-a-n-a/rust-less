@@ -8,15 +8,20 @@ use crate::new_less::token::new_select::{
 };
 use crate::new_less::var::HandleResult;
 use serde::Serialize;
+use crate::new_less::select_node::SelectorNode;
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub enum SelectParadigm {
   SelectWrap(String),
   CominaWrap(TokenCombinaChar),
-  VarWrap(String),
+  VarWrap(char),
 }
 
 pub trait Paradigm {
+  ///
+  /// 转成 样式词的 方法
+  /// 简化版 -> 用于测试
+  ///
   fn tostr(&self) -> String;
 }
 
@@ -24,9 +29,12 @@ impl Paradigm for Vec<SelectParadigm> {
   fn tostr(&self) -> String {
     let mut txt = "".to_string();
     self.iter().for_each(|par| match par {
-      SelectParadigm::SelectWrap(cc) | SelectParadigm::VarWrap(cc) => txt += cc,
+      SelectParadigm::SelectWrap(cc) => txt += cc,
       SelectParadigm::CominaWrap(cc) => {
         txt.push(cc.to_str());
+      }
+      SelectParadigm::VarWrap(cc) => {
+        txt.push(*cc)
       }
     });
     txt
@@ -80,6 +88,68 @@ impl NewSelector {
   ///
   pub fn value(&self) -> String {
     self.charlist.poly()
+  }
+
+  ///
+  /// 向上查找 最近 select 节点 非 media
+  ///
+  pub fn find_up_select_node(node: NodeWeakRef) -> NodeWeakRef {
+    if let Some(ref heap_node) = node {
+      let rule = heap_node.upgrade().unwrap();
+      if matches!(*rule.borrow().selector.as_ref().unwrap(),SelectorNode::Select(..)) {
+        node.clone()
+      } else {
+        let parent = rule.borrow().parent.clone();
+        Self::find_up_select_node(parent)
+      }
+    } else {
+      None
+    }
+  }
+
+
+  ///
+  /// 生成当前 select 字符
+  ///
+  pub fn code_gen(&self) -> String {
+    let mut split_select_txt = vec![];
+    for list in self.paradigm_vec.iter() {
+      let mut txt = "".to_string();
+      let mut has_var = false;
+
+      // 计算父 表达式
+      let self_rule = self.parent.as_ref().unwrap().upgrade().unwrap();
+      let node = self_rule.borrow().parent.clone();
+      let select_rule_node = Self::find_up_select_node(node);
+      let mut parent_select_txt = "".to_string();
+      if let Some(any_parent_rule) = select_rule_node {
+        let heap_any_parent_rule = any_parent_rule.upgrade().unwrap();
+        if let Some(SelectorNode::Select(ps)) = heap_any_parent_rule.borrow().selector.as_ref() {
+          parent_select_txt = ps.code_gen()
+        };
+      }
+      list.iter().for_each(|par| {
+        match par {
+          SelectParadigm::SelectWrap(cc) => txt += cc,
+          SelectParadigm::CominaWrap(cc) => {
+            txt.push(cc.to_str());
+          }
+          SelectParadigm::VarWrap(_) => {
+            has_var = true;
+            txt += &parent_select_txt
+          }
+        }
+      });
+
+      // 有 & 符号 则 不合 父 select 字符串做拼接
+      if has_var || parent_select_txt.is_empty() {
+        split_select_txt.push(txt)
+      } else {
+        split_select_txt.push(format!("{} {}", parent_select_txt, txt))
+      }
+    }
+    // 交叉相乘
+    split_select_txt.join(",")
   }
 
   ///
@@ -181,8 +251,7 @@ impl NewSelector {
   pub fn last_paradigm_without_space(&self) -> Option<&SelectParadigm> {
     if let Some(list) = self.paradigm_vec.last() {
       for p in list.iter().rev() {
-        if !matches!(p, SelectParadigm::CominaWrap(..))
-          || *p != SelectParadigm::CominaWrap(TokenCombinaChar::Space)
+        if *p != SelectParadigm::CominaWrap(TokenCombinaChar::Space)
         {
           return Some(p);
         } else {
@@ -238,7 +307,7 @@ impl NewSelector {
       charlist,
       &mut (|arg, charword| {
         let (index, _, _) = arg;
-        let (_, char, _) = charword;
+        let (_, char, next) = charword;
 
         if Token::is_token(Some(char)) {
           if TokenSelectChar::is(char) {
@@ -250,7 +319,13 @@ impl NewSelector {
             let (_, end) = self.parse_combina_word(index)?;
             *index = end;
           } else if TokenKeyWordChar::is(char) {
-            // todo!
+            if *char == '&' {
+              self.add_paradigm(SelectParadigm::VarWrap(*char));
+            } else if *char == '@' && next == Some(&'{') {
+              return Err(self.errormsg(index).err().unwrap());
+            } else {
+              return Err(self.errormsg(index).err().unwrap());
+            }
           } else if TokenAllowChar::is(char) {
             // example a, li , h2
             let (select_word, end) = self.parse_selector_word(index)?;
