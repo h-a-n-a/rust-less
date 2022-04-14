@@ -1,35 +1,51 @@
-use crate::extend::enum_extend::EnumExtend;
-use crate::extend::str_into::StringInto;
+use std::cmp::Ordering;
 use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::NodeWeakRef;
-use crate::new_less::token::lib::Token;
-use crate::new_less::token::select::{TokenAllow, TokenCombina, TokenKeyWord, TokenSelect};
+use crate::new_less::scan::traversal;
+use crate::new_less::token::lib::{Token, TokenInterface};
+use crate::new_less::token::new_select::{
+  TokenAllowChar, TokenCombinaChar, TokenKeyWordChar, TokenSelectChar,
+};
 use crate::new_less::var::HandleResult;
 use serde::Serialize;
+use crate::new_less::select_node::SelectorNode;
 
-///
-/// 选择器范式
-///
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
 pub enum SelectParadigm {
-  // 选择器
   SelectWrap(String),
+  CominaWrap(TokenCombinaChar),
+  VarWrap(char),
+}
 
-  // 选择链接器
-  CominaWrap(String),
+pub trait Paradigm {
+  ///
+  /// 转成 样式词的 方法
+  /// 简化版 -> 用于测试
+  ///
+  fn tostr(&self) -> String;
+}
 
-  // 其他token
-  OtherWrap(String),
-
-  // * 通配符号
-  NormalWrap(String),
+impl Paradigm for Vec<SelectParadigm> {
+  fn tostr(&self) -> String {
+    let mut txt = "".to_string();
+    self.iter().for_each(|par| match par {
+      SelectParadigm::SelectWrap(cc) => txt += cc,
+      SelectParadigm::CominaWrap(cc) => {
+        txt.push(cc.to_str());
+      }
+      SelectParadigm::VarWrap(cc) => {
+        txt.push(*cc)
+      }
+    });
+    txt
+  }
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct Selector {
+pub struct NewSelector {
   // 字符串规则 根据逗号分割
-  pub single_select_txt: Vec<String>,
+  pub paradigm_vec: Vec<Vec<SelectParadigm>>,
 
   // 坐标位置
   pub loc: Option<Loc>,
@@ -48,18 +64,15 @@ pub struct Selector {
   pub parent: NodeWeakRef,
 }
 
-impl Selector {
-  ///
-  /// 初始化方法
-  ///
+impl NewSelector {
   pub fn new(
     charlist: Vec<char>,
     loc: Option<Loc>,
     map: Option<LocMap>,
     parent: NodeWeakRef,
   ) -> HandleResult<Self> {
-    let mut obj = Selector {
-      single_select_txt: vec![],
+    let mut obj = NewSelector {
+      paradigm_vec: vec![],
       loc,
       map: map.unwrap_or_else(|| LocMap::new(&charlist)),
       charlist,
@@ -71,34 +84,93 @@ impl Selector {
     }
   }
 
+  ///
+  /// 尽量减少调用次数
+  ///
   pub fn value(&self) -> String {
     self.charlist.poly()
   }
 
   ///
-  /// 合并范式内容
+  /// 向上查找 最近 select 节点 非 media
   ///
-  pub fn join(paradigm: Vec<SelectParadigm>) -> String {
-    let mut base = "".to_string();
-    for word_paradigm in paradigm {
-      match word_paradigm {
-        SelectParadigm::SelectWrap(cc)
-        | SelectParadigm::CominaWrap(cc)
-        | SelectParadigm::OtherWrap(cc)
-        | SelectParadigm::NormalWrap(cc) => {
-          base += &cc;
+  pub fn find_up_select_node(node: NodeWeakRef) -> NodeWeakRef {
+    if let Some(ref heap_node) = node {
+      let rule = heap_node.upgrade().unwrap();
+      if matches!(*rule.borrow().selector.as_ref().unwrap(),SelectorNode::Select(..)) {
+        node.clone()
+      } else {
+        let parent = rule.borrow().parent.clone();
+        Self::find_up_select_node(parent)
+      }
+    } else {
+      None
+    }
+  }
+
+
+  ///
+  /// 生成当前 select 字符
+  ///
+  pub fn code_gen(&self) -> Vec<String> {
+    let mut split_select_txt = vec![];
+    for list in self.paradigm_vec.iter() {
+
+      // 计算父 表达式
+      let self_rule = self.parent.as_ref().unwrap().upgrade().unwrap();
+      let node = self_rule.borrow().parent.clone();
+      let select_rule_node = Self::find_up_select_node(node);
+      let mut parent_select_txt = vec![];
+      if let Some(any_parent_rule) = select_rule_node {
+        let heap_any_parent_rule = any_parent_rule.upgrade().unwrap();
+        if let Some(SelectorNode::Select(ps)) = heap_any_parent_rule.borrow().selector.as_ref() {
+          parent_select_txt = ps.code_gen()
+        };
+      }
+
+      let mut txt = "".to_string();
+      let mut has_var = false;
+
+      // 计算自己
+      list.iter().for_each(|par| {
+        match par {
+          SelectParadigm::SelectWrap(cc) => txt += cc,
+          SelectParadigm::CominaWrap(cc) => {
+            txt.push(cc.to_str());
+          }
+          SelectParadigm::VarWrap(_) => {
+            has_var = true;
+            for expr in parent_select_txt.iter() {
+              txt += expr;
+            }
+          }
+        }
+      });
+
+      // 有 & 符号 则 不合 父 select 字符串做拼接
+      if has_var || parent_select_txt.is_empty() {
+        split_select_txt.push(txt)
+      } else {
+        for expr in parent_select_txt {
+          split_select_txt.push(format!("{} {}", expr, txt))
         }
       }
     }
-    base
+
+    // 最终结果
+    split_select_txt
   }
 
   ///
   /// 打印错误信息
   ///
-  fn errormsg(&mut self, index: &usize) -> Result<(), String> {
-    let char = *self.charlist.get(*index).unwrap();
-    let error_loc = self.map.get(index).unwrap();
+  pub fn errormsg(&self, index: &usize) -> Result<(), String> {
+    let mut safe_index = *index;
+    if *index > self.charlist.len() - 1 {
+      safe_index = self.charlist.len() - 1;
+    }
+    let char = *self.charlist.get(safe_index).unwrap();
+    let error_loc = self.map.get(&safe_index).unwrap();
     Err(format!(
       "select text {}, char {} is not allow, line is {} col is {}",
       self.charlist.poly(),
@@ -109,610 +181,502 @@ impl Selector {
   }
 
   ///
-  /// 判断相邻非空格字符串
-  /// 当前索引位置 -> index
-  /// 禁用单词 -> forbidword
-  /// 默认查找方向 -> true | None 向后
+  /// 在二维数组 的最后 追加 词
+  /// 需要在 连接词 前后适当 保持 1个 空格！
   ///
-  fn check_adjacent_token(
-    &mut self,
-    forbidword: Vec<char>,
-    index: &usize,
-    forwad: Option<bool>,
-  ) -> Result<(), String> {
-    let back = forwad.unwrap_or(true);
-    let mut find_num = *index;
-    let to_move = |index: &mut usize| {
-      let start = 0;
-      let end = self.charlist.len() - 1;
-      if back {
-        if *index < end {
-          *index += 1;
-        } else {
-          *index = end;
-        }
-      }
-      if !back {
-        if *index > start {
-          *index -= 1;
-        } else {
-          *index = start;
-        }
-      }
-    };
-    let mut char;
-    loop {
-      to_move(&mut find_num);
-      char = self.charlist.get(find_num).unwrap();
-      if *char != ' ' {
-        break;
-      }
-    }
-    if Token::is_token(Some(char)) {
-      // 验证 连接词 不能固定想连
-      let res = forbidword.into_iter().find(|x| *x == *char);
-      match res {
-        None => {}
-        Some(_err_char) => {
-          return self.errormsg(&find_num);
-        }
-      }
-    }
-    Ok(())
-  }
-
-  ///
-  /// 单独转化 attr 属性判断
-  ///
-  fn parse_attr(&mut self, start: &usize) -> Result<(SelectParadigm, usize), String> {
-    let charlist = &self.charlist;
-    let mut index = *start + 1;
-    let mut temp: String = "[".to_string();
-    // 是否完结
-    let mut hasend = false;
-    // 是否有等号
-    let mut hasequal = false;
-    // 是否有引号
-    let mut has_quota = false;
-
-    while index < charlist.len() {
-      let prevchar = charlist.get(index - 1);
-      let char = charlist.get(index).unwrap();
-      let nextchar = charlist.get(index + 1);
-      let token_allow = vec!['^', '$', '*', '|'];
-      // 如果重复遇到引号 则关闭 引号作用域
-      if has_quota && (*char == '"' || *char == '\'') {
-        temp.push(*char);
-        has_quota = false;
-        index += 1;
-        continue;
-      }
-      // 如果 引号关闭 且是 标点符号则执行检查
-      if Token::is_token(Some(char)) && !has_quota {
-        // 遇到 "]" 则跳出循环 当前索引即是 "]" 的位置
-        if *char == ']' {
-          hasend = true;
-          temp.push(*char);
-          break;
-        }
-        // 遇到 = 需要判断后一个词 只能跟 引号
-        if *char == '=' {
-          // 不能有重复的等号出现
-          if !hasequal && (*nextchar.unwrap_or(&'\0') == '"' || *nextchar.unwrap_or(&'\0') == '\'')
-          {
-            // 且不能 是 [= 这种组合
-            if temp.len() > 1 {
-              hasequal = true;
-              temp.push(*char);
-              index += 1;
-              continue;
-            } else {
-              return Err(self.errormsg(&index).err().unwrap());
-            }
-          } else {
-            return Err(self.errormsg(&index).err().unwrap());
-          }
-        }
-        // 直接出现引号 没有出现等号 直接报错
-        if *char == '"' || *char == '\'' {
-          if !hasequal {
-            return Err(self.errormsg(&index).err().unwrap());
-          } else {
-            // 前一个 符号必须是等号 这里重复判断可以优化!
-            if *prevchar.unwrap_or(&'\0') == '=' {
-              has_quota = true;
-              temp.push(*char);
-              index += 1;
-              continue;
-            } else {
-              return Err(self.errormsg(&index).err().unwrap());
-            }
-          }
-        }
-        // 如果是其他符号 或者没有匹配的情况 则进行下述匹配
-        if *nextchar.unwrap_or(&'\0') == '=' && token_allow.contains(char) {
-          temp.push(*char)
-        } else {
-          return Err(self.errormsg(&index).err().unwrap());
-        }
+  pub fn add_paradigm(&mut self, obj: SelectParadigm) {
+    if self.paradigm_vec.is_empty() {
+      if !matches!(obj,SelectParadigm::CominaWrap(..)) {
+        self.paradigm_vec.push(vec![obj]);
       } else {
-        temp.push(*char)
+        self.paradigm_vec.push(vec![obj, SelectParadigm::CominaWrap(TokenCombinaChar::Space)]);
       }
-      index += 1;
+    } else {
+      let list = self.paradigm_vec.last_mut().unwrap();
+      if !matches!(obj,SelectParadigm::CominaWrap(..)) || matches!(obj,SelectParadigm::CominaWrap(TokenCombinaChar::Space)) {
+        list.push(obj);
+      } else {
+        let last_paradigm = list.last();
+        if last_paradigm.is_some() && !matches!(last_paradigm,Some(SelectParadigm::CominaWrap(TokenCombinaChar::Space))) {
+          list.push(SelectParadigm::CominaWrap(TokenCombinaChar::Space));
+        }
+        list.push(obj);
+        list.push(SelectParadigm::CominaWrap(TokenCombinaChar::Space));
+      }
     }
-    if !hasend {
-      return Err(format!(
-        "select text {}, not found ']'",
-        self.charlist.poly()
-      ));
-    }
-    let obj = SelectParadigm::SelectWrap(temp);
-    Ok((obj, index))
   }
 
   ///
-  /// 转小括号
+  /// 最后一组词 的 最后一位 非空
+  /// 逗号情况 调用
   ///
-  fn parse_brackets(&mut self, start: &usize) -> Result<(SelectParadigm, usize), String> {
-    let charlist = &self.charlist;
-    let mut index = *start + 1;
-    let mut temp: String = "(".to_string();
-    let mut hasend = false;
-
-    while index < charlist.len() {
-      let char = charlist.get(index).unwrap();
-      if Token::is_token(Some(char)) {
-        if *char == '@' {
-          return Err(self.errormsg(&index).err().unwrap());
-        } else {
-          temp.push(*char);
-          if char.to_string() == TokenSelect::RightBrackets.tostr_value() {
-            hasend = true;
+  pub fn clear_paraigm(&mut self, index: &usize) -> Result<(), String> {
+    if let Some(list) = self.paradigm_vec.last_mut() {
+      let mut rm_index_list: Vec<usize> = vec![];
+      let mut num = 0;
+      for (index, word) in list.iter().rev().enumerate() {
+        match word {
+          SelectParadigm::CominaWrap(_) => {
+            rm_index_list.push(list.len() - 1 - index);
+          }
+          _ => {
             break;
           }
         }
-      } else {
-        temp.push(*char);
       }
-      index += 1;
+      for (_, val) in rm_index_list.into_iter().enumerate() {
+        list.remove(val - num);
+        num += 1;
+      }
+      if list.is_empty() {
+        return Err(self.errormsg(index).err().unwrap());
+      }
+      Ok(())
+    } else {
+      Err(self.errormsg(index).err().unwrap())
     }
-    if !hasend {
-      return Err(format!(
-        "select text {}, not found ')'",
-        self.charlist.poly()
-      ));
-    }
-    let obj = SelectParadigm::SelectWrap(temp);
-    Ok((obj, index))
   }
 
   ///
-  /// 解析 字符串
-  /// 验证有效性
-  /// 根据 逗号 划分规则
+  /// 在二维数组中 开辟 一组 新词 序列
   ///
-  fn parse(&mut self) -> Result<(), String> {
-    let charlist = self.charlist.clone();
-    let mut index = 0;
-    let mut temp: String = "".to_string();
-    let mut paradigm_vec: Vec<SelectParadigm> = vec![];
-    let mut has_ref_token = false;
+  pub fn add_paradigm_vec(&mut self) {
+    self.paradigm_vec.push(vec![]);
+  }
 
-    if charlist.is_empty() {
-      return Err("select text is empty".to_string());
+  ///
+  /// 获取 最后 词
+  ///
+  pub fn last_paradigm(&self) -> Option<&SelectParadigm> {
+    if self.paradigm_vec.last().is_some() {
+      return self.paradigm_vec.last().unwrap().last();
     }
+    None
+  }
 
-    // 循环解析
-    while index < charlist.len() {
-      let prevchar = if index > 0 {
-        charlist.get(index - 1)
-      } else {
-        None
-      };
-      let char = charlist.get(index).unwrap();
-      let nextchar = if index + 1 < charlist.len() {
-        charlist.get(index + 1)
-      } else {
-        None
-      };
-      // 跳过空格
-      if Token::is_space_token(Some(char)) && Token::is_space_token(nextchar) {
-        index += 1;
-        continue;
-      }
-      // 有任务则继续填词
-      if !Token::is_token(Some(char)) {
-        temp.push(*char);
-        if index + 1 != charlist.len() {
-          index += 1;
+  ///
+  /// 获取 最后 非空格 词
+  ///
+  pub fn last_paradigm_without_space(&self) -> Option<&SelectParadigm> {
+    if let Some(list) = self.paradigm_vec.last() {
+      for p in list.iter().rev() {
+        if *p != SelectParadigm::CominaWrap(TokenCombinaChar::Space)
+        {
+          return Some(p);
+        } else {
           continue;
         }
       }
+      None
+    } else {
+      None
+    }
+  }
 
-      if index == 0 {
+  ///
+  /// 是否 停词 的判断
+  ///
+  pub fn is_end(char: Option<&char>, extend_char: Option<Vec<char>>) -> bool {
+    if let Some(cc) = char {
+      let mut charlist: Vec<char> = vec![];
+      if let Some(mut extend_list) = extend_char {
+        charlist.append(&mut extend_list);
+      }
+      charlist.append(
+        &mut TokenSelectChar::iterator()
+          .map(|x| x.to_str())
+          .collect::<Vec<char>>(),
+      );
+      charlist.append(
+        &mut TokenCombinaChar::iterator()
+          .map(|x| x.to_str())
+          .collect::<Vec<char>>(),
+      );
+      charlist.append(
+        &mut TokenKeyWordChar::iterator()
+          .map(|x| x.to_str())
+          .collect::<Vec<char>>(),
+      );
+      charlist.contains(cc)
+    } else {
+      false
+    }
+  }
+
+  ///
+  /// parse select txt
+  /// https://www.w3schools.com/cssref/css_selectors.asp
+  ///
+  pub fn parse(&mut self) -> Result<(), String> {
+    let charlist = &self.charlist.clone();
+    let index: usize = 0;
+
+    let (_, end) = traversal(
+      Some(index),
+      charlist,
+      &mut (|arg, charword| {
+        let (index, _, _) = arg;
+        let (_, char, _) = charword;
+
         if Token::is_token(Some(char)) {
-          if charlist.len() == 1 && char.to_string() != TokenSelect::WildCard.tostr_value() {
-            return self.errormsg(&index);
-          }
-          // 第一个词 是符号
-          if '&' == *char {
-            // 第一个词 是 &
-            paradigm_vec.push(SelectParadigm::OtherWrap("$(&)".to_string()));
-            has_ref_token = true;
-          } else if TokenSelect::is(char.to_string().as_str()) {
-            // 第一个词 是 选择符号
-            match TokenSelect::try_from(char.to_string().as_str()).unwrap() {
-              TokenSelect::ClassToken | TokenSelect::IdToken => {
-                temp.push(*char);
-                // 起始符 后续不能接 任意 词根符 类似 "#>" ".*"
-                if Token::is_token(nextchar)
-                  && !TokenAllow::is(nextchar.unwrap_or(&'\0').to_string().as_str())
-                {
-                  return self.errormsg(&(index + 1));
-                }
-              }
-              TokenSelect::Colon => {
-                temp.push(*char);
-                if nextchar.unwrap_or(&'\0').to_string() != TokenSelect::Colon.tostr_value()
-                  && Token::is_token(nextchar)
-                {
-                  return self.errormsg(&(index + 1));
-                }
-              }
-              TokenSelect::AttrBegin => {
-                let (paradigm, jumpindex) = match self.parse_attr(&index) {
-                  Ok(res) => res,
-                  Err(msg) => {
-                    return Err(msg);
-                  }
-                };
-                paradigm_vec.push(paradigm);
-                index = jumpindex + 1;
-                continue;
-              }
-              TokenSelect::AttrEnd => {
-                return self.errormsg(&index);
-              }
-              TokenSelect::LeftBrackets => {
-                let (paradigm, jumpindex) = match self.parse_brackets(&index) {
-                  Ok(res) => res,
-                  Err(msg) => {
-                    return Err(msg);
-                  }
-                };
-                paradigm_vec.push(paradigm);
-                index = jumpindex + 1;
-                continue;
-              }
-              TokenSelect::RightBrackets => {
-                return self.errormsg(&index);
-              }
-              TokenSelect::WildCard => {
-                paradigm_vec.push(SelectParadigm::NormalWrap("*".to_string()));
-              }
-            }
-          } else if TokenCombina::is(char.to_string().as_str()) {
-            // 第一个词 是 链接符号 不考虑空格
-            match TokenCombina::try_from(char.to_string().as_str()).unwrap() {
-              TokenCombina::Comma => {
-                return self.errormsg(&index);
-              }
-              TokenCombina::ExtendChar => {
-                paradigm_vec.push(SelectParadigm::CominaWrap(
-                  TokenCombina::ExtendChar.tostr_value(),
-                ));
-                if !Token::is_space_token(nextchar) {
-                  paradigm_vec.push(SelectParadigm::CominaWrap(
-                    TokenCombina::Space.tostr_value(),
-                  ));
-                }
-                match self.check_adjacent_token(
-                  vec!['\n', '\r', ']', '&', '~', '+', '|', '~', '>', '\'', '"'],
-                  &index,
-                  None,
-                ) {
-                  Ok(_) => {}
-                  Err(msg) => {
-                    return Err(msg);
-                  }
-                }
-              }
-              TokenCombina::ColumnChar => {
-                index += 1;
-                paradigm_vec.push(SelectParadigm::CominaWrap("||".to_string()));
-              }
-              TokenCombina::BrotherNextChar => {
-                paradigm_vec.push(SelectParadigm::CominaWrap(
-                  TokenCombina::BrotherNextChar.tostr_value(),
-                ));
-                // 补空格
-                if !Token::is_space_token(nextchar) {
-                  paradigm_vec.push(SelectParadigm::CominaWrap(
-                    TokenCombina::Space.tostr_value(),
-                  ));
-                }
-                match self.check_adjacent_token(
-                  vec!['\n', '\r', ']', '&', '~', '+', '|', '~', '>', '\'', '"'],
-                  &index,
-                  None,
-                ) {
-                  Ok(_) => {}
-                  Err(msg) => {
-                    return Err(msg);
-                  }
-                }
-              }
-              TokenCombina::BrotherMatchChar => {
-                paradigm_vec.push(SelectParadigm::CominaWrap(
-                  TokenCombina::BrotherMatchChar.tostr_value(),
-                ));
-                // 补空格
-                if !Token::is_space_token(nextchar) {
-                  paradigm_vec.push(SelectParadigm::CominaWrap(
-                    TokenCombina::Space.tostr_value(),
-                  ));
-                }
-                match self.check_adjacent_token(
-                  vec!['\n', '\r', ']', '&', '~', '+', '|', '~', '>', '\'', '"'],
-                  &index,
-                  None,
-                ) {
-                  Ok(_) => {}
-                  Err(msg) => {
-                    return Err(msg);
-                  }
-                }
-              }
-              _ => {}
-            }
-          } else if TokenAllow::is(char.to_string().as_str()) {
-            // 安全词 可以考虑按照 普通字符一样处理
-            temp.push(*char);
-          } else {
-            // 非安全词 直接报错 排除了 括号 和 中括号 中 被引号处理的情况
-            return self.errormsg(&index);
-          }
-        } else {
-          // 第一个词 非符号
-          temp.push(*char);
-        }
-      } else if index == charlist.len() - 1 {
-        // 结尾处理
-        if Token::is_token(Some(char)) {
-          // 处理字符
-          if TokenKeyWord::is(char.to_string().as_str()) {
-            // 第一个词 是 &
-            if !has_ref_token {
-              if !Token::is_space_token(prevchar) {
-                paradigm_vec.push(SelectParadigm::CominaWrap(
-                  TokenCombina::Space.tostr_value(),
-                ));
-              }
-              paradigm_vec.push(SelectParadigm::OtherWrap("$(&)".to_string()));
-            }
-          } else if TokenSelect::is(char.to_string().as_str())
-            && char.to_string() != TokenSelect::WildCard.tostr_value()
-          {
-            return self.errormsg(&index);
-          } else if TokenCombina::is(char.to_string().as_str()) {
-            match TokenCombina::try_from(char.to_string().as_str()).unwrap() {
-              TokenCombina::ColumnChar => {
-                return self.errormsg(&index);
-              }
-              _ => {
-                // 自动忽略字符
-                if !temp.is_empty() {
-                  paradigm_vec.push(SelectParadigm::SelectWrap(temp.clone()));
-                  temp = "".to_string();
-                }
-              }
-            }
-          } else if TokenAllow::is(char.to_string().as_str()) {
-            if char.to_string() != TokenAllow::LeftSlant.tostr_value() {
-              paradigm_vec.push(SelectParadigm::OtherWrap(char.to_string()));
+          if TokenSelectChar::is(char) {
+            // example a, li , h2
+            let (select_word, end) = self.parse_selector_word(index)?;
+            self.add_paradigm(SelectParadigm::SelectWrap(select_word));
+            *index = end;
+          } else if TokenCombinaChar::is(char) {
+            let (_, end) = self.parse_combina_word(index)?;
+            *index = end;
+          } else if TokenKeyWordChar::is(char) {
+            if *char == '&' {
+              self.add_paradigm(SelectParadigm::VarWrap(*char));
             } else {
-              return self.errormsg(&index);
+              return Err(self.errormsg(index).err().unwrap());
             }
+          } else if TokenAllowChar::is(char) {
+            // example a, li , h2
+            let (select_word, end) = self.parse_selector_word(index)?;
+            self.add_paradigm(SelectParadigm::SelectWrap(select_word));
+            *index = end;
           } else {
-            return self.errormsg(&index);
+            return Err(self.errormsg(index).err().unwrap());
           }
         } else {
-          // 处理非字符
-          if !temp.is_empty() {
-            paradigm_vec.push(SelectParadigm::SelectWrap(temp.clone()));
-            temp = "".to_string();
-          }
+          // example a, li , h2
+          let (select_word, end) = self.parse_selector_word(index)?;
+          self.add_paradigm(SelectParadigm::SelectWrap(select_word));
+          *index = end;
         }
-        if !paradigm_vec.is_empty() {
-          let single_select_txt = Self::join(paradigm_vec.clone());
-          self.single_select_txt.push(single_select_txt);
-          paradigm_vec = vec![];
+        Ok(())
+      }),
+    )?;
+    self.clear_paraigm(&end)?;
+    Ok(())
+  }
+
+  ///
+  /// 连接词的处理
+  ///
+  fn parse_combina_word(&mut self, index: &usize) -> Result<(String, usize), String> {
+    let char = *self.charlist.get(*index).unwrap();
+    if Token::is_space_token(Some(&char)) {
+      let last_pardigm = self.last_paradigm();
+      if let Some(SelectParadigm::CominaWrap(token)) = last_pardigm {
+        if *token != TokenCombinaChar::Space {
+          self.add_paradigm(SelectParadigm::CominaWrap(TokenCombinaChar::Space));
         }
       } else {
-        // 过程处理
+        self.add_paradigm(SelectParadigm::CominaWrap(TokenCombinaChar::Space));
+      }
+    } else if char == TokenCombinaChar::AddChar.to_str()
+      || char == TokenCombinaChar::ExtendChar.to_str()
+      || char == TokenCombinaChar::BrotherMatchChar.to_str()
+      || char == TokenCombinaChar::ColumnChar.to_str()
+    {
+      let last_pardigm = self.last_paradigm_without_space();
+      // 只要最后一个非空字符是 非链接符 即可
+      if !matches!(last_pardigm, Some(SelectParadigm::CominaWrap(..))) {
+        let combin_token = TokenCombinaChar::get(&char).unwrap();
+        self.add_paradigm(SelectParadigm::CominaWrap(combin_token));
+      } else {
+        return Err(self.errormsg(index).err().unwrap());
+      }
+    } else if char == TokenCombinaChar::Comma.to_str() {
+      self.clear_paraigm(index)?;
+      self.add_paradigm_vec();
+    }
+    Ok((char.to_string(), *index))
+  }
+
+  ///
+  /// parse select word
+  ///
+  fn parse_selector_word(&mut self, start: &usize) -> Result<(String, usize), String> {
+    let res: (String, usize);
+    let charlist = &self.charlist;
+    let char = charlist.get(*start).unwrap();
+    if *char == '.' || *char == '#' {
+      res = self.parse_selector_class_or_id_word(start)?;
+    } else if *char == ':' {
+      res = self.parse_selector_pseudo_class_word(start)?;
+    } else if *char == '*' {
+      res = ('*'.to_string(), *start);
+    } else if *char == '[' {
+      res = self.parse_selector_attr(start)?;
+    } else if *char == '(' {
+      res = self.parse_selector_brackets(start)?;
+    } else if !Token::is_token(Some(char)) || TokenAllowChar::is(char) {
+      res = self.parse_selector_ele(start)?;
+    } else {
+      return Err(self.errormsg(start).err().unwrap());
+    }
+    Ok(res)
+  }
+
+  ///
+  /// parse example h2 span div
+  ///
+  fn parse_selector_ele(&mut self, start: &usize) -> Result<(String, usize), String> {
+    traversal(
+      Some(*start),
+      &self.charlist,
+      &mut (|arg, charword| {
+        let (index, temp, end) = arg;
+        let (_, char, next) = charword;
         if Token::is_token(Some(char)) {
-          if !temp.is_empty() {
-            paradigm_vec.push(SelectParadigm::SelectWrap(temp.clone()));
-            temp = "".to_string();
+          if TokenAllowChar::is(char) {
+            temp.push(*char);
+          } else {
+            return Err(self.errormsg(index).err().unwrap());
           }
-          if TokenKeyWord::is(char.to_string().as_str()) {
-            if !has_ref_token {
-              if !Token::is_space_token(prevchar) {
-                paradigm_vec.push(SelectParadigm::CominaWrap(
-                  TokenCombina::Space.tostr_value(),
-                ));
-              }
-              paradigm_vec.push(SelectParadigm::OtherWrap("$(&)".to_string()));
-              has_ref_token = true;
+        } else {
+          temp.push(*char);
+        }
+        if next.is_none() || Self::is_end(next, None) {
+          *end = true;
+        }
+        Ok(())
+      }),
+    )
+  }
+
+  ///
+  /// parse example #h2 .abc
+  ///
+  fn parse_selector_class_or_id_word(&mut self, start: &usize) -> Result<(String, usize), String> {
+    let charlist = &self.charlist;
+    let mut record = false;
+    traversal(
+      Some(*start),
+      charlist,
+      &mut (|arg, charword| {
+        let (index, temp, end) = arg;
+        let (_, char, next) = charword;
+        if Token::is_token(Some(char)) {
+          if TokenAllowChar::is(char) {
+            temp.push(*char);
+          } else if TokenSelectChar::is(char) && !record {
+            record = true;
+            temp.push(*char);
+          } else {
+            return Err(self.errormsg(index).err().unwrap());
+          }
+        } else {
+          temp.push(*char);
+        }
+        // 执行结束检查
+        if (next.is_none() || Self::is_end(next, None)) && record {
+          if temp.len() < 2 {
+            // . , # single word is error
+            return Err(self.errormsg(index).err().unwrap());
+          }
+          *end = true;
+        }
+        Ok(())
+      }),
+    )
+  }
+
+  ///
+  /// parse example ::hide :next
+  ///
+  fn parse_selector_pseudo_class_word(&mut self, start: &usize) -> Result<(String, usize), String> {
+    let charlist = &self.charlist;
+    let mut record = false;
+    traversal(
+      Some(*start),
+      charlist,
+      &mut (|arg, charword| {
+        let (index, temp, end) = arg;
+        let (_, char, next) = charword;
+        let mut next_fix = next;
+        if Token::is_token(Some(char)) {
+          if !record && *char == ':' {
+            if next == Some(&':') {
+              temp.push(*char);
+              *index += 1;
+              next_fix = {
+                if *index + 1 < charlist.len() {
+                  charlist.get(*index + 1)
+                } else {
+                  None
+                }
+              };
             }
-          } else if TokenSelect::is(char.to_string().as_str()) {
-            // 词 是 选择符号
-            match TokenSelect::try_from(char.to_string().as_str()).unwrap() {
-              TokenSelect::ClassToken | TokenSelect::IdToken => {
+            temp.push(*char);
+            record = true;
+          } else if TokenAllowChar::is(char) {
+            temp.push(*char);
+          } else {
+            return Err(self.errormsg(index).err().unwrap());
+          }
+        } else {
+          temp.push(*char);
+        }
+        // 执行结束检查
+        if (next.is_none() || Self::is_end(next_fix, None)) && record {
+          if (temp.len() < 2 && *temp == vec![':']) || (temp.len() < 3 && *temp == vec![':', ':'])
+          {
+            // . , # single word is error
+            return Err(self.errormsg(index).err().unwrap());
+          }
+          *end = true;
+        }
+        Ok(())
+      }),
+    )
+  }
+
+  ///
+  /// parse example (language)
+  ///
+  fn parse_selector_brackets(&mut self, start: &usize) -> Result<(String, usize), String> {
+    let mut level = 0;
+    let res = traversal(
+      Some(*start),
+      &self.charlist,
+      &mut (|arg, charword| {
+        let (index, temp, end) = arg;
+        let (_, char, next) = charword;
+        if Token::is_token(Some(char)) {
+          if TokenAllowChar::is(char) {
+            temp.push(*char);
+            return Ok(());
+          }
+          if *char == ')' {
+            level -= 1;
+            match level.cmp(&0) {
+              Ordering::Less => {
+                return Err(self.errormsg(index).err().unwrap());
+              }
+              Ordering::Equal => {
+                *end = true;
                 temp.push(*char);
-                // 起始符 后续不能接 任意 词根符 类似 "#>" ".*"
-                if Token::is_token(nextchar)
-                  && !TokenAllow::is(nextchar.unwrap_or(&'\0').to_string().as_str())
-                {
-                  return self.errormsg(&(index + 1));
-                }
+                return Ok(());
               }
-              TokenSelect::Colon => {
+              Ordering::Greater => {
                 temp.push(*char);
-                if nextchar.unwrap_or(&'\0').to_string() != TokenSelect::Colon.tostr_value()
-                  && nextchar.unwrap_or(&'\0').to_string() != TokenAllow::Dash.tostr_value()
-                  && Token::is_token(nextchar)
-                {
-                  return self.errormsg(&(index + 1));
-                }
-              }
-              TokenSelect::AttrBegin => {
-                let (paradigm, jumpindex) = match self.parse_attr(&index) {
-                  Ok(res) => res,
-                  Err(msg) => {
-                    return Err(msg);
-                  }
-                };
-                paradigm_vec.push(paradigm);
-                index = jumpindex + 1;
-                continue;
-              }
-              TokenSelect::AttrEnd => {
-                return self.errormsg(&index);
-              }
-              TokenSelect::LeftBrackets => {
-                let (paradigm, jumpindex) = match self.parse_brackets(&index) {
-                  Ok(res) => res,
-                  Err(msg) => {
-                    return Err(msg);
-                  }
-                };
-                paradigm_vec.push(paradigm);
-                index = jumpindex + 1;
-                continue;
-              }
-              TokenSelect::RightBrackets => {
-                return self.errormsg(&index);
-              }
-              TokenSelect::WildCard => {
-                paradigm_vec.push(SelectParadigm::NormalWrap("*".to_string()));
               }
             }
-          } else if TokenCombina::is(char.to_string().as_str()) {
-            match TokenCombina::try_from(char.to_string().as_str()).unwrap() {
-              TokenCombina::Comma => {
-                let single_select_txt = Self::join(paradigm_vec.clone());
-                self.single_select_txt.push(single_select_txt);
-                has_ref_token = false;
-                paradigm_vec = vec![];
+          } else if *char == '@' && next != Some(&'{') {
+            return Err(self.errormsg(index).err().unwrap());
+          } else if *char == '(' {
+            level += 1;
+            temp.push(*char);
+          } else {
+            temp.push(*char);
+          }
+        } else {
+          temp.push(*char);
+        }
+        Ok(())
+      }),
+    )?;
+    if level > 0 {
+      return Err(self.errormsg(&res.1).err().unwrap());
+    }
+    Ok(res)
+  }
+
+  ///
+  /// parse example '[arco-theme='dark']'
+  ///
+  fn parse_selector_attr(&mut self, start: &usize) -> Result<(String, usize), String> {
+    // example ~= *= ^=
+    let equal_chars = vec!['~', '|', '^', '$', '*'];
+    let mut hasequal = false;
+    let mut has_brackest = false;
+    let mut queto: Option<char> = None;
+
+    let res = traversal(
+      Some(*start),
+      &self.charlist,
+      &mut (|arg, charword| {
+        let (index, temp, end) = arg;
+        let (prev, char, next) = charword;
+        let get_prev_char_without_space = || -> Option<char> {
+          let mut res: Option<char> = None;
+          for tc in temp.iter().rev() {
+            if *tc == ' ' {
+              continue;
+            } else {
+              res = Some(*tc);
+              break;
+            }
+          }
+          res
+        };
+
+        if let Some(token_queto) = queto {
+          if has_brackest {
+            if *char == token_queto && prev != Some(&'\\') {
+              queto = None;
+            }
+            temp.push(*char);
+          } else {
+            return Err(self.errormsg(index).err().unwrap());
+          }
+        } else if Token::is_token(Some(char)) {
+          if has_brackest {
+            if *char == '[' {
+              return Err(self.errormsg(index).err().unwrap());
+            } else if *char == ']' {
+              let prev_char_without_space = get_prev_char_without_space();
+              if prev_char_without_space == Some('=') {
+                return Err(self.errormsg(index).err().unwrap());
               }
-              TokenCombina::Space | TokenCombina::NewLineOs | TokenCombina::NewLineWindos => {
-                if !Token::is_space_token(prevchar) {
-                  paradigm_vec.push(SelectParadigm::CominaWrap(
-                    TokenCombina::Space.tostr_value(),
-                  ));
-                }
-                let space = SelectParadigm::CominaWrap(TokenCombina::Space.tostr_value());
-                if paradigm_vec.is_empty() || paradigm_vec.last().unwrap() != &space {
-                  paradigm_vec.push(space);
-                }
+              // is attr end record
+              temp.push(*char);
+              has_brackest = false;
+              *end = true;
+            } else if TokenAllowChar::is(char) {
+              temp.push(*char);
+            } else if equal_chars.contains(char) {
+              if next == Some(&'=') && !hasequal {
+                temp.push(*char);
+                temp.push('=');
+                hasequal = true;
+                *index += 1;
+              } else {
+                return Err(self.errormsg(index).err().unwrap());
               }
-              TokenCombina::ExtendChar => {
-                if !Token::is_space_token(nextchar) {
-                  paradigm_vec.push(SelectParadigm::CominaWrap(
-                    TokenCombina::Space.tostr_value(),
-                  ));
-                }
-                paradigm_vec.push(SelectParadigm::CominaWrap(
-                  TokenCombina::ExtendChar.tostr_value(),
-                ));
-                if !Token::is_space_token(nextchar) {
-                  paradigm_vec.push(SelectParadigm::CominaWrap(
-                    TokenCombina::Space.tostr_value(),
-                  ));
-                }
-                match self.check_adjacent_token(
-                  vec!['\n', '\r', ']', '&', '~', '+', '|', '~', '>', '\'', '"'],
-                  &index,
-                  None,
-                ) {
-                  Ok(_) => {}
-                  Err(msg) => {
-                    return Err(msg);
-                  }
-                }
+            } else if *char == '=' {
+              let prev_char_without_space = get_prev_char_without_space();
+              if prev_char_without_space == Some('[') {
+                return Err(self.errormsg(index).err().unwrap());
               }
-              TokenCombina::ColumnChar => {}
-              TokenCombina::BrotherNextChar => {
-                if !Token::is_space_token(prevchar) {
-                  paradigm_vec.push(SelectParadigm::CominaWrap(
-                    TokenCombina::Space.tostr_value(),
-                  ));
-                }
-                paradigm_vec.push(SelectParadigm::CominaWrap(
-                  TokenCombina::BrotherNextChar.tostr_value(),
-                ));
-                if !Token::is_space_token(nextchar) {
-                  paradigm_vec.push(SelectParadigm::CominaWrap(
-                    TokenCombina::Space.tostr_value(),
-                  ));
-                }
-                match self.check_adjacent_token(
-                  vec!['\n', '\r', ']', '&', '~', '+', '|', '~', '>', '\'', '"'],
-                  &index,
-                  None,
-                ) {
-                  Ok(_) => {}
-                  Err(msg) => {
-                    return Err(msg);
-                  }
-                }
+              if !hasequal {
+                temp.push('=');
+                hasequal = true;
+              } else {
+                return Err(self.errormsg(index).err().unwrap());
               }
-              TokenCombina::BrotherMatchChar => {
-                if !Token::is_space_token(prevchar) {
-                  paradigm_vec.push(SelectParadigm::CominaWrap(
-                    TokenCombina::Space.tostr_value(),
-                  ));
-                }
-                paradigm_vec.push(SelectParadigm::CominaWrap(
-                  TokenCombina::BrotherMatchChar.tostr_value(),
-                ));
-                if !Token::is_space_token(nextchar) {
-                  paradigm_vec.push(SelectParadigm::CominaWrap(
-                    TokenCombina::Space.tostr_value(),
-                  ));
-                }
-                match self.check_adjacent_token(
-                  vec!['\n', '\r', ']', '&', '~', '+', '|', '~', '>', '\'', '"'],
-                  &index,
-                  None,
-                ) {
-                  Ok(_) => {}
-                  Err(msg) => {
-                    return Err(msg);
-                  }
-                }
-              }
+            } else if *char == '"' || *char == '\'' {
+              queto = Some(*char);
+              temp.push(*char);
+            } else {
+              return Err(self.errormsg(index).err().unwrap());
             }
           } else {
-            // 其他非关键词根 过程处理
-            if !TokenAllow::is(char.to_string().as_str()) {
-              // 非安全词 直接报错 排除了 括号 和 中括号 中 被引号处理的情况
-              return self.errormsg(&index);
-            } else {
-              // 安全词 可以考虑按照 普通字符一样处理
+            // start record attr
+            if *char == '[' {
               temp.push(*char);
+              has_brackest = true;
+            } else {
+              return Err(self.errormsg(index).err().unwrap());
             }
           }
+        } else if has_brackest {
+          temp.push(*char);
+        } else {
+          return Err(self.errormsg(index).err().unwrap());
         }
-      }
-      index += 1;
+        Ok(())
+      }),
+    )?;
+    if has_brackest {
+      return Err(self.errormsg(&res.1).err().unwrap());
     }
-    if !paradigm_vec.is_empty() {
-      let single_select_txt = Self::join(paradigm_vec.clone());
-      self.single_select_txt.push(single_select_txt);
-      paradigm_vec.clear();
-    }
-    Ok(())
+    Ok(res)
   }
 }

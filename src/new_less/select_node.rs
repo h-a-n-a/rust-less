@@ -6,7 +6,7 @@ use crate::new_less::option::OptionExtend;
 use crate::new_less::var::HandleResult;
 use serde::Serialize;
 use std::ops::Deref;
-use crate::new_less::new_select::NewSelector;
+use crate::new_less::select::NewSelector;
 
 #[derive(Debug, Clone, Serialize)]
 pub enum SelectorNode {
