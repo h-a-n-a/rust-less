@@ -88,10 +88,10 @@ impl SelectorNode {
       }
     }
 
-    let media_res = "".to_string();
+    let mut media_res = "".to_string();
     if let Some(mnode) = nearly_media_node {
       if let SelectorNode::Media(m) = mnode.upgrade().unwrap().borrow().selector.as_ref().unwrap(){
-        select_res = m.code_gen().join(" and ");
+        media_res = m.code_gen().join(" and ");
       }
     }
 

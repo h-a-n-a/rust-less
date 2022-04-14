@@ -550,6 +550,7 @@ impl NewSelector {
               return Err(self.errormsg(index).err().unwrap());
             } else if level == 0 {
               *end = true;
+              temp.push(*char);
               return Ok(());
             } else {
               temp.push(*char);
@@ -558,8 +559,9 @@ impl NewSelector {
             return Err(self.errormsg(index).err().unwrap());
           } else if *char == '(' {
             level += 1;
+            temp.push(*char);
           } else {
-            return Err(self.errormsg(index).err().unwrap());
+            temp.push(*char);
           }
         } else {
           temp.push(*char);

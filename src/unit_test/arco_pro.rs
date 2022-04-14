@@ -132,13 +132,68 @@ fn test_arco_pro_5_less() {
   let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
   let css = context.render(filepath).unwrap();
   let target_code = r#"
-.icon-button{
-  font-size: 16px;
-  border: 1px solid var(--color-border-2);
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border);
+  box-sizing: border-box;
+  background-color: var(--color-bg-2);
+  height: 100%;
 }
-
-.icon-button > svg{
-  vertical-align: -3px;
+.left {
+  display: flex;
+  align-items: center;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  width: 200px;
+  padding-left: 20px;
+  box-sizing: border-box;
+}
+.logo-name {
+  color: var(--color-text-1);
+  font-weight: 500;
+  font-size: 20px;
+  margin-left: 10px;
+  font-family: 'PingFang SC';
+}
+.right {
+  display: flex;
+  list-style: none;
+  padding-right: 20px;
+}
+.right li {
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+}
+.right a {
+  text-decoration: none;
+  color: var(--color-text-1);
+}
+.username {
+  cursor: pointer;
+}
+.round :global(.arco-input-inner-wrapper) {
+  border-radius: 16px;
+}
+.round svg {
+  font-size: 16px;
+}
+.dropdown-icon {
+  margin-right: 8px;
+  font-size: 16px;
+  vertical-align: text-bottom;
+}
+.fixed-settings {
+  position: fixed;
+  top: 280px;
+  right: 0px;
+}
+.fixed-settings svg {
+  font-size: 18px;
+  vertical-align: -4px;
 }
   "#;
   assert_eq!(
@@ -153,7 +208,7 @@ fn test_arco_pro_6_less() {
   let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
   let css = context.render(filepath).unwrap();
   let target_code = r#"
-.panel{
+.panel {
   background-color: var(--color-bg-2);
   border-radius: 4px;
 }
