@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::fileinfo::FileWeakRef;
@@ -407,17 +408,21 @@ impl ValueNode {
                 } else if *char == ')' {
                   level -= 1;
                 }
-                if level == 0 {
-                  *hasend = true;
-                } else if level < 0 {
-                  return Err(self.error_msg(index));
-                }
+                match level.cmp(&0) {
+                  Ordering::Less => {
+                    return Err(self.error_msg(index));
+                  }
+                  Ordering::Equal => {
+                    *hasend = true;
+                  }
+                  Ordering::Greater => {}
+                };
               }
               Err(..) => {
                 return Err(self.error_msg(index));
               }
             };
-          } else if Token::is_space_token(Some(&char)) {
+          } else if Token::is_space_token(Some(char)) {
             match temp_ident_list.last() {
               None => {}
               Some(val) => match val {
@@ -439,16 +444,14 @@ impl ValueNode {
             temp_ident_list.push(IdentType::Word(word));
             *index = end;
           }
+        } else if Self::is_number(Some(char)) {
+          let ((val, unit), end) = self.parse_value_number(index)?;
+          temp_ident_list.push(IdentType::Number(val, unit));
+          *index = end;
         } else {
-          if Self::is_number(Some(char)) {
-            let ((val, unit), end) = self.parse_value_number(index)?;
-            temp_ident_list.push(IdentType::Number(val, unit));
-            *index = end;
-          } else {
-            let (word, end) = self.parse_value_word(index)?;
-            temp_ident_list.push(IdentType::Word(word));
-            *index = end;
-          }
+          let (word, end) = self.parse_value_word(index)?;
+          temp_ident_list.push(IdentType::Word(word));
+          *index = end;
         }
         Ok(())
       }),
@@ -470,7 +473,7 @@ impl ValueNode {
           sort_ident_list.insert(mark_index, IdentType::Word(','.to_string()));
         }
         if *unit == Some('%'.to_string()) {
-          let val = num.parse::<f64>().unwrap() / (100 as f64);
+          let val = num.parse::<f64>().unwrap() / 100_f64;
           sort_ident_list.push(IdentType::Number(format!("{:.1}", val), None));
         } else {
           sort_ident_list.push(ident);
@@ -517,17 +520,21 @@ impl ValueNode {
                 } else if *char == ')' {
                   level -= 1;
                 }
-                if level == 0 {
-                  *hasend = true;
-                } else if level < 0 {
-                  return Err(self.error_msg(index));
-                }
+                match level.cmp(&0) {
+                  Ordering::Less => {
+                    return Err(self.error_msg(index));
+                  }
+                  Ordering::Equal => {
+                    *hasend = true;
+                  }
+                  Ordering::Greater => {}
+                };
               }
               Err(..) => {
                 return Err(self.error_msg(index));
               }
             };
-          } else if Token::is_space_token(Some(&char)) {
+          } else if Token::is_space_token(Some(char)) {
             match temp_ident_list.last() {
               None => {}
               Some(val) => match val {
@@ -552,16 +559,14 @@ impl ValueNode {
           } else {
             return Err(self.error_msg(index));
           }
+        } else if Self::is_number(Some(char)) {
+          let ((val, unit), end) = self.parse_value_number(index)?;
+          temp_ident_list.push(IdentType::Number(val, unit));
+          *index = end;
         } else {
-          if Self::is_number(Some(char)) {
-            let ((val, unit), end) = self.parse_value_number(index)?;
-            temp_ident_list.push(IdentType::Number(val, unit));
-            *index = end;
-          } else {
-            let (word, end) = self.parse_value_word(index)?;
-            temp_ident_list.push(IdentType::Word(word));
-            *index = end;
-          }
+          let (word, end) = self.parse_value_word(index)?;
+          temp_ident_list.push(IdentType::Word(word));
+          *index = end;
         }
         Ok(())
       }),
