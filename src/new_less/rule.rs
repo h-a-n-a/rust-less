@@ -39,8 +39,8 @@ pub struct RuleNode {
 
 impl Serialize for RuleNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: Serializer,
+    where
+      S: Serializer,
   {
     let mut state = serializer.serialize_struct("RuleNode", 4)?;
     state.serialize_field("content", &self.origin_charlist.poly())?;
@@ -151,26 +151,30 @@ impl RuleNode {
 
       let create_rules = |tab: String| -> Result<String, String> {
         let mut res: String = "".to_string();
-        for rule_res in rules {
-          res += &format!("{}{}{}", tab.clone(), rule_res.code_gen()?, "\n");
+        for (index, rule_res) in rules.iter().enumerate() {
+          if index != rules.len() - 1 {
+            res += &format!("{}{}{}", tab.clone(), rule_res.code_gen()?, "\n");
+          } else {
+            res += &format!("{}{}", tab.clone(), rule_res.code_gen()?);
+          }
         }
         Ok(res)
       };
 
       if media_txt.is_empty() {
-        *content += format!("\n{}{}\n{}\n{}\n", select_txt, "{", create_rules(tab)?, "}").as_ref();
+        *content += format!("\n{}{}\n{}\n{}\n", select_txt, " {", create_rules(tab)?, "}").as_ref();
       } else {
         *content += format!(
           "\n{}{}\n{}{}\n{}\n{}\n{}",
           media_txt,
-          "{",
+          " {",
           tab.clone() + &select_txt,
-          "{",
+          " {",
           create_rules(tab.clone() + &tab.clone())?,
           "  }",
           "}"
         )
-        .as_ref();
+          .as_ref();
       }
     }
 

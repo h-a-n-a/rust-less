@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Serialize, Debug, PartialEq)]
 pub enum IdentType {
   // 10px 100% 100vh
   Number(String, Option<String>),
