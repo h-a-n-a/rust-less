@@ -439,6 +439,10 @@ impl ValueNode {
           } else if *char == '/' {
             need_convert_rgba = true;
             temp_ident_list.push(IdentType::Word(','.to_string()));
+          } else if *char == '@' {
+            let (var, end) = self.parse_value_var(index)?;
+            temp_ident_list.push(IdentType::Var(var));
+            *index = end;
           } else {
             let (word, end) = self.parse_value_word(index)?;
             temp_ident_list.push(IdentType::Word(word));
@@ -556,6 +560,10 @@ impl ValueNode {
               temp_ident_list.push(IdentType::Word(word));
               *index = end;
             }
+          } else if *char == '@' {
+            let (var, end) = self.parse_value_var(index)?;
+            temp_ident_list.push(IdentType::Var(var));
+            *index = end;
           } else {
             return Err(self.error_msg(index));
           }

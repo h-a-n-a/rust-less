@@ -23,6 +23,7 @@ fn test_value_parse() {
     r#"rgb(255 255 255 / 90%);"#.to_string(),
     r#"calc(100vh - 168px);"#.to_string(),
     r#"0 -3px 12px rgb(0 0 0 / 10%)"#.to_string(),
+    r#"calc(100vh - @nav-size-height)"#.to_string(),
   ];
   let mut haserror = 0;
   vars_list.into_iter().for_each(
