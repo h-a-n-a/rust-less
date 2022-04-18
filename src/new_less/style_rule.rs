@@ -5,6 +5,7 @@ use crate::new_less::ident::IdentType;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{NodeWeakRef, StyleNode};
 use crate::new_less::option::ParseOption;
+use crate::new_less::rgb::rgb_calc;
 use crate::new_less::scan::traversal;
 use crate::new_less::token::lib::Token;
 use crate::new_less::value::ValueNode;
@@ -47,8 +48,8 @@ pub struct StyleRuleNode {
 
 impl Serialize for StyleRuleNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-      S: Serializer,
+  where
+    S: Serializer,
   {
     let mut state = serializer.serialize_struct("StyleRuleNode", 5)?;
     state.serialize_field("content", &self.charlist.poly())?;
@@ -141,7 +142,7 @@ impl StyleRuleNode {
       Some(*start),
       charlist,
       &mut (|arg, charword| {
-        let (index, temp, hasend, ) = arg;
+        let (index, temp, hasend) = arg;
         let (_, char, next) = charword;
         if Token::is_token(Some(char)) {
           if vec![':', '-'].contains(char) {
@@ -228,10 +229,97 @@ impl StyleRuleNode {
   /// 代码生成
   ///
   pub fn code_gen(&self) -> Result<String, String> {
-    let no_var_list = self.get_no_var_ident_list()?;
+    let mut no_var_list = self.get_no_var_ident_list()?;
+    Self::scan_rgb_expr_calc_replace(&mut no_var_list)?;
     let res = Self::group_calc_ident_value(no_var_list)?;
     let code_res = format!("{}: {};", self.key.as_ref().unwrap(), res);
     Ok(code_res)
+  }
+
+  fn get_safe(index: usize, list: &Vec<IdentType>) -> Option<&IdentType> {
+    if index < list.len() {
+      list.get(index)
+    } else {
+      None
+    }
+  }
+
+  ///
+  /// 匹配计算
+  ///
+  fn match_expr_calc(mut index: usize, list: &Vec<IdentType>) -> (Option<usize>, Vec<&IdentType>) {
+    let mut res: (Option<usize>, Vec<&IdentType>) = (None, vec![]);
+    index += 1;
+    while index < list.len() {
+      let current = Self::get_safe(index, list).unwrap();
+      if let IdentType::Number(_, unit) = current {
+        if res.1.len() < 4 && unit.is_none() {
+          res.1.push(current);
+        } else {
+          break;
+        }
+      } else if current == &IdentType::Brackets(')'.to_string()) {
+        res.0 = Some(index);
+        break;
+      } else if !matches!(current, IdentType::Space) && current != &IdentType::Word(','.to_string())
+      {
+        break;
+      }
+      index += 1;
+    }
+    // 匹配结果不符合则重置
+    if res.0.is_some() && res.1.len() != 3 {
+      res = (None, vec![])
+    }
+    res
+  }
+
+  ///
+  /// 扫描词性中 符合 rgb(255,255,255)
+  ///
+  ///
+  pub fn scan_rgb_expr_calc_replace(list: &mut Vec<IdentType>) -> Result<(), String> {
+    // 寻找可能的锚点
+    let mut index = 0;
+    let mut perhaps_rgb_vec = vec![];
+    while index < list.len() {
+      let current = Self::get_safe(index, list).unwrap();
+      if *current == IdentType::Word("rgb".to_string()) {
+        let next = Self::get_safe(index + 1, list);
+        if next == Some(&IdentType::Brackets('('.to_string())) {
+          perhaps_rgb_vec.push(index + 1)
+        }
+      }
+      index += 1;
+    }
+
+    let mut extra = 0;
+    let mut rm_vec: Vec<(usize, usize)> = vec![];
+    for start in perhaps_rgb_vec {
+      if let (Some(mut end), corlor_list) = Self::match_expr_calc(start + extra, list) {
+        // 计算 替换 词根
+        let rgb_value = rgb_calc(corlor_list)?;
+        let final_color_word = IdentType::Color(rgb_value);
+        list.insert(start - 1, final_color_word);
+        extra += 1;
+        end += extra;
+        rm_vec.push((start - 1 + extra, end));
+      }
+    }
+
+    // 别问 问就是难受
+    let mut rm_count = 0;
+    for (rs, re) in rm_vec {
+      let start = rs - rm_count;
+      let mut end = re - rm_count;
+      while end > start - 1 {
+        list.remove(end);
+        end -= 1
+      }
+      rm_count += re - rs + 1;
+    }
+
+    Ok(())
   }
 
   ///

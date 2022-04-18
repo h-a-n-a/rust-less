@@ -41,7 +41,6 @@ body[arco-theme='dark'] .customer-tooltip-item {
   );
 }
 
-
 #[test]
 fn test_arco_pro_2_less() {
   let filepath = path_resolve("assets/arco-pro/2.less");
@@ -270,7 +269,6 @@ fn test_arco_pro_7_less() {
   );
 }
 
-
 #[test]
 fn test_arco_pro_8_less() {
   let filepath = path_resolve("assets/arco-pro/8.less");
@@ -305,7 +303,6 @@ fn test_arco_pro_8_less() {
     target_code.to_string().simple_compare()
   );
 }
-
 
 #[test]
 fn test_arco_pro_9_less() {
@@ -444,7 +441,6 @@ fn test_arco_pro_10_less() {
   );
 }
 
-
 #[test]
 fn test_arco_pro_11_less() {
   let filepath = path_resolve("assets/arco-pro/11.less");
@@ -475,7 +471,6 @@ fn test_arco_pro_11_less() {
     target_code.to_string().simple_compare()
   );
 }
-
 
 #[test]
 fn test_arco_pro_12_less() {
@@ -531,7 +526,6 @@ fn test_arco_pro_13_less() {
     target_code.to_string().simple_compare()
   );
 }
-
 
 #[test]
 fn test_arco_pro_14_less() {
@@ -624,7 +618,6 @@ fn test_arco_pro_15_less() {
   );
 }
 
-
 #[test]
 fn test_arco_pro_16_less() {
   let filepath = path_resolve("assets/arco-pro/16.less");
@@ -685,7 +678,6 @@ fn test_arco_pro_16_less() {
   );
 }
 
-
 #[test]
 fn test_arco_pro_17_less() {
   let filepath = path_resolve("assets/arco-pro/17.less");
@@ -708,7 +700,6 @@ fn test_arco_pro_17_less() {
     target_code.to_string().simple_compare()
   );
 }
-
 
 #[test]
 fn test_arco_pro_18_less() {
@@ -733,7 +724,6 @@ fn test_arco_pro_18_less() {
   );
 }
 
-
 #[test]
 fn test_arco_pro_19_less() {
   let filepath = path_resolve("assets/arco-pro/19.less");
@@ -756,7 +746,6 @@ fn test_arco_pro_19_less() {
     target_code.to_string().simple_compare()
   );
 }
-
 
 #[test]
 fn test_arco_pro_20_less() {
@@ -834,7 +823,6 @@ fn test_arco_pro_21_less() {
     target_code.to_string().simple_compare()
   );
 }
-
 
 #[test]
 fn test_arco_pro_22_less() {
@@ -1479,6 +1467,7 @@ body[arco-theme='dark'] .card-interval {
   background: linear-gradient(180deg, #3d492e 0%, #263827 100%);
 }
   "#;
+
   assert_eq!(
     css.simple_compare(),
     target_code.to_string().simple_compare()
@@ -1531,7 +1520,6 @@ fn test_arco_pro_33_less() {
     target_code.to_string().simple_compare()
   );
 }
-
 
 #[test]
 fn test_arco_pro_34_less() {
@@ -1762,7 +1750,6 @@ fn test_arco_pro_38_less() {
   );
 }
 
-
 #[test]
 fn test_arco_pro_44_less() {
   let filepath = path_resolve("assets/arco-pro/44.less");
@@ -1843,4 +1830,3 @@ fn test_arco_pro_44_less() {
     target_code.to_string().simple_compare()
   );
 }
-
