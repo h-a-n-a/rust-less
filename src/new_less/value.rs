@@ -14,7 +14,7 @@ use std::fmt::{Debug, Formatter};
 #[derive(Clone)]
 pub struct ValueNode {
   // 字符 向量 只读
-  charlist: Vec<char>,
+  pub charlist: Vec<char>,
 
   // rule 父节点
   pub parent: NodeWeakRef,

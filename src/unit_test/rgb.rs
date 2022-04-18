@@ -1,7 +1,6 @@
 use crate::extend::string::StringExtend;
 use crate::new_less::ident::IdentType;
 use crate::new_less::rgb::rgb_calc;
-use crate::new_less::style_rule::StyleRuleNode;
 use crate::new_less::value::ValueNode;
 
 #[test]
@@ -58,7 +57,7 @@ fn test_color_render() {
   vars_list.into_iter().for_each(
     |tt| match ValueNode::new(tt.tocharlist(), None, None, None) {
       Ok(mut obj) => {
-        StyleRuleNode::scan_rgb_expr_calc_replace(&mut obj.word_ident_list).unwrap();
+        ValueNode::scan_rgb_expr_calc_replace(&mut obj.word_ident_list).unwrap();
         println!("{:#?}", obj.word_ident_list);
       }
       Err(msg) => {
