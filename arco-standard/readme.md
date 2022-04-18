@@ -431,7 +431,6 @@ not support
 <td>
 1. 需要支持 select 插值  用于支持 41.less <br/>
 2. 需要支持 自定义函数 用于支持 41.less <br/>
-3. 需要支持 rgb 函数 颜色计算
 </td>
 </tr>
 
