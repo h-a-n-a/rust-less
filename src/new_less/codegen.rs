@@ -120,6 +120,7 @@ impl ValueNode {
 
   ///
   /// 匹配计算
+  /// rgb(255 255 255)
   ///
   fn match_expr_calc(mut index: usize, list: &Vec<IdentType>) -> (Option<usize>, Vec<&IdentType>) {
     let mut res: (Option<usize>, Vec<&IdentType>) = (None, vec![]);
