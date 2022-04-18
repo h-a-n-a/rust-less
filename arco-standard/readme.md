@@ -370,10 +370,9 @@ done
 <a href="./32.md">32.md</a>
 </td>
 <td>
-not support 
+done
 </td>
 <td>
-1. 需要支持 rgb 函数 颜色计算
 </td>
 </tr>
 
