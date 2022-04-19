@@ -1,4 +1,3 @@
-use std::ops::Deref;
 use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::ident::IdentType;
@@ -6,10 +5,9 @@ use crate::new_less::node::{NodeWeakRef, StyleNode};
 use crate::new_less::rgb::rgb_calc;
 use crate::new_less::value::ValueNode;
 use crate::new_less::var::VarRuleNode;
+use std::ops::Deref;
 
 impl ValueNode {
-
-
   ///
   /// 查找变量
   /// 用于 (变量计算)
@@ -92,7 +90,6 @@ impl ValueNode {
     Ok(())
   }
 
-
   ///
   /// 代码转化 都 转化成 无变量 实参
   /// 用于 (变量计算)
@@ -122,7 +119,10 @@ impl ValueNode {
   /// 匹配计算
   /// rgb(255 255 255)
   ///
-  fn match_expr_calc(mut index: usize, list: &Vec<IdentType>) -> (Option<usize>, Vec<&IdentType>) {
+  fn match_rgb_expr_calc(
+    mut index: usize,
+    list: &Vec<IdentType>,
+  ) -> (Option<usize>, Vec<&IdentType>) {
     let mut res: (Option<usize>, Vec<&IdentType>) = (None, vec![]);
     index += 1;
     while index < list.len() {
@@ -149,6 +149,28 @@ impl ValueNode {
     res
   }
 
+  fn match_rgba_expr_calc(
+    mut index: usize,
+    list: &Vec<IdentType>,
+  ) -> (Option<usize>, Vec<&IdentType>) {
+    let mut res: (Option<usize>, Vec<&IdentType>) = (None, vec![]);
+    index += 1;
+    while index < list.len() {
+      let current = Self::get_safe(index, list).unwrap();
+      if let IdentType::Number(_, unit) = current {
+        if res.1.len() < 5 {
+          res.1.push(current);
+        } else {
+          break;
+        }
+      } else if current == &IdentType::Brackets(')'.to_string()) {
+        res.0 = Some(index);
+        break;
+      }
+    }
+    res
+  }
+
   ///
   /// 扫描词性中 符合 rgb(255,255,255)
   ///
@@ -159,11 +181,11 @@ impl ValueNode {
     let mut perhaps_rgb_vec = vec![];
     while index < list.len() {
       let current = Self::get_safe(index, list).unwrap();
-      if *current == IdentType::Word("rgb".to_string()) {
-        let next = Self::get_safe(index + 1, list);
-        if next == Some(&IdentType::Brackets('('.to_string())) {
-          perhaps_rgb_vec.push(index + 1)
-        }
+      let next = Self::get_safe(index + 1, list);
+      if *current == IdentType::Word("rgb".to_string())
+        && next == Some(&IdentType::Brackets('('.to_string()))
+      {
+        perhaps_rgb_vec.push(index + 1)
       }
       index += 1;
     }
@@ -171,7 +193,7 @@ impl ValueNode {
     let mut extra = 0;
     let mut rm_vec: Vec<(usize, usize)> = vec![];
     for start in perhaps_rgb_vec {
-      if let (Some(mut end), corlor_list) = Self::match_expr_calc(start + extra, list) {
+      if let (Some(mut end), corlor_list) = Self::match_rgb_expr_calc(start + extra, list) {
         // 计算 替换 词根
         let rgb_value = rgb_calc(corlor_list)?;
         let final_color_word = IdentType::Color(rgb_value);
@@ -198,11 +220,33 @@ impl ValueNode {
   }
 
   ///
+  /// 转化 rgb(255 255 255 / 10%)
+  ///
+  pub fn scan_rgba_expr_calc_replace(list: &mut Vec<IdentType>) -> Result<(), String> {
+    // 寻找可能的锚点
+    let mut index = 0;
+    let mut perhaps_rgb_vec = vec![];
+    while index < list.len() {
+      let current = Self::get_safe(index, list).unwrap();
+      if (*current == IdentType::Word("rgb".to_string())
+        || *current == IdentType::Word("rgba".to_string()))
+        && next == Some(&IdentType::Brackets('('.to_string()))
+      {
+        perhaps_rgb_vec.push(index + 1)
+      }
+      index += 1;
+    }
+
+    Ok(())
+  }
+
+  ///
   /// 代码生成
   ///
   pub fn code_gen(&self) -> Result<String, String> {
     let mut no_var_list = self.get_no_var_ident_list()?;
     Self::scan_rgb_expr_calc_replace(&mut no_var_list)?;
+    Self::scan_rgba_expr_calc_replace(&mut no_var_list)?;
     let res = Self::group_calc_ident_value(no_var_list)?;
     Ok(res)
   }
@@ -388,5 +432,4 @@ impl ValueNode {
 
     Ok(res.join(""))
   }
-
 }
