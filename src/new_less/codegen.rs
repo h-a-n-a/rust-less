@@ -191,14 +191,18 @@ impl ValueNode {
     // 寻找可能的锚点
     let mut index = 0;
     let mut perhaps_rgb_vec = vec![];
+    let mut perhaps_rgba_vec = vec![];
     while index < list.len() {
       let current = Self::get_safe(index, list).unwrap();
       let next = Self::get_safe(index + 1, list);
-      if (*current == IdentType::Word("rgb".to_string())
-        || *current == IdentType::Word("rgba".to_string()))
+      if *current == IdentType::Word("rgb".to_string())
         && next == Some(&IdentType::Brackets('('.to_string()))
       {
-        perhaps_rgb_vec.push(index)
+        perhaps_rgb_vec.push(index);
+        perhaps_rgba_vec.push(index);
+      } else if *current == IdentType::Word("rgba".to_string())
+        && next == Some(&IdentType::Brackets('('.to_string())) {
+        perhaps_rgba_vec.push(index);
       }
       index += 1;
     }
@@ -213,7 +217,24 @@ impl ValueNode {
         extra += 1;
         end += extra;
         rm_vec.push((start + extra, end));
-      } else if let (Some(mut end), corlor_list) = Self::match_rgba_expr_calc(start + extra, list) {
+      }
+    }
+
+    let mut rm_count = 0;
+    for (rs, re) in rm_vec {
+      let start = rs - rm_count;
+      let mut end = re - rm_count;
+      while end > start - 1 {
+        list.remove(end);
+        end -= 1
+      }
+      rm_count += re - rs + 1;
+    }
+
+    let mut extra = 0;
+    let mut rm_vec: Vec<(usize, usize)> = vec![];
+    for start in perhaps_rgba_vec {
+      if let (Some(mut end), corlor_list) = Self::match_rgba_expr_calc(start + extra, list) {
         let mut color_txt = "".to_string();
         if corlor_list.len() == 3 {
           color_txt += "rgb("
@@ -245,7 +266,6 @@ impl ValueNode {
       }
     }
 
-    // 别问 问就是难受
     let mut rm_count = 0;
     for (rs, re) in rm_vec {
       let start = rs - rm_count;
