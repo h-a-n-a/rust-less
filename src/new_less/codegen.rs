@@ -115,6 +115,14 @@ impl ValueNode {
     }
   }
 
+  fn get_mut_safe(index: usize, list: &mut Vec<IdentType>) -> Option<&mut IdentType> {
+    if index < list.len() {
+      list.get_mut(index)
+    } else {
+      None
+    }
+  }
+
   ///
   /// 匹配计算
   /// rgb(255 255 255)
@@ -280,23 +288,41 @@ impl ValueNode {
     Ok(())
   }
 
-  ///
-  /// 转化 rgb(255 255 255 / 10%)
-  ///
-  pub fn scan_rgba_expr_calc_replace(list: &mut Vec<IdentType>) -> Result<(), String> {
+  fn scan_calc_expr_replace(list: &mut Vec<IdentType>) -> Result<(), String> {
     // 寻找可能的锚点
     let mut index = 0;
-    let mut perhaps_rgb_vec = vec![];
+    let mut calc_vec = vec![];
     while index < list.len() {
       let current = Self::get_safe(index, list).unwrap();
       let next = Self::get_safe(index + 1, list);
-      if (*current == IdentType::Word("rgb".to_string())
-        || *current == IdentType::Word("rgba".to_string()))
+      if *current == IdentType::Word("calc".to_string())
         && next == Some(&IdentType::Brackets('('.to_string()))
       {
-        perhaps_rgb_vec.push(index + 1)
+        calc_vec.push(index + 1);
       }
       index += 1;
+    }
+    for index in calc_vec {
+      let mut cur = index;
+      let mut level = 0;
+      while cur < list.len() {
+        let current = Self::get_mut_safe(cur, list).unwrap();
+        // 增减开始
+        if current == &IdentType::Brackets('('.to_string()) {
+          level += 1;
+        } else if current == &IdentType::Brackets(')'.to_string()) {
+          level -= 1;
+        }
+        // 处理逻辑
+        if level > 0 {
+          if let IdentType::Operator(op) = current {
+            *current = IdentType::Word(op.clone());
+          }
+        } else if level == 0 {
+          break;
+        }
+        cur += 1;
+      }
     }
 
     Ok(())
@@ -308,7 +334,7 @@ impl ValueNode {
   pub fn code_gen(&self) -> Result<String, String> {
     let mut no_var_list = self.get_no_var_ident_list()?;
     Self::scan_rgb_expr_calc_replace(&mut no_var_list)?;
-    Self::scan_rgba_expr_calc_replace(&mut no_var_list)?;
+    Self::scan_calc_expr_replace(&mut no_var_list)?;
     let res = Self::group_calc_ident_value(no_var_list)?;
     Ok(res)
   }

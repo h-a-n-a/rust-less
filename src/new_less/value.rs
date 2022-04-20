@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::fileinfo::FileWeakRef;
@@ -381,93 +380,6 @@ impl ValueNode {
   }
 
   ///
-  /// css 计算表达式
-  ///
-  pub fn parse_css_calc(&mut self, start: &usize) -> Result<(String, usize), String> {
-    let mut validate_fn = Self::validate_brackets();
-    let mut vaildate_res: Vec<char> = vec![];
-    let mut temp_ident_list = vec![];
-    let mut level = 0;
-
-    let res = traversal(
-      Some(*start),
-      &self.charlist,
-      &mut (|arg, charword| {
-        let (index, _, hasend) = arg;
-        let (prev, char, next) = charword;
-        if Token::is_token(Some(char)) {
-          if vec!['(', ')'].contains(char) {
-            match validate_fn(char) {
-              Ok(res) => {
-                vaildate_res = res;
-                temp_ident_list
-                  .push(IdentType::Brackets(char.to_string()));
-                if *char == '(' {
-                  level += 1;
-                } else if *char == ')' {
-                  level -= 1;
-                }
-                match level.cmp(&0) {
-                  Ordering::Less => {
-                    return Err(self.error_msg(index));
-                  }
-                  Ordering::Equal => {
-                    *hasend = true;
-                  }
-                  Ordering::Greater => {}
-                };
-              }
-              Err(..) => {
-                return Err(self.error_msg(index));
-              }
-            };
-          } else if Token::is_space_token(Some(char)) {
-            match temp_ident_list.last() {
-              None => {}
-              Some(val) => match val {
-                IdentType::Space => {
-                  return Ok(());
-                }
-                _ => {
-                  temp_ident_list.push(IdentType::Space);
-                }
-              },
-            }
-          } else if Self::is_operator(char) {
-            if *char == '-' && prev == Some(&' ') && Self::is_number(Some(next.unwrap_or(&' '))) {
-              let ((val, unit), end) = self.parse_value_number(index)?;
-              temp_ident_list.push(IdentType::Number(val, unit));
-              *index = end;
-            } else {
-              let (word, end) = self.parse_value_word(index)?;
-              temp_ident_list.push(IdentType::Word(word));
-              *index = end;
-            }
-          } else if *char == '@' {
-            let (var, end) = self.parse_value_var(index)?;
-            temp_ident_list.push(IdentType::Var(var));
-            *index = end;
-          } else {
-            return Err(self.error_msg(index));
-          }
-        } else if Self::is_number(Some(char)) {
-          let ((val, unit), end) = self.parse_value_number(index)?;
-          temp_ident_list.push(IdentType::Number(val, unit));
-          *index = end;
-        } else {
-          let (word, end) = self.parse_value_word(index)?;
-          temp_ident_list.push(IdentType::Word(word));
-          *index = end;
-        }
-        Ok(())
-      }),
-    )?;
-
-    self.word_ident_list.append(&mut temp_ident_list);
-    Ok(res)
-  }
-
-  ///
   /// 转化
   ///
   fn parse(&mut self) -> Result<(), String> {
@@ -555,13 +467,6 @@ impl ValueNode {
         else if vec!['(', ')', '[', ']', '\\'].contains(char) {
           if *char != '\\' {
             // parse rgb rgba
-            if *char == '(' {
-              if Some(&IdentType::Word("calc".to_string())) == self.word_ident_list.last() {
-                let (_, end) = self.parse_css_calc(index)?;
-                *index = end;
-                return Ok(());
-              }
-            }
             match validate_fn(char) {
               Ok(res) => {
                 vaildate_res = res;
