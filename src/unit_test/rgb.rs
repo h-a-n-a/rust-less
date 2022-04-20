@@ -47,9 +47,10 @@ fn test_color_calc() {
 #[test]
 fn test_color_render() {
   let vars_list = vec![
-    r#"linear-gradient(180deg, rgb(242 249 254) 0%, #e6f4fe 100%);"#.to_string(),
-    r#"linear-gradient(180deg, rgb(242 249 254 / 100%) 0%, #e6f4fe 100%);"#.to_string(),
-    r#"linear-gradient(180deg, rgb(245 254 242) 0%, rgb(230 254 238) 100%);"#.to_string(),
+    // r#"linear-gradient(180deg, rgb(242 249 254) 0%, #e6f4fe 100%);"#.to_string(),
+    // r#"linear-gradient(180deg, rgb(242 249 254 / 100%) 0%, #e6f4fe 100%);"#.to_string(),
+    // r#"linear-gradient(180deg, rgb(245 254 242) 0%, rgb(230 254 238) 100%);"#.to_string(),
+    r#"4px 4px 10px rgba(0 , 0 , 0 , 10%)"#.to_string(),
   ];
 
   let res = 0;

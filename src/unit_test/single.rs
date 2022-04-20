@@ -293,9 +293,9 @@ fn test_splic_vec() {
   let new2 = list[3..4].to_vec();
   new_list.append(&mut list[4..5].to_vec());
   println!("{:#?}{:#?}{:#?}", new_list, new1, new2);
-  let a = list.get(2).unwrap();
   let b = list.get_mut(3).unwrap();
   *b = "xyz";
+  let a = list.get(2).unwrap();
   let index = list.iter().position(|x| x == a).unwrap();
   println!("{:#?}", index);
 }
