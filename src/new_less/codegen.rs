@@ -104,14 +104,29 @@ impl ValueNode {
   ///
   pub fn pure_list(&self, list: &mut Vec<IdentType>) -> Result<(), String> {
     let mut handle_vec: Vec<(usize, Vec<IdentType>)> = vec![];
+    let mut string_handle_vec: Vec<(Vec<usize>, Vec<IdentType>)> = vec![];
     for (index, ident) in list.iter().enumerate() {
       if let IdentType::Var(ident_var) = ident {
         let var_node_value =
           self.get_var_by_key(ident_var, self.parent.clone(), self.fileinfo.clone())?;
         handle_vec.push((index, var_node_value.word_ident_list.clone()));
       } else if let IdentType::StringConst(ident_var) = ident {
-        let no_var_str_const = self.scan_var_ident_from_string_const(ident_var)?;
-        handle_vec.push((index, vec![IdentType::StringConst(no_var_str_const)]));
+        // calc ~"" | ~''
+        let prev_ident = if index > 0 {
+          list.get(index - 1)
+        } else {
+          None
+        };
+        if prev_ident != Some(&IdentType::Word('~'.to_string())) {
+          let no_var_str_const = self.scan_var_ident_from_string_const(ident_var)?;
+          string_handle_vec.push((vec![index], vec![IdentType::StringConst(no_var_str_const)]));
+        } else {
+          let no_var_str_const = self.scan_var_ident_from_string_const(ident_var)?;
+          string_handle_vec.push((
+            vec![index - 1, index],
+            vec![IdentType::Word(no_var_str_const.replace("'", "").replace("\"", ""))]
+          ));
+        }
       }
     }
     // 把当前 所有的 变量 -> 代数 ident 插到 目前  ident_list vec 上
@@ -123,7 +138,21 @@ impl ValueNode {
         setp += 1;
       });
     }
-    let _json = serde_json::to_string_pretty(&list).unwrap();
+    for (index, ident_list) in string_handle_vec {
+      let mut remove_count = 0;
+      index.iter().for_each(|num| {
+        list.remove(*num - remove_count);
+        remove_count += 1;
+      });
+      let mut setp = 0;
+      ident_list.iter().for_each(|x| {
+        list.insert(index[0] + setp, x.clone());
+        setp += 1;
+      });
+    }
+
+
+    // let _json = serde_json::to_string_pretty(&list).unwrap();
     // 如果 当前 还有变量 则继续递归 演算
     if list.iter().any(|x| matches!(x, IdentType::Var(_))) {
       self.pure_list(list)?;

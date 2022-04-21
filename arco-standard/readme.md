@@ -507,10 +507,9 @@ done
 <a href="./43.md">43.md</a>
 </td>
 <td>
-not support
+done
 </td>
 <td>
-1. 需要支持 value -> string const 插值 val 用于支持 
 </td>
 </tr>
 

@@ -425,13 +425,14 @@ impl ValueNode {
           };
         }
         // 处理prop
-        else if *char == '$' || *char == '~' {
+        else if *char == '$' {
           // todo! $ style_rule
-          // todo! ~ reference
           return Err(format!(
             "$ style_rule or ~ reference has not support \n {}",
             self.error_msg(index)
           ));
+        } else if *char == '~' {
+          self.word_ident_list.push(IdentType::Word('~'.to_string()));
         }
         // 处理 引用
         else if *char == '#' {

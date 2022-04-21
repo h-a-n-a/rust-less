@@ -1,6 +1,8 @@
 @abc: 10px;
 
 .d{
-  width: "@{abc}";
+  width: ~'@{abc}-anchor';
+  display: xyz ~"block";
+  height: "@{abc}";
   @abc: 20px;
 }
