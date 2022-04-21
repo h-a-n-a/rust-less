@@ -206,6 +206,11 @@ impl NewSelector {
       if !matches!(obj, SelectParadigm::CominaWrap(..))
         || matches!(obj, SelectParadigm::CominaWrap(TokenCombinaChar::Space))
       {
+        if matches!(obj, SelectParadigm::VarWrap(..))
+          && matches!(list.get(0), Some(&SelectParadigm::CominaWrap(..)))
+        {
+          list.remove(0);
+        }
         list.push(obj);
       } else {
         let last_paradigm = list.last();

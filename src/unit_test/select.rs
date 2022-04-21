@@ -3,8 +3,27 @@ use crate::new_less::select::{NewSelector, Paradigm};
 use crate::new_less::var::HandleResult;
 
 #[test]
-fn test_select_parse() {
+fn test_select_paradigm_parse() {
+  let demo_select_list = vec![r#".a .b"#.to_string(), r#"> & .a"#.to_string()];
 
+  let mut has_error = 0;
+  demo_select_list.into_iter().for_each(|tt| {
+    match NewSelector::new(tt.tocharlist(), None, None, None) {
+      HandleResult::Success(obj) => {
+        println!("{:#?}", obj.paradigm_vec);
+      }
+      HandleResult::Fail(_) => {
+        has_error += 1;
+      }
+      HandleResult::Swtich => {}
+    };
+  });
+
+  assert_eq!(has_error, 0);
+}
+
+#[test]
+fn test_select_parse() {
   let demo_select_list = vec![
     r#".a .b"#.to_string(),
     r#".a>.b"#.to_string(),
@@ -45,7 +64,6 @@ selector:pseudo-class
 .a[id="xyz"]
   "#;
 
-
   let mut base = "".to_string();
   demo_select_list.into_iter().for_each(|tt| {
     let res = match NewSelector::new(tt.tocharlist(), None, None, None) {
@@ -65,15 +83,17 @@ selector:pseudo-class
     let ss = res.unwrap();
     let value;
     if ss.paradigm_vec.len() < 2 {
-      value = ss.paradigm_vec
+      value = ss
+        .paradigm_vec
         .iter()
-        .map(|x|x.tostr())
+        .map(|x| x.tostr())
         .collect::<Vec<String>>()
         .join("");
     } else {
-      value = ss.paradigm_vec
+      value = ss
+        .paradigm_vec
         .iter()
-        .map(|x|x.tostr())
+        .map(|x| x.tostr())
         .collect::<Vec<String>>()
         .join(" -> ");
     }
