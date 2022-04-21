@@ -1775,6 +1775,18 @@ fn test_arco_pro_42_less() {
 }
 
 #[test]
+fn test_arco_pro_43_less() {
+  let filepath = path_resolve("assets/arco-pro/43.less");
+  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
+  let css = context.render(filepath).unwrap();
+  let target_code = r#""#;
+  assert_eq!(
+    css.simple_compare(),
+    target_code.to_string().simple_compare()
+  );
+}
+
+#[test]
 fn test_arco_pro_44_less() {
   let filepath = path_resolve("assets/arco-pro/44.less");
   let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();

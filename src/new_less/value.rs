@@ -153,13 +153,14 @@ impl ValueNode {
   pub fn parse_value_string_const(&self, start: &usize) -> Result<(String, usize), String> {
     let charlist = &self.charlist;
     let mut keyword = '\0';
+
     let (value, end) = traversal(
       Some(*start),
       charlist,
       &mut (|arg, charword| {
         let (index, temp, hasend) = arg;
         let (_, char, nextchar) = charword;
-        // todo @{...} not support
+
         if temp.is_empty() {
           if *char == '\'' || *char == '"' {
             keyword = *char;
@@ -180,7 +181,6 @@ impl ValueNode {
         Ok(())
       }),
     )?;
-
     // 最终检查
     if value.is_empty() {
       return Err(self.error_msg(start));

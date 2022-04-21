@@ -7,6 +7,7 @@ use crate::new_less::value::ValueNode;
 use crate::new_less::var::VarRuleNode;
 use std::cmp::Ordering;
 use std::ops::Deref;
+use crate::extend::string::StringExtend;
 
 impl ValueNode {
   ///
@@ -61,6 +62,42 @@ impl ValueNode {
     Err(format!("no var key {} has found", key))
   }
 
+  fn scan_var_ident_from_string_const(&self, txt: &str) -> Result<String, String> {
+    let list = txt.to_string().tocharlist();
+    let mut res = "".to_string();
+    let mut index = 0;
+    let mut var = "".to_string();
+    while index < list.len() {
+      let current = list.get(index).unwrap();
+      let next = if index < list.len() - 1 {
+        list.get(index + 1)
+      } else {
+        None
+      };
+      if *current == '@' && next == Some(&'{') {
+        if var.is_empty() {
+          index += 1;
+          var += "@{"
+        } else {
+          return Err(format!("{} is contains repeat @ in the {} index", txt, index));
+        }
+      } else if var.len() > 0 {
+        var.push(*current);
+        if *current == '}' {
+          let var_ident = format!("@{}", var.replace("@{", "").replace("}", ""));
+          let var_node_value =
+            self.get_var_by_key(var_ident.as_str(), self.parent.clone(), self.fileinfo.clone())?;
+          res += var_node_value.code_gen()?.as_str();
+          var = "".to_string();
+        }
+      } else {
+        res.push(*current);
+      }
+      index += 1;
+    }
+    Ok(res)
+  }
+
   ///
   /// 递归净化 所有表达式 的 var
   /// 用于 (变量计算)
@@ -72,6 +109,9 @@ impl ValueNode {
         let var_node_value =
           self.get_var_by_key(ident_var, self.parent.clone(), self.fileinfo.clone())?;
         handle_vec.push((index, var_node_value.word_ident_list.clone()));
+      } else if let IdentType::StringConst(ident_var) = ident {
+        let no_var_str_const = self.scan_var_ident_from_string_const(ident_var)?;
+        handle_vec.push((index, vec![IdentType::StringConst(no_var_str_const)]));
       }
     }
     // 把当前 所有的 变量 -> 代数 ident 插到 目前  ident_list vec 上

@@ -120,7 +120,7 @@ pub trait Parse {
     let mut wirte_closure_comment = false;
 
     let single_queto = '\'';
-    let double_queto = '\'';
+    let double_queto = '"';
     let mut match_queto: Option<char> = None;
 
     // 注释的内容共
@@ -145,9 +145,7 @@ pub trait Parse {
         && !wirte_line_comment
       {
         match_queto = Some(char);
-      }
-
-      if match_queto.is_some()
+      } else if match_queto.is_some()
         && char == match_queto.unwrap()
         && !wirte_comment
         && !wirte_line_comment
@@ -172,7 +170,7 @@ pub trait Parse {
       if braces_level == 0
         && wirte_comment
         && ((wirte_line_comment && (char == '\n' || char == '\r'))
-          || (wirte_closure_comment && word == comment_mark_end))
+        || (wirte_closure_comment && word == comment_mark_end))
       {
         wirte_comment = false;
         if wirte_line_comment {
