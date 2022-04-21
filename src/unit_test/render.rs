@@ -129,3 +129,11 @@ textarea .b {
     target_code.to_string().simple_compare()
   );
 }
+
+#[test]
+fn test_string_const_support_var_render() {
+  let filepath = path_resolve("assets/stringconst.less");
+  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
+  let res = context.render(filepath.clone()).unwrap();
+  println!("{}", res);
+}
