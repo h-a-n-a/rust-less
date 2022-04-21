@@ -486,6 +486,8 @@ not supprt
 not supprt
 </td>
 <td>
+1. 需要支持 select 插值 用于支持 41.less
+2. 需要支持 自定义函数 用于支持 41.less
 </td>
 </tr>
 
@@ -505,9 +507,10 @@ done
 <a href="./43.md">43.md</a>
 </td>
 <td>
-done
+not support
 </td>
 <td>
+1. 需要支持 value -> string const 插值 val 用于支持 
 </td>
 </tr>
 
@@ -516,7 +519,7 @@ done
 <a href="./44.md">44.md</a>
 </td>
 <td>
-not supprt
+done
 </td>
 <td>
 </td>

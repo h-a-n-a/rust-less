@@ -39,8 +39,8 @@ pub struct RuleNode {
 
 impl Serialize for RuleNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-      S: Serializer,
+  where
+    S: Serializer,
   {
     let mut state = serializer.serialize_struct("RuleNode", 4)?;
     state.serialize_field("content", &self.origin_charlist.poly())?;
@@ -138,17 +138,42 @@ impl RuleNode {
 
   pub fn code_gen(&self, content: &mut String) -> Result<(), String> {
     let rules = self.get_style_rule();
+    let (select_txt, media_txt) = self.selector.as_ref().unwrap().code_gen().unwrap();
+    let mut tab: String = "".to_string();
+    let mut index = 0;
+    while index < self.get_options().tabspaces {
+      tab += " ";
+      index += 1;
+    }
 
-    if !rules.is_empty() {
-      let (select_txt, media_txt) = self.selector.as_ref().unwrap().code_gen().unwrap();
-
-      let mut tab: String = "".to_string();
-      let mut index = 0;
-      while index < self.get_options().tabspaces {
-        tab += " ";
-        index += 1;
+    // example -> @keyframes, @font-family
+    if select_txt.find("@") == Some(0) {
+      if media_txt.is_empty() {
+        *content += format!(
+          "\n{}{}\n{}\n{}",
+          select_txt,
+          "{",
+          tab.clone() + &tab.clone() + self.origin_charlist.poly().as_str(),
+          "}"
+        )
+        .as_str();
+      } else {
+        *content += format!(
+          "\n{}{}\n{}{}\n{}\n{}\n{}",
+          media_txt,
+          "{",
+          tab.clone() + &select_txt,
+          "{",
+          tab.clone() + &tab.clone() + &tab.clone() + self.origin_charlist.poly().as_str(),
+          tab.clone() + "}",
+          "}"
+        )
+        .as_str();
       }
 
+      // 后续不递归了
+      return Ok(());
+    } else if !rules.is_empty() {
       let create_rules = |tab: String| -> Result<String, String> {
         let mut res: String = "".to_string();
         for (index, rule_res) in rules.iter().enumerate() {
@@ -162,7 +187,14 @@ impl RuleNode {
       };
 
       if media_txt.is_empty() {
-        *content += format!("\n{}{}\n{}\n{}\n", select_txt, " {", create_rules(tab)?, "}").as_ref();
+        *content += format!(
+          "\n{}{}\n{}\n{}\n",
+          select_txt,
+          " {",
+          create_rules(tab)?,
+          "}"
+        )
+        .as_ref();
       } else {
         *content += format!(
           "\n{}{}\n{}{}\n{}\n{}\n{}",
@@ -174,7 +206,7 @@ impl RuleNode {
           "  }",
           "}"
         )
-          .as_ref();
+        .as_ref();
       }
     }
 

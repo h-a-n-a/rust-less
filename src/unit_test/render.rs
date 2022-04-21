@@ -15,6 +15,60 @@ fn test_less_render() {
 }
 
 #[test]
+fn test_keyframe_at_select_render() {
+  let filepath = path_resolve("assets/keyframes.less");
+  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
+  let res = context.render(filepath.clone()).unwrap();
+  println!("{}", res);
+  let target_code = r#"
+.a, .b {
+  width: 20px;
+}
+
+@media screen and ( max-width: 900px){
+  @keyframes identifier{
+      0% {
+        top: 0;
+        left: 0;
+      }
+      30% {
+        top: 50px;
+      }
+      68%,
+      72% {
+        left: 50px;
+      }
+      100% {
+        top: 100px;
+        left: 100%;
+      }
+  }
+}
+@keyframes popanit{
+    0% {
+      top: 0;
+      left: 0;
+    }
+    30% {
+      top: 50px;
+    }
+    68%,
+    72% {
+      left: 50px;
+    }
+    100% {
+      top: 100px;
+      left: 100%;
+    }
+}
+  "#;
+  assert_eq!(
+    res.simple_compare(),
+    target_code.to_string().simple_compare()
+  );
+}
+
+#[test]
 fn test_demo_render() {
   let filepath = path_resolve("assets/demo.less");
   let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();

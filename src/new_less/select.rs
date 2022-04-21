@@ -1,21 +1,22 @@
-use std::cmp::Ordering;
 use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::NodeWeakRef;
 use crate::new_less::scan::traversal;
+use crate::new_less::select_node::SelectorNode;
 use crate::new_less::token::lib::{Token, TokenInterface};
-use crate::new_less::token::new_select::{
+use crate::new_less::token::select::{
   TokenAllowChar, TokenCombinaChar, TokenKeyWordChar, TokenSelectChar,
 };
 use crate::new_less::var::HandleResult;
 use serde::Serialize;
-use crate::new_less::select_node::SelectorNode;
+use std::cmp::Ordering;
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub enum SelectParadigm {
   SelectWrap(String),
   CominaWrap(TokenCombinaChar),
   VarWrap(char),
+  KeyWrap(String),
 }
 
 pub trait Paradigm {
@@ -34,8 +35,9 @@ impl Paradigm for Vec<SelectParadigm> {
       SelectParadigm::CominaWrap(cc) => {
         txt.push(cc.to_str());
       }
-      SelectParadigm::VarWrap(cc) => {
-        txt.push(*cc)
+      SelectParadigm::VarWrap(cc) => txt.push(*cc),
+      SelectParadigm::KeyWrap(cc) => {
+        txt = cc.clone();
       }
     });
     txt
@@ -97,7 +99,10 @@ impl NewSelector {
   pub fn find_up_select_node(node: NodeWeakRef) -> NodeWeakRef {
     if let Some(ref heap_node) = node {
       let rule = heap_node.upgrade().unwrap();
-      if matches!(*rule.borrow().selector.as_ref().unwrap(),SelectorNode::Select(..)) {
+      if matches!(
+        *rule.borrow().selector.as_ref().unwrap(),
+        SelectorNode::Select(..)
+      ) {
         node.clone()
       } else {
         let parent = rule.borrow().parent.clone();
@@ -108,14 +113,12 @@ impl NewSelector {
     }
   }
 
-
   ///
   /// 生成当前 select 字符
   ///
   pub fn code_gen(&self) -> Vec<String> {
     let mut split_select_txt = vec![];
     for list in self.paradigm_vec.iter() {
-
       // 计算父 表达式
       let self_rule = self.parent.as_ref().unwrap().upgrade().unwrap();
       let node = self_rule.borrow().parent.clone();
@@ -132,18 +135,20 @@ impl NewSelector {
       let mut has_var = false;
 
       // 计算自己
-      list.iter().for_each(|par| {
-        match par {
-          SelectParadigm::SelectWrap(cc) => txt += cc,
-          SelectParadigm::CominaWrap(cc) => {
-            txt.push(cc.to_str());
+      list.iter().for_each(|par| match par {
+        SelectParadigm::SelectWrap(cc) => txt += cc,
+        SelectParadigm::CominaWrap(cc) => {
+          txt.push(cc.to_str());
+        }
+        SelectParadigm::VarWrap(_) => {
+          has_var = true;
+          for expr in parent_select_txt.iter() {
+            txt += expr;
           }
-          SelectParadigm::VarWrap(_) => {
-            has_var = true;
-            for expr in parent_select_txt.iter() {
-              txt += expr;
-            }
-          }
+        }
+        SelectParadigm::KeyWrap(keyword) => {
+          has_var = true;
+          txt = keyword.clone();
         }
       });
 
@@ -183,21 +188,33 @@ impl NewSelector {
   ///
   /// 在二维数组 的最后 追加 词
   /// 需要在 连接词 前后适当 保持 1个 空格！
+  /// 加入 & 前 如果有 唯一 连接符 则需要清除!
+  /// > & .a {
   ///
   pub fn add_paradigm(&mut self, obj: SelectParadigm) {
     if self.paradigm_vec.is_empty() {
-      if !matches!(obj,SelectParadigm::CominaWrap(..)) {
+      if !matches!(obj, SelectParadigm::CominaWrap(..)) {
         self.paradigm_vec.push(vec![obj]);
       } else {
-        self.paradigm_vec.push(vec![obj, SelectParadigm::CominaWrap(TokenCombinaChar::Space)]);
+        self.paradigm_vec.push(vec![
+          obj,
+          SelectParadigm::CominaWrap(TokenCombinaChar::Space),
+        ]);
       }
     } else {
       let list = self.paradigm_vec.last_mut().unwrap();
-      if !matches!(obj,SelectParadigm::CominaWrap(..)) || matches!(obj,SelectParadigm::CominaWrap(TokenCombinaChar::Space)) {
+      if !matches!(obj, SelectParadigm::CominaWrap(..))
+        || matches!(obj, SelectParadigm::CominaWrap(TokenCombinaChar::Space))
+      {
         list.push(obj);
       } else {
         let last_paradigm = list.last();
-        if last_paradigm.is_some() && !matches!(last_paradigm,Some(SelectParadigm::CominaWrap(TokenCombinaChar::Space))) {
+        if last_paradigm.is_some()
+          && !matches!(
+            last_paradigm,
+            Some(SelectParadigm::CominaWrap(TokenCombinaChar::Space))
+          )
+        {
           list.push(SelectParadigm::CominaWrap(TokenCombinaChar::Space));
         }
         list.push(obj);
@@ -209,6 +226,7 @@ impl NewSelector {
   ///
   /// 最后一组词 的 最后一位 非空
   /// 逗号情况 调用
+  /// example ->  .a > {}  remove '>'
   ///
   pub fn clear_paraigm(&mut self, index: &usize) -> Result<(), String> {
     if let Some(list) = self.paradigm_vec.last_mut() {
@@ -260,8 +278,7 @@ impl NewSelector {
   pub fn last_paradigm_without_space(&self) -> Option<&SelectParadigm> {
     if let Some(list) = self.paradigm_vec.last() {
       for p in list.iter().rev() {
-        if *p != SelectParadigm::CominaWrap(TokenCombinaChar::Space)
-        {
+        if *p != SelectParadigm::CominaWrap(TokenCombinaChar::Space) {
           return Some(p);
         } else {
           continue;
@@ -331,7 +348,10 @@ impl NewSelector {
             if *char == '&' {
               self.add_paradigm(SelectParadigm::VarWrap(*char));
             } else {
-              return Err(self.errormsg(index).err().unwrap());
+              // @ -> @keyframes @{abc}
+              let (key_word, end) = self.parse_at_keyword(index)?;
+              self.add_paradigm(SelectParadigm::KeyWrap(key_word));
+              *index = end;
             }
           } else if TokenAllowChar::is(char) {
             // example a, li , h2
@@ -352,6 +372,42 @@ impl NewSelector {
     )?;
     self.clear_paraigm(&end)?;
     Ok(())
+  }
+
+  ///
+  /// parse @
+  /// example -> @keyframes identifierb || @font-face
+  ///
+  fn parse_at_keyword(&mut self, index: &usize) -> Result<(String, usize), String> {
+    traversal(
+      Some(*index),
+      &self.charlist,
+      &mut (|arg, charword| {
+        let (index, temp, end) = arg;
+        let (_, char, next) = charword;
+        if Token::is_token(Some(char)) {
+          if *char == '@' {
+            if temp.is_empty() {
+              temp.push(*char);
+            } else {
+              return Err(self.errormsg(index).err().unwrap());
+            }
+          } else if TokenAllowChar::is(char) {
+            temp.push(*char);
+          } else if Token::is_space_token(Some(char)) {
+            temp.push(*char);
+          } else {
+            return Err(self.errormsg(index).err().unwrap());
+          }
+        } else {
+          temp.push(*char);
+        }
+        if next.is_none() {
+          *end = true;
+        }
+        Ok(())
+      }),
+    )
   }
 
   ///
@@ -515,8 +571,7 @@ impl NewSelector {
         }
         // 执行结束检查
         if (next.is_none() || Self::is_end(next_fix, None)) && record {
-          if (temp.len() < 2 && *temp == vec![':']) || (temp.len() < 3 && *temp == vec![':', ':'])
-          {
+          if (temp.len() < 2 && *temp == vec![':']) || (temp.len() < 3 && *temp == vec![':', ':']) {
             // . , # single word is error
             return Err(self.errormsg(index).err().unwrap());
           }

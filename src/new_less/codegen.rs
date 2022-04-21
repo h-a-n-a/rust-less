@@ -5,6 +5,7 @@ use crate::new_less::node::{NodeWeakRef, StyleNode};
 use crate::new_less::rgb::rgb_calc;
 use crate::new_less::value::ValueNode;
 use crate::new_less::var::VarRuleNode;
+use std::cmp::Ordering;
 use std::ops::Deref;
 
 impl ValueNode {
@@ -169,7 +170,7 @@ impl ValueNode {
     index += 2;
     while index < list.len() {
       let current = Self::get_safe(index, list).unwrap();
-      if matches!(current,IdentType::Number(..)) {
+      if matches!(current, IdentType::Number(..)) {
         if res.1.len() < 5 {
           res.1.push(current);
         } else {
@@ -180,7 +181,8 @@ impl ValueNode {
         break;
       } else if !matches!(current, IdentType::Space)
         && current != &IdentType::Word(','.to_string())
-        && current != &IdentType::Operator('/'.to_string()) {
+        && current != &IdentType::Operator('/'.to_string())
+      {
         break;
       }
       index += 1;
@@ -209,7 +211,8 @@ impl ValueNode {
         perhaps_rgb_vec.push(index);
         perhaps_rgba_vec.push(index);
       } else if *current == IdentType::Word("rgba".to_string())
-        && next == Some(&IdentType::Brackets('('.to_string())) {
+        && next == Some(&IdentType::Brackets('('.to_string()))
+      {
         perhaps_rgba_vec.push(index);
       }
       index += 1;
@@ -253,16 +256,17 @@ impl ValueNode {
           if let IdentType::Number(val, unit) = ident {
             if index != corlor_list.len() - 1 {
               color_txt += format!("{}, ", val).as_str();
+            } else if *unit == Some('%'.to_string()) {
+              let num = val.parse::<f64>().unwrap() / 100_f64;
+              color_txt += format!("{:.1}", num).as_str();
             } else {
-              if *unit == Some('%'.to_string()) {
-                let num = val.parse::<f64>().unwrap() / 100_f64;
-                color_txt += format!("{:.1}", num).as_str();
-              } else {
-                color_txt += format!("{}", val).as_str();
-              }
+              color_txt += val;
             }
           } else {
-            return Err(format!("{:#?} must be num in the list ->{:#?}", ident, list));
+            return Err(format!(
+              "{:#?} must be num in the list ->{:#?}",
+              ident, list
+            ));
           }
         }
         color_txt += ")";
@@ -314,13 +318,18 @@ impl ValueNode {
           level -= 1;
         }
         // 处理逻辑
-        if level > 0 {
-          if let IdentType::Operator(op) = current {
-            *current = IdentType::Word(op.clone());
+        match level.cmp(&0) {
+          Ordering::Equal => {
+            break;
           }
-        } else if level == 0 {
-          break;
+          Ordering::Greater => {
+            if let IdentType::Operator(op) = current {
+              *current = IdentType::Word(op.clone());
+            }
+          }
+          Ordering::Less => {}
         }
+
         cur += 1;
       }
     }

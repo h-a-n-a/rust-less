@@ -1751,6 +1751,30 @@ fn test_arco_pro_38_less() {
 }
 
 #[test]
+fn test_arco_pro_39_less() {
+  let filepath = path_resolve("assets/arco-pro/39.less");
+  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
+  let css = context.render(filepath).unwrap();
+  let target_code = r#""#;
+  assert_eq!(
+    css.simple_compare(),
+    target_code.to_string().simple_compare()
+  );
+}
+
+#[test]
+fn test_arco_pro_42_less() {
+  let filepath = path_resolve("assets/arco-pro/42.less");
+  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
+  let css = context.render(filepath).unwrap();
+  let target_code = r#""#;
+  assert_eq!(
+    css.simple_compare(),
+    target_code.to_string().simple_compare()
+  );
+}
+
+#[test]
 fn test_arco_pro_44_less() {
   let filepath = path_resolve("assets/arco-pro/44.less");
   let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
@@ -1768,7 +1792,6 @@ fn test_arco_pro_44_less() {
   width: 100%;
   height: 2px;
 }
-/* Fancy blur effect */
 #nprogress .peg {
   display: block;
   position: absolute;
@@ -1781,7 +1804,6 @@ fn test_arco_pro_44_less() {
   -ms-transform: rotate(3deg) translate(0px, -4px);
   transform: rotate(3deg) translate(0px, -4px);
 }
-/* Remove these to get rid of the spinner */
 #nprogress .spinner {
   display: block;
   position: fixed;

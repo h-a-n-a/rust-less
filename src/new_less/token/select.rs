@@ -1,106 +1,210 @@
-use crate::extend::enum_extend::EnumExtend;
-use crate::extend::str_into::StringInto;
+use crate::new_less::token::lib::TokenInterface;
+use serde::Serialize;
+use std::slice::Iter;
 
-///
-/// Select 合词字符串
-///
-#[derive(EnumString, Display, Debug, EnumIter, PartialEq)]
-pub enum TokenSelect {
-  #[strum(serialize = ".")]
+#[derive(Debug, Serialize, PartialEq, Clone)]
+pub enum TokenSelectChar {
   ClassToken,
-
-  #[strum(serialize = "#")]
   IdToken,
-
-  #[strum(serialize = "[")]
   AttrBegin,
-
-  #[strum(serialize = "]")]
   AttrEnd,
-
-  #[strum(serialize = "(")]
   LeftBrackets,
-
-  #[strum(serialize = ")")]
   RightBrackets,
-
-  #[strum(serialize = "*")]
   WildCard,
-
-  #[strum(serialize = ":")]
   Colon,
+}
+
+impl TokenInterface for TokenSelectChar {
+  fn to_str(&self) -> char {
+    match self {
+      TokenSelectChar::ClassToken => '.',
+      TokenSelectChar::IdToken => '#',
+      TokenSelectChar::AttrBegin => '[',
+      TokenSelectChar::AttrEnd => ']',
+      TokenSelectChar::LeftBrackets => '(',
+      TokenSelectChar::RightBrackets => ')',
+      TokenSelectChar::WildCard => '*',
+      TokenSelectChar::Colon => ':',
+    }
+  }
+
+  fn iterator() -> Iter<'static, TokenSelectChar> {
+    static TOKENS: [TokenSelectChar; 8] = [
+      TokenSelectChar::ClassToken,
+      TokenSelectChar::IdToken,
+      TokenSelectChar::AttrBegin,
+      TokenSelectChar::AttrEnd,
+      TokenSelectChar::LeftBrackets,
+      TokenSelectChar::RightBrackets,
+      TokenSelectChar::WildCard,
+      TokenSelectChar::Colon,
+    ];
+    TOKENS.iter()
+  }
+
+  fn is(cc: &char) -> bool {
+    for token in Self::iterator() {
+      if *cc == token.to_str() {
+        return true;
+      }
+    }
+    false
+  }
+
+  fn get(cc: &char) -> Option<TokenSelectChar> {
+    for token in Self::iterator() {
+      if *cc == token.to_str() {
+        return Some(token.clone());
+      }
+    }
+    None
+  }
 }
 
 ///
 /// Select 允许的连接符
 ///
-#[derive(EnumString, Display, Debug, EnumIter, PartialEq)]
-pub enum TokenCombina {
-  #[strum(serialize = ",")]
+#[derive(Debug, Serialize, PartialEq, Clone)]
+pub enum TokenCombinaChar {
   Comma,
-
-  #[strum(serialize = " ")]
   Space,
-
-  #[strum(serialize = "\n")]
   NewLineOs,
-
-  #[strum(serialize = "\r")]
   NewLineWindos,
-
-  #[strum(serialize = ">")]
   ExtendChar,
-
-  #[strum(serialize = "|")]
   ColumnChar,
-
-  #[strum(serialize = "+")]
-  BrotherNextChar,
-
-  #[strum(serialize = "~")]
   BrotherMatchChar,
+  AddChar,
 }
 
-///
-/// Select 允许的 安全字符符
-///
-#[derive(EnumString, Display, Debug, EnumIter, PartialEq)]
-pub enum TokenAllow {
-  #[strum(serialize = r"\")]
+impl TokenInterface for TokenCombinaChar {
+  fn to_str(&self) -> char {
+    match self {
+      TokenCombinaChar::Comma => ',',
+      TokenCombinaChar::Space => ' ',
+      TokenCombinaChar::NewLineOs => '\n',
+      TokenCombinaChar::NewLineWindos => '\r',
+      TokenCombinaChar::ExtendChar => '>',
+      TokenCombinaChar::ColumnChar => '|',
+      TokenCombinaChar::BrotherMatchChar => '~',
+      TokenCombinaChar::AddChar => '+',
+    }
+  }
+
+  fn iterator() -> Iter<'static, TokenCombinaChar> {
+    static TOKENS: [TokenCombinaChar; 8] = [
+      TokenCombinaChar::Comma,
+      TokenCombinaChar::Space,
+      TokenCombinaChar::NewLineOs,
+      TokenCombinaChar::NewLineWindos,
+      TokenCombinaChar::ExtendChar,
+      TokenCombinaChar::ColumnChar,
+      TokenCombinaChar::BrotherMatchChar,
+      TokenCombinaChar::AddChar,
+    ];
+    TOKENS.iter()
+  }
+
+  fn is(cc: &char) -> bool {
+    for token in Self::iterator() {
+      if *cc == token.to_str() {
+        return true;
+      }
+    }
+    false
+  }
+
+  fn get(cc: &char) -> Option<TokenCombinaChar> {
+    for token in Self::iterator() {
+      if *cc == token.to_str() {
+        return Some(token.clone());
+      }
+    }
+    None
+  }
+}
+
+#[derive(Debug, Serialize, PartialEq, Clone)]
+pub enum TokenAllowChar {
   LeftSlant,
-
-  #[strum(serialize = "_")]
   Underscore,
-
-  #[strum(serialize = "-")]
   Dash,
+  Percent,
 }
 
-///
-/// & 表示当前选择器的父级
-/// & -> $(&) -> 用于后期替换父元素
-///
-#[derive(EnumString, Display, Debug, EnumIter, PartialEq)]
-pub enum TokenKeyWord {
-  #[strum(serialize = "&")]
+impl TokenInterface for TokenAllowChar {
+  fn to_str(&self) -> char {
+    match self {
+      TokenAllowChar::LeftSlant => '\\',
+      TokenAllowChar::Underscore => '_',
+      TokenAllowChar::Dash => '-',
+      TokenAllowChar::Percent => '%',
+    }
+  }
+
+  fn iterator() -> Iter<'static, TokenAllowChar> {
+    static TOKENS: [TokenAllowChar; 4] = [
+      TokenAllowChar::LeftSlant,
+      TokenAllowChar::Underscore,
+      TokenAllowChar::Dash,
+      TokenAllowChar::Percent,
+    ];
+    TOKENS.iter()
+  }
+
+  fn is(cc: &char) -> bool {
+    for token in Self::iterator() {
+      if *cc == token.to_str() {
+        return true;
+      }
+    }
+    false
+  }
+
+  fn get(cc: &char) -> Option<TokenAllowChar> {
+    for token in Self::iterator() {
+      if *cc == token.to_str() {
+        return Some(token.clone());
+      }
+    }
+    None
+  }
+}
+
+#[derive(Debug, Serialize, PartialEq, Clone)]
+pub enum TokenKeyWordChar {
   PranedRefer,
+  VarRefer,
 }
 
-impl EnumExtend for TokenSelect {}
+impl TokenInterface for TokenKeyWordChar {
+  fn to_str(&self) -> char {
+    match self {
+      TokenKeyWordChar::PranedRefer => '&',
+      TokenKeyWordChar::VarRefer => '@',
+    }
+  }
 
-impl EnumExtend for TokenCombina {}
+  fn iterator() -> Iter<'static, TokenKeyWordChar> {
+    static TOKENS: [TokenKeyWordChar; 2] =
+      [TokenKeyWordChar::PranedRefer, TokenKeyWordChar::VarRefer];
+    TOKENS.iter()
+  }
 
-impl EnumExtend for TokenAllow {}
+  fn is(cc: &char) -> bool {
+    for token in Self::iterator() {
+      if *cc == token.to_str() {
+        return true;
+      }
+    }
+    false
+  }
 
-impl EnumExtend for TokenKeyWord {}
-
-impl StringInto for TokenSelect {}
-
-impl StringInto for TokenCombina {}
-
-impl StringInto for TokenAllow {}
-
-impl StringInto for TokenKeyWord {}
-
-
-
+  fn get(cc: &char) -> Option<TokenKeyWordChar> {
+    for token in Self::iterator() {
+      if *cc == token.to_str() {
+        return Some(token.clone());
+      }
+    }
+    None
+  }
+}
