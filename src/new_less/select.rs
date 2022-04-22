@@ -802,20 +802,21 @@ impl NewSelector {
     )?;
 
     let mut new_content = "".to_string();
-    for tt in list {
-      if let SelectVarText::Txt(t) = tt {
-        new_content += &t;
-      } else if let SelectVarText::Var(v) = tt {
-        let val = v.tocharlist()[2..v.len() - 1].to_vec().poly();
-        let var_ident = format!("@{}", val);
-        let var_node_value =
-          self.get_var_by_key(var_ident.as_str(), parent_node.clone(), self.fileinfo.clone())?;
+    if list.len() > 0 {
+      for tt in list {
+        if let SelectVarText::Txt(t) = tt {
+          new_content += &t;
+        } else if let SelectVarText::Var(v) = tt {
+          let val = v.tocharlist()[2..v.len() - 1].to_vec().poly();
+          let var_ident = format!("@{}", val);
+          let var_node_value =
+            self.get_var_by_key(var_ident.as_str(), parent_node.clone(), self.fileinfo.clone())?;
 
-        new_content += &var_node_value.code_gen()?;
+          new_content += &var_node_value.code_gen()?;
+        }
       }
+      self.charlist = new_content.tocharlist();
     }
-
-    self.charlist = new_content.tocharlist();
 
     Ok(())
   }

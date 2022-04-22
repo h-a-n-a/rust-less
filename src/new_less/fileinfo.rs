@@ -177,12 +177,11 @@ impl FileInfo {
     // todo! 若要支持 @{abc} 变量 跨文件调用 select 需要 select 解析放到 codegen 里
     for node in self.block_node.iter() {
       if let StyleNode::Rule(heapnode) = node {
-        {
-          let mut mut_node = heapnode.borrow_mut();
-          if let Some(SelectorNode::Select(s_node)) = mut_node.selector.as_mut() {
-            s_node.parse(None)?;
-          }
+        let mut mut_node = heapnode.borrow_mut();
+        if let Some(SelectorNode::Select(s_node)) = mut_node.selector.as_mut() {
+          s_node.parse(None)?;
         }
+        drop(mut_node);
         heapnode.borrow().parse_select_all_node()?;
       }
     }

@@ -116,13 +116,12 @@ impl RuleNode {
   pub fn parse_select_all_node(&self) -> Result<(), String> {
     for node in self.block_node.iter() {
       if let StyleNode::Rule(heapnode) = node {
-        {
-          let mut mut_node = heapnode.borrow_mut();
-          let parent = mut_node.parent.clone();
-          if let Some(SelectorNode::Select(s_node)) = mut_node.selector.as_mut() {
-            s_node.parse(parent)?;
-          }
+        let mut mut_node = heapnode.borrow_mut();
+        let parent = mut_node.parent.clone();
+        if let Some(SelectorNode::Select(s_node)) = mut_node.selector.as_mut() {
+          s_node.parse(parent)?;
         }
+        drop(mut_node);
         heapnode.borrow().parse_select_all_node()?;
       }
     }

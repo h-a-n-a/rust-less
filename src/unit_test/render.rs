@@ -163,6 +163,11 @@ fn test_select_support_var_render() {
 .a h2 {
   width: 10px;
 }
+
+@-webkit-keyframes nprogress-spinner {
+  0%   { -webkit-transform: rotate(0deg); }
+  100% { -webkit-transform: rotate(360deg); }
+}
     "#;
     assert_eq!(
       res.simple_compare(),
