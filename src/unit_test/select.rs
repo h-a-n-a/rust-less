@@ -8,7 +8,7 @@ fn test_select_paradigm_parse() {
   let mut has_error = 0;
   demo_select_list.into_iter().for_each(|tt| {
     let mut obj = NewSelector::new(tt.tocharlist(), None, None, None, None);
-    match obj.parse() {
+    match obj.parse(None) {
       Ok(_) => {
         println!("{:#?}", obj.paradigm_vec);
       }
@@ -66,7 +66,7 @@ selector:pseudo-class
   let mut base = "".to_string();
   demo_select_list.into_iter().for_each(|tt| {
     let mut obj = NewSelector::new(tt.tocharlist(), None, None, None, None);
-    match obj.parse() {
+    match obj.parse(None) {
       Ok(_) => {}
       Err(msg) => {
         println!("{:?}", msg);
@@ -115,7 +115,7 @@ fn test_select_error_parse() {
   ];
   demo_select_list.into_iter().for_each(|tt| {
     let mut obj = NewSelector::new(tt.tocharlist(), None, None, None, None);
-    match obj.parse() {
+    match obj.parse(None) {
       Ok(_) => {
         haserror += 1;
       }

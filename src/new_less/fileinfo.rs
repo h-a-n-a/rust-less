@@ -12,6 +12,7 @@ use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
 use std::rc::{Rc, Weak};
+use crate::new_less::select_node::SelectorNode;
 
 #[derive(Clone)]
 pub struct FileInfo {
@@ -39,8 +40,8 @@ pub type FileWeakRef = Option<Weak<RefCell<FileInfo>>>;
 
 impl Serialize for FileInfo {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: Serializer,
+    where
+      S: Serializer,
   {
     let mut state = serializer.serialize_struct("FileInfo", 3)?;
     state.serialize_field("disk_location", &self.disk_location)?;
@@ -133,6 +134,7 @@ impl FileInfo {
     };
     let obj_heap = obj.toheap();
     obj_heap.borrow_mut().parse_heap()?;
+    obj_heap.borrow().parse_select_all_node()?;
     Ok(obj_heap)
   }
 
@@ -163,7 +165,28 @@ impl FileInfo {
     };
     let obj_heap = obj.toheap();
     obj_heap.borrow_mut().parse_heap()?;
+    obj_heap.borrow().parse_select_all_node()?;
     Ok(obj_heap)
+  }
+
+  ///
+  /// parse 当前文件下 所有的 select 字符串
+  /// 需要 第一遍 完成基本遍历
+  ///
+  pub fn parse_select_all_node(&self) -> Result<(), String> {
+    // todo! 若要支持 @{abc} 变量 跨文件调用 select 需要 select 解析放到 codegen 里
+    for node in self.block_node.iter() {
+      if let StyleNode::Rule(heapnode) = node {
+        {
+          let mut mut_node = heapnode.borrow_mut();
+          if let Some(SelectorNode::Select(s_node)) = mut_node.selector.as_mut() {
+            s_node.parse(None)?;
+          }
+        }
+        heapnode.borrow().parse_select_all_node()?;
+      }
+    }
+    Ok(())
   }
 
   pub fn create_txt_content(

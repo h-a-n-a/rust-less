@@ -5,7 +5,6 @@ use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{NodeRef, NodeWeakRef, StyleNode};
 use crate::new_less::rule::RuleNode;
-use crate::new_less::select_node::SelectorNode;
 use crate::new_less::var::VarRuleNode;
 
 impl Parse for FileInfo {
@@ -37,11 +36,6 @@ impl Parse for FileInfo {
         .map(StyleNode::Var)
         .collect::<Vec<StyleNode>>(),
     );
-    for item in rulelist.iter() {
-      if let Some(SelectorNode::Select(ss)) = item.borrow_mut().selector.as_mut() {
-        ss.parse()?;
-      }
-    }
     self.block_node.append(
       &mut rulelist
         .into_iter()
@@ -79,11 +73,6 @@ impl Parse for RuleNode {
     rulelist.iter().for_each(|node| {
       node.borrow_mut().parent = self.weak_self.clone();
     });
-    for item in rulelist.iter() {
-      if let Some(SelectorNode::Select(ss)) = item.borrow_mut().selector.as_mut() {
-        ss.parse()?;
-      }
-    }
     self.block_node.append(
       &mut rulelist
         .into_iter()
@@ -191,7 +180,7 @@ pub trait Parse {
       if braces_level == 0
         && wirte_comment
         && ((wirte_line_comment && (*char == '\n' || *char == '\r'))
-          || (wirte_closure_comment && (char, next) == (&'*', Some(&'/'))))
+        || (wirte_closure_comment && (char, next) == (&'*', Some(&'/'))))
       {
         wirte_comment = false;
         if wirte_line_comment {

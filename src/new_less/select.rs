@@ -140,7 +140,7 @@ impl NewSelector {
       if let Some(any_parent_rule) = select_rule_node {
         let heap_any_parent_rule = any_parent_rule.upgrade().unwrap();
         if let Some(SelectorNode::Select(ps)) =
-          heap_any_parent_rule.deref().borrow().selector.as_ref()
+        heap_any_parent_rule.deref().borrow().selector.as_ref()
         {
           parent_select_txt = ps.code_gen()
         };
@@ -344,14 +344,13 @@ impl NewSelector {
   /// parse select txt
   /// https://www.w3schools.com/cssref/css_selectors.asp
   ///
-  pub fn parse(&mut self) -> Result<(), String> {
-    let charlist = &self.charlist.clone();
+  pub fn parse(&mut self, parent_node: NodeWeakRef) -> Result<(), String> {
     let index: usize = 0;
-
     // 先判断 可以减少工作量调用
     if self.charlist.contains(&'@') {
-      self.pure_select_txt()?;
+      self.pure_select_txt(parent_node)?;
     }
+    let charlist = &self.charlist.clone();
 
     let (_, end) = traversal(
       Some(index),
@@ -764,7 +763,7 @@ impl NewSelector {
   /// support var in select_txt
   /// like @{abc} .a{  .... }
   ///
-  fn pure_select_txt(&mut self) -> Result<(), String> {
+  fn pure_select_txt(&mut self, parent_node: NodeWeakRef) -> Result<(), String> {
     let mut record = false;
     let mut list: Vec<SelectVarText> = vec![];
     traversal(
@@ -809,36 +808,10 @@ impl NewSelector {
       } else if let SelectVarText::Var(v) = tt {
         let val = v.tocharlist()[2..v.len() - 1].to_vec().poly();
         let var_ident = format!("@{}", val);
+        let var_node_value =
+          self.get_var_by_key(var_ident.as_str(), parent_node.clone(), self.fileinfo.clone())?;
 
-        println!(
-          "{:#?}",
-          self
-            .parent
-            .as_ref()
-            .unwrap()
-            .upgrade()
-            .unwrap()
-            .deref()
-            .borrow()
-            .origin_charlist
-            .poly()
-        );
-        println!(".....")
-        // let parent = self
-        //   .parent
-        //   .as_ref()
-        //   .unwrap()
-        //   .upgrade()
-        //   .unwrap()
-        //   .deref()
-        //   .borrow()
-        //   .parent
-        //   .clone();
-        //
-        // let var_node_value =
-        //   self.get_var_by_key(var_ident.as_str(), parent, self.fileinfo.clone())?;
-        //
-        // new_content += &var_node_value.code_gen()?;
+        new_content += &var_node_value.code_gen()?;
       }
     }
 

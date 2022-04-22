@@ -39,8 +39,8 @@ pub struct RuleNode {
 
 impl Serialize for RuleNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: Serializer,
+    where
+      S: Serializer,
   {
     let mut state = serializer.serialize_struct("RuleNode", 4)?;
     state.serialize_field("content", &self.origin_charlist.poly())?;
@@ -108,6 +108,27 @@ impl RuleNode {
     Ok(heapobj)
   }
 
+  ///
+  /// parse 当前文件下 所有的 select 字符串
+  /// 需要 第一遍 完成基本遍历
+  /// 由 fileinfo -> call 调用
+  ///
+  pub fn parse_select_all_node(&self) -> Result<(), String> {
+    for node in self.block_node.iter() {
+      if let StyleNode::Rule(heapnode) = node {
+        {
+          let mut mut_node = heapnode.borrow_mut();
+          let parent = mut_node.parent.clone();
+          if let Some(SelectorNode::Select(s_node)) = mut_node.selector.as_mut() {
+            s_node.parse(parent)?;
+          }
+        }
+        heapnode.borrow().parse_select_all_node()?;
+      }
+    }
+    Ok(())
+  }
+
   pub fn visit_mut_file(&self, fileinfo: &mut FileInfo) {
     self.block_node.iter().for_each(|x| {
       if let StyleNode::Rule(rule) = x {
@@ -157,7 +178,7 @@ impl RuleNode {
           tab.clone() + &tab.clone() + self.origin_charlist.poly().as_str(),
           "}"
         )
-        .as_str();
+          .as_str();
       } else {
         *content += format!(
           "\n{}{}\n{}{}\n{}\n{}\n{}",
@@ -169,7 +190,7 @@ impl RuleNode {
           tab.clone() + "}",
           "}"
         )
-        .as_str();
+          .as_str();
       }
 
       // 后续不递归了
@@ -195,7 +216,7 @@ impl RuleNode {
           create_rules(tab)?,
           "}"
         )
-        .as_ref();
+          .as_ref();
       } else {
         *content += format!(
           "\n{}{}\n{}{}\n{}\n{}\n{}",
@@ -207,7 +228,7 @@ impl RuleNode {
           "  }",
           "}"
         )
-        .as_ref();
+          .as_ref();
       }
     }
 
