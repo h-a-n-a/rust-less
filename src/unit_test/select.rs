@@ -1,6 +1,5 @@
 use crate::extend::string::StringExtend;
 use crate::new_less::select::{NewSelector, Paradigm};
-use crate::new_less::var::HandleResult;
 
 #[test]
 fn test_select_paradigm_parse() {
@@ -8,14 +7,14 @@ fn test_select_paradigm_parse() {
 
   let mut has_error = 0;
   demo_select_list.into_iter().for_each(|tt| {
-    match NewSelector::new(tt.tocharlist(), None, None, None) {
-      HandleResult::Success(obj) => {
+    let mut obj = NewSelector::new(tt.tocharlist(), None, None, None, None);
+    match obj.parse() {
+      Ok(_) => {
         println!("{:#?}", obj.paradigm_vec);
       }
-      HandleResult::Fail(_) => {
+      Err(_) => {
         has_error += 1;
       }
-      HandleResult::Swtich => {}
     };
   });
 
@@ -66,31 +65,23 @@ selector:pseudo-class
 
   let mut base = "".to_string();
   demo_select_list.into_iter().for_each(|tt| {
-    let res = match NewSelector::new(tt.tocharlist(), None, None, None) {
-      HandleResult::Success(obj) => Some(obj),
-      HandleResult::Fail(msg) => {
-        println!("{}", msg);
-        None
+    let mut obj = NewSelector::new(tt.tocharlist(), None, None, None, None);
+    match obj.parse() {
+      Ok(_) => {}
+      Err(msg) => {
+        println!("{:?}", msg);
       }
-      HandleResult::Swtich => {
-        println!("the type is not support select_txt!");
-        None
-      }
-    };
-    if res.is_none() {
-      panic!("parse has error!");
     }
-    let ss = res.unwrap();
     let value;
-    if ss.paradigm_vec.len() < 2 {
-      value = ss
+    if obj.paradigm_vec.len() < 2 {
+      value = obj
         .paradigm_vec
         .iter()
         .map(|x| x.tostr())
         .collect::<Vec<String>>()
         .join("");
     } else {
-      value = ss
+      value = obj
         .paradigm_vec
         .iter()
         .map(|x| x.tostr())
@@ -123,16 +114,16 @@ fn test_select_error_parse() {
     // ------
   ];
   demo_select_list.into_iter().for_each(|tt| {
-    match NewSelector::new(tt.tocharlist(), None, None, None) {
-      HandleResult::Success(_) => {
+    let mut obj = NewSelector::new(tt.tocharlist(), None, None, None, None);
+    match obj.parse() {
+      Ok(_) => {
         haserror += 1;
       }
-      HandleResult::Fail(msg) => {
+      Err(msg) => {
         haserror += 0;
         println!("{:?}", msg);
       }
-      HandleResult::Swtich => {}
-    };
+    }
   });
   assert_eq!(haserror, 0)
 }

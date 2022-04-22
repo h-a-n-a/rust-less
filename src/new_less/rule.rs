@@ -82,14 +82,15 @@ impl RuleNode {
       block_node: vec![],
       parent: None,
       weak_self: None,
-      file_info,
+      file_info: file_info.clone(),
       context,
     };
     let heapobj = Rc::new(RefCell::new(obj));
     let wek_self = Rc::downgrade(&heapobj);
     heapobj.borrow_mut().weak_self = Some(wek_self.clone());
 
-    let selector = match SelectorNode::new(selector_txt, &mut change_loc, Some(wek_self)) {
+    let selector = match SelectorNode::new(selector_txt, &mut change_loc, Some(wek_self), file_info)
+    {
       Ok(result) => result,
       Err(msg) => {
         return Err(msg);

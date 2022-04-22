@@ -1,3 +1,4 @@
+use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::ident::IdentType;
@@ -7,7 +8,6 @@ use crate::new_less::value::ValueNode;
 use crate::new_less::var::VarRuleNode;
 use std::cmp::Ordering;
 use std::ops::Deref;
-use crate::extend::string::StringExtend;
 
 impl ValueNode {
   ///
@@ -79,14 +79,20 @@ impl ValueNode {
           index += 1;
           var += "@{"
         } else {
-          return Err(format!("{} is contains repeat @ in the {} index", txt, index));
+          return Err(format!(
+            "{} is contains repeat @ in the {} index",
+            txt, index
+          ));
         }
       } else if var.len() > 0 {
         var.push(*current);
         if *current == '}' {
-          let var_ident = format!("@{}", var.replace("@{", "").replace("}", ""));
-          let var_node_value =
-            self.get_var_by_key(var_ident.as_str(), self.parent.clone(), self.fileinfo.clone())?;
+          let var_ident = format!("@{}", var.tocharlist()[2..var.len() - 1].to_vec().poly());
+          let var_node_value = self.get_var_by_key(
+            var_ident.as_str(),
+            self.parent.clone(),
+            self.fileinfo.clone(),
+          )?;
           res += var_node_value.code_gen()?.as_str();
           var = "".to_string();
         }
@@ -112,11 +118,7 @@ impl ValueNode {
         handle_vec.push((index, var_node_value.word_ident_list.clone()));
       } else if let IdentType::StringConst(ident_var) = ident {
         // calc ~"" | ~''
-        let prev_ident = if index > 0 {
-          list.get(index - 1)
-        } else {
-          None
-        };
+        let prev_ident = if index > 0 { list.get(index - 1) } else { None };
         if prev_ident != Some(&IdentType::Word('~'.to_string())) {
           let no_var_str_const = self.scan_var_ident_from_string_const(ident_var)?;
           string_handle_vec.push((vec![index], vec![IdentType::StringConst(no_var_str_const)]));
@@ -124,7 +126,9 @@ impl ValueNode {
           let no_var_str_const = self.scan_var_ident_from_string_const(ident_var)?;
           string_handle_vec.push((
             vec![index - 1, index],
-            vec![IdentType::Word(no_var_str_const.replace("'", "").replace("\"", ""))]
+            vec![IdentType::Word(
+              no_var_str_const.replace("'", "").replace("\"", ""),
+            )],
           ));
         }
       }
@@ -150,7 +154,6 @@ impl ValueNode {
         setp += 1;
       });
     }
-
 
     // let _json = serde_json::to_string_pretty(&list).unwrap();
     // 如果 当前 还有变量 则继续递归 演算

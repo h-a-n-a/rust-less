@@ -5,6 +5,7 @@ use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{NodeRef, NodeWeakRef, StyleNode};
 use crate::new_less::rule::RuleNode;
+use crate::new_less::select_node::SelectorNode;
 use crate::new_less::var::VarRuleNode;
 
 impl Parse for FileInfo {
@@ -36,6 +37,11 @@ impl Parse for FileInfo {
         .map(StyleNode::Var)
         .collect::<Vec<StyleNode>>(),
     );
+    for item in rulelist.iter() {
+      if let Some(SelectorNode::Select(ss)) = item.borrow_mut().selector.as_mut() {
+        ss.parse()?;
+      }
+    }
     self.block_node.append(
       &mut rulelist
         .into_iter()
@@ -73,6 +79,11 @@ impl Parse for RuleNode {
     rulelist.iter().for_each(|node| {
       node.borrow_mut().parent = self.weak_self.clone();
     });
+    for item in rulelist.iter() {
+      if let Some(SelectorNode::Select(ss)) = item.borrow_mut().selector.as_mut() {
+        ss.parse()?;
+      }
+    }
     self.block_node.append(
       &mut rulelist
         .into_iter()
@@ -128,11 +139,18 @@ pub trait Parse {
     // 记录 注释开始 索引
     let mut comment_start_index: Option<usize> = None;
 
+    let mut ignore_braces_level = 0;
+
     while index < origin_charlist.len() {
       // 处理字符
       let char = origin_charlist.get(index).unwrap();
       let next = if index < origin_charlist.len() - 1 {
         origin_charlist.get(index + 1)
+      } else {
+        None
+      };
+      let prev = if index > 0 {
+        origin_charlist.get(index - 1)
       } else {
         None
       };
@@ -244,32 +262,45 @@ pub trait Parse {
         }
         // 进行层级 叠加 && ignore 忽略 大括号区域 && 忽略引号包裹的 大括号
         if *char == start_braces && match_queto.is_none() {
-          if braces_level == 0 {
-            selector_txt = temp_word[0..temp_word.len() - 1].to_vec().trim();
-            temp_word.clear();
+          if prev == Some(&'@') {
+            ignore_braces_level += 1;
+          } else {
+            if ignore_braces_level == 0 {
+              if braces_level == 0 {
+                selector_txt = temp_word[0..temp_word.len() - 1].to_vec().trim();
+                temp_word.clear();
+              }
+              braces_level += 1;
+            } else {
+              ignore_braces_level += 1;
+            }
           }
-          braces_level += 1;
         }
         if *char == end_braces && match_queto.is_none() {
-          braces_level -= 1;
-          if braces_level == 0 {
-            match RuleNode::new(
-              temp_word[0..temp_word.len() - 1].to_vec().trim(),
-              selector_txt.clone(),
-              record_loc,
-              fileinfo.clone(),
-              context.clone(),
-            ) {
-              Ok(rule) => {
-                rule_node_list.push(rule);
+          if ignore_braces_level == 0 {
+            braces_level -= 1;
+            let _content = temp_word[0..temp_word.len() - 1].to_vec().trim();
+            if braces_level == 0 {
+              match RuleNode::new(
+                temp_word[0..temp_word.len() - 1].to_vec().trim(),
+                selector_txt.clone(),
+                record_loc,
+                fileinfo.clone(),
+                context.clone(),
+              ) {
+                Ok(rule) => {
+                  rule_node_list.push(rule);
+                }
+                Err(msg) => {
+                  return Err(msg);
+                }
               }
-              Err(msg) => {
-                return Err(msg);
-              }
+              selector_txt.clear();
+              temp_word.clear();
+              record_loc = None;
             }
-            selector_txt.clear();
-            temp_word.clear();
-            record_loc = None;
+          } else {
+            ignore_braces_level -= 1;
           }
         }
       }

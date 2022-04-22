@@ -1,15 +1,25 @@
+use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecCharExtend;
+use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::NodeWeakRef;
+use crate::new_less::node::{NodeWeakRef, StyleNode};
 use crate::new_less::scan::traversal;
 use crate::new_less::select_node::SelectorNode;
 use crate::new_less::token::lib::{Token, TokenInterface};
 use crate::new_less::token::select::{
   TokenAllowChar, TokenCombinaChar, TokenKeyWordChar, TokenSelectChar,
 };
-use crate::new_less::var::HandleResult;
+use crate::new_less::value::ValueNode;
+use crate::new_less::var::VarRuleNode;
 use serde::Serialize;
 use std::cmp::Ordering;
+use std::ops::Deref;
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+enum SelectVarText {
+  Txt(String),
+  Var(String),
+}
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub enum SelectParadigm {
@@ -64,6 +74,10 @@ pub struct NewSelector {
   // 延迟赋值
   #[serde(skip_serializing)]
   pub parent: NodeWeakRef,
+
+  // 文件节点
+  #[serde(skip_serializing)]
+  pub fileinfo: FileWeakRef,
 }
 
 impl NewSelector {
@@ -72,18 +86,17 @@ impl NewSelector {
     loc: Option<Loc>,
     map: Option<LocMap>,
     parent: NodeWeakRef,
-  ) -> HandleResult<Self> {
-    let mut obj = NewSelector {
+    fileinfo: FileWeakRef,
+  ) -> Self {
+    let obj = NewSelector {
       paradigm_vec: vec![],
       loc,
       map: map.unwrap_or_else(|| LocMap::new(&charlist)),
       charlist,
       parent,
+      fileinfo,
     };
-    match obj.parse() {
-      Ok(()) => HandleResult::Success(obj),
-      Err(msg) => HandleResult::Fail(msg),
-    }
+    obj
   }
 
   ///
@@ -100,12 +113,12 @@ impl NewSelector {
     if let Some(ref heap_node) = node {
       let rule = heap_node.upgrade().unwrap();
       if matches!(
-        *rule.borrow().selector.as_ref().unwrap(),
+        *rule.deref().borrow().selector.as_ref().unwrap(),
         SelectorNode::Select(..)
       ) {
         node.clone()
       } else {
-        let parent = rule.borrow().parent.clone();
+        let parent = rule.deref().borrow().parent.clone();
         Self::find_up_select_node(parent)
       }
     } else {
@@ -121,12 +134,14 @@ impl NewSelector {
     for list in self.paradigm_vec.iter() {
       // 计算父 表达式
       let self_rule = self.parent.as_ref().unwrap().upgrade().unwrap();
-      let node = self_rule.borrow().parent.clone();
+      let node = self_rule.deref().borrow().parent.clone();
       let select_rule_node = Self::find_up_select_node(node);
       let mut parent_select_txt = vec![];
       if let Some(any_parent_rule) = select_rule_node {
         let heap_any_parent_rule = any_parent_rule.upgrade().unwrap();
-        if let Some(SelectorNode::Select(ps)) = heap_any_parent_rule.borrow().selector.as_ref() {
+        if let Some(SelectorNode::Select(ps)) =
+          heap_any_parent_rule.deref().borrow().selector.as_ref()
+        {
           parent_select_txt = ps.code_gen()
         };
       }
@@ -332,6 +347,11 @@ impl NewSelector {
   pub fn parse(&mut self) -> Result<(), String> {
     let charlist = &self.charlist.clone();
     let index: usize = 0;
+
+    // 先判断 可以减少工作量调用
+    if self.charlist.contains(&'@') {
+      self.pure_select_txt()?;
+    }
 
     let (_, end) = traversal(
       Some(index),
@@ -738,5 +758,144 @@ impl NewSelector {
       return Err(self.errormsg(&res.1).err().unwrap());
     }
     Ok(res)
+  }
+
+  ///
+  /// support var in select_txt
+  /// like @{abc} .a{  .... }
+  ///
+  fn pure_select_txt(&mut self) -> Result<(), String> {
+    let mut record = false;
+    let mut list: Vec<SelectVarText> = vec![];
+    traversal(
+      None,
+      &self.charlist,
+      &mut (|arg, charword| {
+        let (index, temp, _end) = arg;
+        let (_prev, char, next) = charword;
+        if *char == '@' && next == Some(&'{') {
+          if temp.len() > 0 {
+            list.push(SelectVarText::Txt(temp.poly()));
+          }
+          temp.clear();
+          temp.push('@');
+          temp.push('{');
+          *index += 1;
+          record = true
+        } else if *char == '}' && record {
+          temp.push(*char);
+          if temp.len() > 0 {
+            list.push(SelectVarText::Var(temp.poly()));
+          } else {
+            return Err(format!(
+              "select txt {} index is {} -> @ var is not closure",
+              self.charlist.poly(),
+              *index
+            ));
+          }
+          temp.clear();
+          record = false;
+        } else {
+          temp.push(*char);
+        }
+        Ok(())
+      }),
+    )?;
+
+    let mut new_content = "".to_string();
+    for tt in list {
+      if let SelectVarText::Txt(t) = tt {
+        new_content += &t;
+      } else if let SelectVarText::Var(v) = tt {
+        let val = v.tocharlist()[2..v.len() - 1].to_vec().poly();
+        let var_ident = format!("@{}", val);
+
+        println!(
+          "{:#?}",
+          self
+            .parent
+            .as_ref()
+            .unwrap()
+            .upgrade()
+            .unwrap()
+            .deref()
+            .borrow()
+            .origin_charlist
+            .poly()
+        );
+        println!(".....")
+        // let parent = self
+        //   .parent
+        //   .as_ref()
+        //   .unwrap()
+        //   .upgrade()
+        //   .unwrap()
+        //   .deref()
+        //   .borrow()
+        //   .parent
+        //   .clone();
+        //
+        // let var_node_value =
+        //   self.get_var_by_key(var_ident.as_str(), parent, self.fileinfo.clone())?;
+        //
+        // new_content += &var_node_value.code_gen()?;
+      }
+    }
+
+    self.charlist = new_content.tocharlist();
+
+    Ok(())
+  }
+
+  ///
+  /// 查找变量
+  /// 用于 (变量计算)
+  ///
+  pub fn get_var_by_key(
+    &self,
+    key: &str,
+    rule_info: NodeWeakRef,
+    file_info: FileWeakRef,
+  ) -> Result<ValueNode, String> {
+    if let Some(rule_ref) = rule_info {
+      let rule = rule_ref.upgrade().unwrap();
+      let nodelist = &rule.deref().borrow().block_node;
+      for item in nodelist {
+        if let StyleNode::Var(VarRuleNode::Var(var)) = item.deref() {
+          if var.key.as_ref().unwrap() == key {
+            return Ok(var.value.as_ref().unwrap().clone());
+          }
+        }
+      }
+      return if rule.deref().borrow().parent.is_some() {
+        // 非顶层 向上递归
+        self.get_var_by_key(key, rule.deref().borrow().parent.clone(), None)
+      } else {
+        // 顶层 同层 引用递归 查看下半段代码
+        self.get_var_by_key(key, None, self.fileinfo.clone())
+      };
+    }
+    // 到达顶层后 取当前文件 的 顶层变量 或者 其他引用 文件的 顶层变量
+    else if let Some(file_ref) = file_info {
+      // 若没有则已经到达 顶层 则按照 顶层处理
+      let fileinfo_ref = file_ref.upgrade().unwrap();
+      let nodelist = &fileinfo_ref.deref().borrow().block_node;
+      for item in nodelist {
+        if let StyleNode::Var(VarRuleNode::Var(var)) = item.deref() {
+          if var.key.as_ref().unwrap() == key {
+            return Ok(var.value.as_ref().unwrap().clone());
+          }
+        }
+      }
+      // 获取 其他 引用文件 顶层变量
+      let top_level_other_vars = fileinfo_ref.deref().borrow().collect_vars();
+      for var in top_level_other_vars {
+        if var.key.as_ref().unwrap() == key {
+          return Ok(var.value.as_ref().unwrap().clone());
+        }
+      }
+    };
+
+    Err(format!("no var key {} has found", key))
   }
 }
