@@ -1,5 +1,4 @@
 use crate::extend::vec_str::VecCharExtend;
-use crate::extend::vec_str::VecCharOptionalExtend;
 use crate::new_less::comment::CommentNode;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
@@ -102,7 +101,7 @@ pub trait Parse {
     let mut rule_node_list: Vec<NodeRef> = vec![];
     let mut var_node_list: Vec<VarRuleNode> = vec![];
 
-    let mut comment_word: Vec<String> = vec![];
+    let mut comment_word: Vec<char> = vec![];
     let mut temp_word: Vec<char> = vec![];
     let mut selector_txt: Vec<char> = vec![];
 
@@ -123,30 +122,30 @@ pub trait Parse {
     let double_queto = '"';
     let mut match_queto: Option<char> = None;
 
-    // 注释的内容共
-    let comment_flag = "//".to_string();
-    let comment_mark_strat = "/*".to_string();
-    let comment_mark_end = "*/".to_string();
-
     // 如果启用 sourcemap 则用来记录坐标
     let mut record_loc: Option<Loc> = None;
 
     // 记录 注释开始 索引
     let mut comment_start_index: Option<usize> = None;
+
     while index < origin_charlist.len() {
       // 处理字符
-      let char = *origin_charlist.get(index).unwrap();
-      let word = origin_charlist.try_getword(index, 2).unwrap();
+      let char = origin_charlist.get(index).unwrap();
+      let next = if index < origin_charlist.len() - 1 {
+        origin_charlist.get(index + 1)
+      } else {
+        None
+      };
 
       // 最优先判断 单双引号
-      if (char == single_queto || char == double_queto)
+      if (*char == single_queto || *char == double_queto)
         && match_queto.is_none()
         && !wirte_comment
         && !wirte_line_comment
       {
-        match_queto = Some(char);
+        match_queto = Some(*char);
       } else if match_queto.is_some()
-        && char == match_queto.unwrap()
+        && *char == match_queto.unwrap()
         && !wirte_comment
         && !wirte_line_comment
       {
@@ -154,11 +153,15 @@ pub trait Parse {
       }
 
       // 优先判断注释
-      if match_queto.is_none() && word == comment_flag && braces_level == 0 && !wirte_comment {
+      if match_queto.is_none()
+        && (char, next) == (&'/', Some(&'/'))
+        && braces_level == 0
+        && !wirte_comment
+      {
         wirte_comment = true;
         wirte_line_comment = true;
       } else if match_queto.is_none()
-        && word == comment_mark_strat
+        && (char, next) == (&'/', Some(&'*'))
         && braces_level == 0
         && !wirte_comment
       {
@@ -169,21 +172,22 @@ pub trait Parse {
       // 注释结束
       if braces_level == 0
         && wirte_comment
-        && ((wirte_line_comment && (char == '\n' || char == '\r'))
-        || (wirte_closure_comment && word == comment_mark_end))
+        && ((wirte_line_comment && (*char == '\n' || *char == '\r'))
+          || (wirte_closure_comment && (char, next) == (&'*', Some(&'/'))))
       {
         wirte_comment = false;
         if wirte_line_comment {
           index += 1;
-          comment_word.push(char.to_string());
+          comment_word.push(*char);
           wirte_line_comment = false;
         } else if wirte_closure_comment {
           index += 2;
-          comment_word.push(word.clone());
+          comment_word.push(*char);
+          comment_word.push(*next.unwrap());
           wirte_closure_comment = false;
         }
         let comment = CommentNode {
-          content: comment_word.join(""),
+          content: comment_word.poly(),
           loc: record_loc,
           startindex: comment_start_index.unwrap(),
         };
@@ -195,30 +199,32 @@ pub trait Parse {
       }
       if wirte_comment {
         // 如果启用 sourcemap 则记录坐标
-        if context.borrow().option.sourcemap && char != '\r' && char != '\n' && record_loc.is_none()
+        if context.borrow().option.sourcemap
+          && *char != '\r'
+          && *char != '\n'
+          && record_loc.is_none()
         {
           record_loc = Some(locmap.as_ref().unwrap().get(&index).unwrap());
         }
         if comment_start_index.is_none() {
           comment_start_index = Some(index);
         }
-        comment_word.push(char.to_string());
+        comment_word.push(*char);
       } else {
         // 进行 var 和 rule 的计算
 
         // 记录坐标
         if context.borrow().option.sourcemap
-          && char != ' '
-          && char != '\r'
-          && char != '\n'
+          && *char != ' '
+          && *char != '\r'
+          && *char != '\n'
           && record_loc.is_none()
         {
           record_loc = Some(locmap.as_ref().unwrap().get(&index).unwrap());
         }
-
         // 存入普通字符串
-        temp_word.push(char);
-        if char == endqueto && braces_level == 0 {
+        temp_word.push(*char);
+        if *char == endqueto && braces_level == 0 {
           let style_var = match VarRuleNode::new(
             temp_word.trim(),
             record_loc,
@@ -237,14 +243,14 @@ pub trait Parse {
           record_loc = None;
         }
         // 进行层级 叠加 && ignore 忽略 大括号区域 && 忽略引号包裹的 大括号
-        if char == start_braces && match_queto.is_none() {
+        if *char == start_braces && match_queto.is_none() {
           if braces_level == 0 {
             selector_txt = temp_word[0..temp_word.len() - 1].to_vec().trim();
             temp_word.clear();
           }
           braces_level += 1;
         }
-        if char == end_braces && match_queto.is_none() {
+        if *char == end_braces && match_queto.is_none() {
           braces_level -= 1;
           if braces_level == 0 {
             match RuleNode::new(

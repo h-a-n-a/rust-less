@@ -148,3 +148,22 @@ fn test_string_const_support_var_render() {
     target_code.to_string().simple_compare()
   );
 }
+
+// #[test]
+// fn test_select_support_var_render() {
+//   let filepath = path_resolve("assets/select_var.less");
+//   let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
+//   let res = context.render(filepath.clone()).unwrap();
+//   println!("{}", res);
+//   //   let target_code = r#"
+//   // .d {
+//   //   width: 20px-anchor;
+//   //   display: xyz block;
+//   //   height: "20px";
+//   // }
+//   //   "#;
+//   //   assert_eq!(
+//   //     res.simple_compare(),
+//   //     target_code.to_string().simple_compare()
+//   //   );
+// }
