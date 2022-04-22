@@ -484,9 +484,8 @@ not supprt
 not supprt
 </td>
 <td>
-1. 需要支持 select 插值 用于支持 41.less<br/>
-2. 需要支持 自定义函数 用于支持 41.less<br/>
-3. 需要支持 if iscolor 等自定义函数<br/>
+1. 需要支持 自定义函数 用于支持 41.less<br/>
+2. 需要支持 if iscolor 等自定义函数<br/>
 较为复杂 需要3~5天支持
 </td>
 </tr>
