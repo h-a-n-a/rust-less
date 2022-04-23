@@ -174,3 +174,29 @@ fn test_select_support_var_render() {
       target_code.to_string().simple_compare()
     );
 }
+
+#[test]
+fn test_select_mixin_render() {
+  let filepath = path_resolve("assets/mixin.less");
+  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
+  let res = context.render(filepath.clone()).unwrap();
+  println!("{}", res);
+//   let target_code = r#"
+// .a {
+//   height: 20px;
+// }
+//
+// .a h2 {
+//   width: 10px;
+// }
+//
+// @-webkit-keyframes nprogress-spinner {
+//   0%   { -webkit-transform: rotate(0deg); }
+//   100% { -webkit-transform: rotate(360deg); }
+// }
+//     "#;
+//   assert_eq!(
+//     res.simple_compare(),
+//     target_code.to_string().simple_compare()
+//   );
+}
