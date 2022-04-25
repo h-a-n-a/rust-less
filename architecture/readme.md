@@ -1,5 +1,9 @@
 # Rust-Style 架构解析
 
+## 流程
+
+![avatar](./css_bundle.png)
+
 
 ## Context
 
@@ -312,15 +316,261 @@ pub enum VarRuleNode {
 
 ### ImportNode
 
+* css 示例
+```css
+@import "index.less";
+```
+
+* 数据结构
+```rust
+#[derive(Clone)]
+pub struct ImportNode {
+  // 节点坐标
+  pub loc: Option<Loc>,
+
+  // 内部处理 地图
+  map: LocMap,
+
+  // 自身 Rule 的弱引用
+  parent: NodeWeakRef,
+
+  // 文件信息
+  pub fileinfo: FileWeakRef,
+
+  // 内部快速扫词 字符串 数组
+  charlist: Vec<char>,
+
+  // 经常 插件 hook 的 计算完的 文件地址
+  parse_hook_url: String,
+
+  // 上下文
+  pub context: ParseContext,
+}
+```
+
+* parse 方法注意
+
+```rust
+// 多文件翻译后 会在 Context 上下文 中建立 文件 地址的 缓存
+// 引用的 FileInfo 不会放在 ImportNode 节点 而是放在 ImportNode 所属的 FileInfo 中 ImportFIles 中
+if let Some(weak_file_ref) = weak_file_ref_option {
+  let heap_obj = weak_file_ref.upgrade().unwrap();
+  importfiles.push(heap_obj);
+} else {
+  let heap_obj = FileInfo::create_disklocation_parse(abs_path.clone(), self.context.clone())?;
+  importfiles.push(heap_obj.clone());
+  self
+    .context
+    .borrow_mut()
+    .set_cache(abs_path.as_str(), Some(Rc::downgrade(&heap_obj)));
+}
+```
+
+
 ### VarNode
+
+* css 示例
+```css
+@width: 400px;
+```
+
+```rust
+#[derive(Clone)]
+pub struct VarNode {
+  // 节点坐标
+  pub loc: Option<Loc>,
+
+  // uuid 避免 查找时循环引用
+  pub uuid: String,
+
+  // 内部处理 地图
+  map: LocMap,
+
+  // 字符串 操作 序列
+  charlist: Vec<char>,
+
+  // 节点 父节点
+  pub parent: NodeWeakRef,
+
+  // 文件信息
+  pub fileinfo: FileWeakRef,
+
+  pub key: Option<String>,
+
+  pub value: Option<ValueNode>,
+
+  // 上下文
+  pub context: ParseContext,
+}
+```
 
 ### StyleRuleNode
 
+* css 示例
+```css
+color: red;
+```
 
+```rust
+#[derive(Clone)]
+pub struct StyleRuleNode {
+  // 节点坐标
+  pub loc: Option<Loc>,
+
+  // 字符串 操作 序列
+  charlist: Vec<char>,
+
+  // uuid 避免 查找时循环引用
+  pub uuid: String,
+
+  // 内部处理 地图
+  map: LocMap,
+
+  // 文件信息
+  pub fileinfo: FileWeakRef,
+
+  // 节点 父节点
+  pub parent: NodeWeakRef,
+
+  // 上下文
+  pub context: ParseContext,
+
+  // 对应的 key 值
+  pub key: Option<String>,
+
+  // 对应 值
+  pub value: Option<ValueNode>,
+}
+```
+
+
+## ValueNode
+
+* ValueNode 是 整个 Parse 流程中 最关键的 节点，不管是 @ 变量声明 还是 样式规则 都可以理解为 key:value 的 声明形式，针对共同的 value 是有同一个解析的 到 codegen 的过程
+
+* 数据结构
+
+```rust
+#[derive(Clone)]
+pub struct ValueNode {
+  // 字符 向量 只读
+  pub charlist: Vec<char>,
+
+  // rule 父节点
+  pub parent: NodeWeakRef,
+
+  // 文件节点
+  pub fileinfo: FileWeakRef,
+
+  // 内部处理 地图
+  map: LocMap,
+
+  // 单词 范式 原始分词 定义词性 的数组
+  pub word_ident_list: Vec<IdentType>,
+}
+
+
+///
+/// 原始 词性 分割
+/// 
+#[derive(Clone, Serialize, Debug, PartialEq)]
+pub enum IdentType {
+  // 10px 100% 100vh
+  Number(String, Option<String>),
+  // + - * /
+  Operator(String),
+  // @abc
+  Var(String),
+  // $abc
+  Prop(String),
+  // @{abc}
+  InsertVar(String),
+  // "abc"
+  StringConst(String),
+  // solid
+  Word(String),
+  // #abc17fc
+  Color(String),
+  // !important
+  KeyWord(String),
+  // " " ,"\n"
+  Space,
+  //  ~"(min-width: 768px)" (min-width: 768px) -> Only for MediaRule
+  Escaping(String),
+  // ( ) [ ] 计算运算可能性
+  Brackets(String),
+}
+```
+
+* codegen
+
+```rust
+///
+/// 代码生成
+///
+pub fn code_gen(&self) -> Result<String, String> {
+  // 去除 所有 value_node节点中 变量的声明
+  let mut no_var_list = self.get_no_var_ident_list()?;
+  // 对 所有词性 进行 递归计算 进行 分词合并 成 句 的过程
+  let res = Self::group_calc_ident_value(no_var_list)?;
+  Ok(res)
+}
+```
 
 ## NodeRef
 
-* StyleNode-> enum(Rc<ReffCell<RuleNode>>) 属于 通用节点 的子类 AST结构中 标识了 .a{} 以大括号 为标识的 段落信息，并且为了支持样式预处理器，
+* StyleNode-> 属于 通用节点(SytleNode) 的子类 AST结构中 标识了 .a{} 以大括号 为标识的 段落信息，并且为了支持样式预处理器，
 把AST 信息放在了堆上，用来重复引用，设置其 子RuleNode 父子RuleNode 的引用关系。
+
+* css 示例
+```less
+
+.b {
+  font-size: 10px;
+}
+
+// 允许对象 递归嵌套
+.b {
+  .a{
+    font-size: 10px;
+  }
+}
+
+```
+
+* 数据结构
+
+```rust
+#[derive(Clone)]
+pub struct RuleNode {
+  // 选择器 文字
+  pub selector: Option<SelectorNode>,
+  // 根据 原始内容 -> 转化的 字符数组
+  pub origin_charlist: Vec<char>,
+  // 节点坐标
+  pub loc: Option<Loc>,
+  // 当前所有 索引 对应的 坐标行列 -> 用于执行 sourcemap
+  pub locmap: Option<LocMap>,
+  // 节点 父节点
+  pub parent: NodeWeakRef,
+  // 自己的引用关系
+  pub weak_self: NodeWeakRef,
+  // 节点 子节点
+  pub block_node: Vec<StyleNode>,
+  // 文件弱引用
+  pub file_info: FileWeakRef,
+  // 全局上下文
+  pub context: ParseContext,
+}
+
+
+#[derive(Debug, Clone, Serialize)]
+pub enum SelectorNode {
+  Select(NewSelector),
+  Media(MediaQuery),
+}
+```
+
+
 
 
