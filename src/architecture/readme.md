@@ -279,6 +279,42 @@ pub struct CommentNode {
 
 * StyleNode-> enum(VarRuleNode) 属于 通用节点 的子类 AST结构中 标识了 @import | @var | display 等以 分号为结算的 '行'节点信息
 
+* 数据结构
+
+```rust
+///
+/// 变量内容
+///
+#[derive(Debug, Clone, Serialize)]
+pub enum VarRuleNode {
+  /// 引用
+  Import(ImportNode),
+
+  /// 变量声明
+  Var(VarNode),
+
+  /// 样式规则
+  StyleRule(StyleRuleNode),
+}
+```
+
+```css
+// Import(ImportNode) -> VarRuleNode 认为是一个 VarRuleNode 变量节点 ImportNode
+@import "index.less";
+// Var(VarNode) -> VarRuleNode 认为是一个 VarRuleNode 变量节点 VarNode
+@width: 400px;
+
+.a{
+  // StyleRule(StyleRuleNode) -> StyleRuleNode 认为是一个 VarRuleNode 变量节点 StyleRuleNode
+  width: 20px;
+}
+```
+
+### ImportNode
+
+### VarNode
+
+### StyleRuleNode
 
 
 
