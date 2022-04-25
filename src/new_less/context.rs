@@ -121,7 +121,7 @@ impl Context {
   }
 
   ///
-  /// 析构代码
+  /// 解析代码
   ///
   pub fn parse(self, filepath: String) -> Result<FileRef, String> {
     let context = Rc::new(RefCell::new(self));
