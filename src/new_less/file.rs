@@ -53,14 +53,21 @@ pub fn path_resolve(path: &str) -> String {
 ///
 /// 执行安全的 读取 某路径文件
 ///
-pub fn readfile(path: String) -> Option<String> {
-  let filepath = Path::new(&path);
+pub fn readfile(path: &str) -> Result<String, String> {
+  let filepath = Path::new(path);
+
   if filepath.exists() {
+    if filepath.is_dir() {
+      return Err(format!(
+        "file is not file maybe is dir ?! filepath is{}",
+        path
+      ));
+    }
     match std::fs::read_to_string(filepath) {
-      Ok(content) => Some(content),
-      Err(_) => None,
+      Ok(content) => Ok(content),
+      Err(ex) => Err(ex.to_string()),
     }
   } else {
-    None
+    Err(format!("file is not exists filepath is {}", path))
   }
 }

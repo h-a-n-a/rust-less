@@ -1,9 +1,11 @@
 use crate::extend::string::StringExtend;
 use crate::new_less::context::ParseContext;
+use crate::new_less::file::{path_join, readfile};
 use crate::new_less::file_manger::FileManger;
 use crate::new_less::loc::LocMap;
 use crate::new_less::node::{NodeRef, StyleNode};
 use crate::new_less::parse::Parse;
+use crate::new_less::select_node::SelectorNode;
 use crate::new_less::var::VarRuleNode;
 use crate::new_less::var_node::VarNode;
 use serde::ser::SerializeStruct;
@@ -11,8 +13,8 @@ use serde::{Serialize, Serializer};
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
+use std::path::Path;
 use std::rc::{Rc, Weak};
-use crate::new_less::select_node::SelectorNode;
 
 #[derive(Clone)]
 pub struct FileInfo {
@@ -40,8 +42,8 @@ pub type FileWeakRef = Option<Weak<RefCell<FileInfo>>>;
 
 impl Serialize for FileInfo {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-      S: Serializer,
+  where
+    S: Serializer,
   {
     let mut state = serializer.serialize_struct("FileInfo", 3)?;
     state.serialize_field("disk_location", &self.disk_location)?;
@@ -83,19 +85,7 @@ impl FileInfo {
   ///
   pub fn create_disklocation(filepath: String, context: ParseContext) -> Result<String, String> {
     let obj_heap = Self::create_disklocation_parse(filepath, context)?;
-    obj_heap
-      .deref()
-      .borrow()
-      .context
-      .borrow_mut()
-      .clear_codegen();
     let res = obj_heap.deref().borrow().code_gen()?;
-    obj_heap
-      .deref()
-      .borrow()
-      .context
-      .borrow_mut()
-      .clear_codegen();
     Ok(res)
   }
 
@@ -250,5 +240,93 @@ impl FileInfo {
       varlist.append(&mut child_var_list)
     }
     varlist
+  }
+
+  ///
+  /// 修复路径
+  ///
+  pub fn save_include_paths_with_context(&mut self, filepath: &str) {
+    if !Self::is_relative_path(filepath) {
+      if self
+        .context
+        .borrow()
+        .option
+        .include_path
+        .contains(filepath.as_ref())
+      {
+        return;
+      } else {
+        self
+          .context
+          .borrow_mut()
+          .option
+          .include_path
+          .push(filepath.to_string());
+      }
+    } else {
+    }
+  }
+
+  ///
+  /// 获取指定文件的路径
+  /// 如果是路径 -> 直接返回该路径
+  ///
+  pub fn get_dir(path_value: &str) -> Result<String, String> {
+    let path = Path::new(path_value);
+    if path.is_file() {
+      Ok(path.parent().unwrap().to_str().unwrap().to_string())
+    } else if path.is_dir() {
+      Ok(path_value.to_string())
+    } else {
+      Err(format!(
+        "path type is file or dir please check {}",
+        path_value
+      ))
+    }
+  }
+
+  ///
+  /// 是否是相对路径
+  ///
+  pub fn is_relative_path(txt: &str) -> bool {
+    let path = Path::new(txt);
+    path.is_relative()
+  }
+
+  ///
+  /// 文件查找对应解析路径
+  /// 返回值 -> (路径, 文件内容)
+  ///
+  pub fn resolve(&self, filepath: String) -> Result<(String, String), String> {
+    // 相对路径 和 绝对路径 分开计算
+    return if FileManger::is_relative_path(&filepath) {
+      // 相对路径的情况
+      let mut abs_path: Option<String> = None;
+      let mut failpath = vec![];
+      let mut content: Option<String> = None;
+      for basepath in self.context.borrow().option.include_path {
+        let temp_path = path_join(basepath.as_str(), filepath.as_str());
+        match readfile(temp_path.as_str()) {
+          Ok(res) => {
+            content = Some(res);
+            abs_path = Some(temp_path.clone());
+            break;
+          }
+          Err(_) => failpath.push(temp_path.clone()),
+        }
+      }
+      return if let Some(match_path) = abs_path {
+        Ok((match_path, content.unwrap()))
+      } else {
+        Err(format!(
+          "Nothings File is find in cmdpath and inculdepath,{}",
+          failpath.join(";")
+        ))
+      };
+    } else {
+      // 绝对路径的情况
+      let res = readfile(filepath.as_str())?;
+      Ok((filepath.clone(), res))
+    };
   }
 }

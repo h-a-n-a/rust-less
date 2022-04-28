@@ -38,7 +38,7 @@ impl FileManger {
         }
       }
       return if let Some(match_path) = abs_path {
-        Ok((match_path.clone(), readfile(match_path).unwrap()))
+        Ok((match_path.clone(), readfile(&match_path).unwrap()))
       } else {
         Err(format!(
           "Nothings File is find in cmdpath and inculdepath,{}",
@@ -54,7 +54,7 @@ impl FileManger {
           return Err(msg);
         }
       }
-      let res = readfile(filepath.clone()).unwrap();
+      let res = readfile(&filepath).unwrap();
       Ok((filepath.clone(), res))
     };
   }

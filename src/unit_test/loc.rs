@@ -7,7 +7,7 @@ use crate::new_less::loc::LocMap;
 ///
 #[test]
 fn test_loc() {
-  let content = readfile(path_resolve("assets/loc.less")).unwrap();
+  let content = readfile(path_resolve("assets/loc.less").as_str()).unwrap();
   let obj = LocMap::new(&content.tocharlist());
   let c = obj.get(&0).unwrap();
   let x = obj.getloc(4, 10).unwrap();
