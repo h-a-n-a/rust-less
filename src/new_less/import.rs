@@ -1,7 +1,7 @@
 use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::context::ParseContext;
-use crate::new_less::file_manger::FileManger;
 use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
+use crate::new_less::filenode::FileNode;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::NodeWeakRef;
 use crate::new_less::option::ParseOption;
@@ -183,20 +183,21 @@ impl ImportNode {
     }
     // 处理递归解析 若节点不存在 则 不进行处理
     let file_path = self.parse_hook_url.clone();
-    let include_path = self.get_options().include_path;
-    let (abs_path, _file_content) = FileManger::resolve(file_path, include_path)?;
-    let weak_file_ref_option = self.context.borrow().get_cache(abs_path.as_str());
+    let include_path = self.get_include_path();
+    let (abs_path, _file_content) = FileInfo::resolve(file_path, &include_path)?;
+    let weak_file_ref_option = self.context.borrow().get_parse_cache(abs_path.as_str());
     // 自动忽略已经翻译后的文件
+    // todo 暂时不能跨 css -> transform 使用Parse缓存
     if let Some(weak_file_ref) = weak_file_ref_option {
       let heap_obj = weak_file_ref.upgrade().unwrap();
       importfiles.push(heap_obj);
     } else {
-      let heap_obj = FileInfo::create_disklocation_parse(abs_path.clone(), self.context.clone())?;
-      importfiles.push(heap_obj.clone());
+      let node = FileNode::create_disklocation_parse(abs_path.clone(), self.context.clone())?;
+      importfiles.push(node.info.clone());
       self
         .context
         .borrow_mut()
-        .set_cache(abs_path.as_str(), Some(Rc::downgrade(&heap_obj)));
+        .set_parse_cache(abs_path.as_str(), Some(Rc::downgrade(&node.info)));
     }
     Ok(())
   }
@@ -206,5 +207,15 @@ impl ImportNode {
   ///
   pub fn get_options(&self) -> ParseOption {
     self.context.borrow().option.clone()
+  }
+
+  pub fn get_include_path(&self) -> Vec<String> {
+    let mut include_path = self.get_options().include_path;
+    if let Some(weak_self) = &self.fileinfo {
+      let fileinfo = weak_self.upgrade().unwrap();
+      let file_dir = FileInfo::get_dir(&fileinfo.borrow().disk_location).unwrap();
+      include_path.push(file_dir);
+    }
+    include_path
   }
 }

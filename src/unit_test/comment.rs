@@ -1,17 +1,17 @@
 use crate::extend::string::StringExtend;
 use crate::extend::time::wastetime;
 use crate::extend::vec_str::VecCharOptionalExtend;
+use crate::new_less::applicationn::Application;
 use crate::new_less::comment::{skip_comment, Comment};
-use crate::new_less::context::Context;
 use crate::new_less::file::{path_resolve, readfile};
 
 #[test]
 fn test_comment_remove() {
   let record = wastetime("test_less");
   let filepath = path_resolve("assets/comment.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let info = context.parse(filepath).unwrap();
-  let content = info.borrow().rm_comment();
+  let app = Application::default();
+  let node = app.parse(filepath).unwrap();
+  let content = node.info.borrow().rm_comment();
   record();
   let target = r#"
 @height: 300px;
@@ -31,7 +31,7 @@ fn test_skip_comment() {
   let start_record = wastetime("test_less");
   // 处理过程
   let filepath = path_resolve("assets/demo.less");
-  let conetnt = readfile(filepath).unwrap().tocharlist();
+  let conetnt = readfile(&filepath).unwrap().tocharlist();
   let mut i = 0;
   let mut skipcall = skip_comment();
   while i < conetnt.len() {

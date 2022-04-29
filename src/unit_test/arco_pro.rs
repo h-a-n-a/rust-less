@@ -1,12 +1,12 @@
 use crate::extend::string::StringExtend;
-use crate::new_less::context::Context;
+use crate::new_less::applicationn::Application;
 use crate::new_less::file::path_resolve;
 
 #[test]
 fn test_arco_pro_1_less() {
   let filepath = path_resolve("assets/arco-pro/1.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .customer-tooltip-title {
   margin-bottom: 4px;
@@ -44,8 +44,8 @@ body[arco-theme='dark'] .customer-tooltip-item {
 #[test]
 fn test_arco_pro_2_less() {
   let filepath = path_resolve("assets/arco-pro/2.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .footer{
   display: flex;
@@ -65,8 +65,8 @@ fn test_arco_pro_2_less() {
 #[test]
 fn test_arco_pro_3_less() {
   let filepath = path_resolve("assets/arco-pro/3.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .message-box{
   width: 400px;
@@ -131,8 +131,8 @@ fn test_arco_pro_3_less() {
 #[test]
 fn test_arco_pro_4_less() {
   let filepath = path_resolve("assets/arco-pro/4.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .icon-button{
   font-size: 16px;
@@ -152,8 +152,8 @@ fn test_arco_pro_4_less() {
 #[test]
 fn test_arco_pro_5_less() {
   let filepath = path_resolve("assets/arco-pro/5.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .navbar {
   display: flex;
@@ -228,8 +228,8 @@ fn test_arco_pro_5_less() {
 #[test]
 fn test_arco_pro_6_less() {
   let filepath = path_resolve("assets/arco-pro/6.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .panel {
   background-color: var(--color-bg-2);
@@ -245,8 +245,8 @@ fn test_arco_pro_6_less() {
 #[test]
 fn test_arco_pro_7_less() {
   let filepath = path_resolve("assets/arco-pro/7.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .block {
   margin-bottom: 24px;
@@ -272,8 +272,8 @@ fn test_arco_pro_7_less() {
 #[test]
 fn test_arco_pro_8_less() {
   let filepath = path_resolve("assets/arco-pro/8.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .input {
   display: flex;
@@ -307,8 +307,8 @@ fn test_arco_pro_8_less() {
 #[test]
 fn test_arco_pro_9_less() {
   let filepath = path_resolve("assets/arco-pro/9.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .message-item {
   font-size: 12px;
@@ -362,8 +362,8 @@ fn test_arco_pro_9_less() {
 #[test]
 fn test_arco_pro_10_less() {
   let filepath = path_resolve("assets/arco-pro/10.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .layout {
   display: flex;
@@ -444,8 +444,8 @@ fn test_arco_pro_10_less() {
 #[test]
 fn test_arco_pro_11_less() {
   let filepath = path_resolve("assets/arco-pro/11.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .item {
   display: flex;
@@ -475,8 +475,8 @@ fn test_arco_pro_11_less() {
 #[test]
 fn test_arco_pro_12_less() {
   let filepath = path_resolve("assets/arco-pro/12.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .docs {
   display: grid;
@@ -501,8 +501,8 @@ fn test_arco_pro_12_less() {
 #[test]
 fn test_arco_pro_13_less() {
   let filepath = path_resolve("assets/arco-pro/13.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .banner {
   background-color: var(--color-bg-2);
@@ -530,8 +530,8 @@ fn test_arco_pro_13_less() {
 #[test]
 fn test_arco_pro_14_less() {
   let filepath = path_resolve("assets/arco-pro/14.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .container {
   padding: 20px;
@@ -601,8 +601,8 @@ fn test_arco_pro_14_less() {
 #[test]
 fn test_arco_pro_15_less() {
   let filepath = path_resolve("assets/arco-pro/15.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .symbol {
   font-size: 10px;
@@ -621,8 +621,8 @@ fn test_arco_pro_15_less() {
 #[test]
 fn test_arco_pro_16_less() {
   let filepath = path_resolve("assets/arco-pro/16.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .shortcuts {
   display: grid;
@@ -681,8 +681,8 @@ fn test_arco_pro_16_less() {
 #[test]
 fn test_arco_pro_17_less() {
   let filepath = path_resolve("assets/arco-pro/17.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .wrapper {
   position: relative;
@@ -704,8 +704,8 @@ fn test_arco_pro_17_less() {
 #[test]
 fn test_arco_pro_18_less() {
   let filepath = path_resolve("assets/arco-pro/18.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .wrapper {
   position: relative;
@@ -727,8 +727,8 @@ fn test_arco_pro_18_less() {
 #[test]
 fn test_arco_pro_19_less() {
   let filepath = path_resolve("assets/arco-pro/19.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .wrapper {
   position: relative;
@@ -750,8 +750,8 @@ fn test_arco_pro_19_less() {
 #[test]
 fn test_arco_pro_20_less() {
   let filepath = path_resolve("assets/arco-pro/20.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .container {
   overflow: hidden;
@@ -783,8 +783,8 @@ fn test_arco_pro_20_less() {
 #[test]
 fn test_arco_pro_21_less() {
   let filepath = path_resolve("assets/arco-pro/21.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .container :global(.arco-card-body) {
   padding: 20px;
@@ -827,8 +827,8 @@ fn test_arco_pro_21_less() {
 #[test]
 fn test_arco_pro_22_less() {
   let filepath = path_resolve("assets/arco-pro/22.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .container :global(.arco-list-content) {
   overflow-x: hidden;
@@ -958,8 +958,8 @@ fn test_arco_pro_22_less() {
 #[test]
 fn test_arco_pro_23_less() {
   let filepath = path_resolve("assets/arco-pro/23.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .toolbar {
   display: flex;
@@ -1011,8 +1011,8 @@ fn test_arco_pro_23_less() {
 #[test]
 fn test_arco_pro_24_less() {
   let filepath = path_resolve("assets/arco-pro/24.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .container {
   display: flex;
@@ -1123,8 +1123,8 @@ fn test_arco_pro_24_less() {
 #[test]
 fn test_arco_pro_25_less() {
   let filepath = path_resolve("assets/arco-pro/25.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .container :global(.arco-card) {
   margin-top: 16px;
@@ -1145,8 +1145,8 @@ fn test_arco_pro_25_less() {
 #[test]
 fn test_arco_pro_26_less() {
   let filepath = path_resolve("assets/arco-pro/26.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .wrapper {
   padding: 24px 150px;
@@ -1174,8 +1174,8 @@ fn test_arco_pro_26_less() {
 #[test]
 fn test_arco_pro_27_less() {
   let filepath = path_resolve("assets/arco-pro/27.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .wrapper {
   padding: 24px 150px;
@@ -1204,8 +1204,8 @@ fn test_arco_pro_27_less() {
 #[test]
 fn test_arco_pro_28_less() {
   let filepath = path_resolve("assets/arco-pro/28.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .project-wrapper {
   cursor: pointer;
@@ -1232,8 +1232,8 @@ fn test_arco_pro_28_less() {
 #[test]
 fn test_arco_pro_29_less() {
   let filepath = path_resolve("assets/arco-pro/29.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .header {
   height: 200px;
@@ -1295,8 +1295,8 @@ fn test_arco_pro_29_less() {
 #[test]
 fn test_arco_pro_30_less() {
   let filepath = path_resolve("assets/arco-pro/30.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .info-wrapper {
   display: flex;
@@ -1335,8 +1335,8 @@ fn test_arco_pro_30_less() {
 #[test]
 fn test_arco_pro_31_less() {
   let filepath = path_resolve("assets/arco-pro/31.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .wrapper {
   display: flex;
@@ -1405,8 +1405,8 @@ fn test_arco_pro_31_less() {
 #[test]
 fn test_arco_pro_32_less() {
   let filepath = path_resolve("assets/arco-pro/32.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .card {
   display: flex;
@@ -1477,8 +1477,8 @@ body[arco-theme='dark'] .card-interval {
 #[test]
 fn test_arco_pro_33_less() {
   let filepath = path_resolve("assets/arco-pro/33.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .card .statistic {
   display: flex;
@@ -1524,8 +1524,8 @@ fn test_arco_pro_33_less() {
 #[test]
 fn test_arco_pro_34_less() {
   let filepath = path_resolve("assets/arco-pro/34.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .card :global(.arco-spin) {
   width: 100%;
@@ -1566,8 +1566,8 @@ fn test_arco_pro_34_less() {
 #[test]
 fn test_arco_pro_35_less() {
   let filepath = path_resolve("assets/arco-pro/35.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .code-block {
   color: var(--color-text-2);
@@ -1591,8 +1591,8 @@ fn test_arco_pro_35_less() {
 #[test]
 fn test_arco_pro_36_less() {
   let filepath = path_resolve("assets/arco-pro/36.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .header {
   background: var(--color-bg-2);
@@ -1608,8 +1608,8 @@ fn test_arco_pro_36_less() {
 #[test]
 fn test_arco_pro_37_less() {
   let filepath = path_resolve("assets/arco-pro/37.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 #nprogress {
   pointer-events: none;
@@ -1710,8 +1710,8 @@ body[arco-theme='dark'] .chart-wrapper .bizcharts-tooltip {
 #[test]
 fn test_arco_pro_38_less() {
   let filepath = path_resolve("assets/arco-pro/38.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 .layout {
   width: 100%;
@@ -1838,8 +1838,8 @@ fn test_arco_pro_38_less() {
 #[test]
 fn test_arco_pro_39_less() {
   let filepath = path_resolve("assets/arco-pro/39.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#""#;
   assert_eq!(
     css.simple_compare(),
@@ -1850,8 +1850,8 @@ fn test_arco_pro_39_less() {
 #[test]
 fn test_arco_pro_42_less() {
   let filepath = path_resolve("assets/arco-pro/42.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#""#;
   assert_eq!(
     css.simple_compare(),
@@ -1862,8 +1862,8 @@ fn test_arco_pro_42_less() {
 #[test]
 fn test_arco_pro_43_less() {
   let filepath = path_resolve("assets/arco-pro/43.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#""#;
   assert_eq!(
     css.simple_compare(),
@@ -1874,8 +1874,8 @@ fn test_arco_pro_43_less() {
 #[test]
 fn test_arco_pro_44_less() {
   let filepath = path_resolve("assets/arco-pro/44.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let css = context.render(filepath).unwrap();
+  let app = Application::default();
+  let css = app.render(filepath).unwrap();
   let target_code = r#"
 #nprogress {
   pointer-events: none;

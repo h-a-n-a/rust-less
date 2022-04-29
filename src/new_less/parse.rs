@@ -1,48 +1,57 @@
 use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::comment::CommentNode;
 use crate::new_less::context::ParseContext;
-use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
+use crate::new_less::fileinfo::{FileRef, FileWeakRef};
+use crate::new_less::filenode::FileNode;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::{NodeRef, NodeWeakRef, StyleNode};
 use crate::new_less::rule::RuleNode;
 use crate::new_less::var::VarRuleNode;
 
-impl Parse for FileInfo {
+impl Parse for FileNode {
   fn parse_heap(&mut self) -> Result<(), String> {
-    // 把当前 节点 的 对象 指针 放到 节点上 缓存中
-    let disk_location_path = self.disk_location.clone();
-    self
-      .context
-      .borrow_mut()
-      .set_cache(disk_location_path.as_str(), self.self_weak.clone());
     let mut importfiles: Vec<FileRef> = vec![];
-    let (commentlsit, varlist, rulelist) = Self::parse(
-      self.context.clone(),
-      &self.origin_charlist,
-      &self.locmap,
-      None,
-      self.self_weak.clone(),
-      &mut importfiles,
-    )?;
-    self.block_node.append(
+    let (commentlsit, varlist, rulelist) = {
+      let info = self.info.borrow();
+      // 把当前 节点 的 对象 指针 放到 节点上 缓存中
+      let disk_location_path = info.disk_location.clone();
+      info
+        .context
+        .borrow_mut()
+        .set_parse_cache(disk_location_path.as_str(), info.self_weak.clone());
+      let res = Self::parse(
+        info.context.clone(),
+        &info.origin_charlist,
+        &info.locmap,
+        None,
+        info.self_weak.clone(),
+        &mut importfiles,
+      )?;
+      res
+    };
+    let mut info = self.info.borrow_mut();
+    info.block_node.append(
       &mut commentlsit
         .into_iter()
         .map(StyleNode::Comment)
         .collect::<Vec<StyleNode>>(),
     );
-    self.block_node.append(
+    info.block_node.append(
       &mut varlist
         .into_iter()
         .map(StyleNode::Var)
         .collect::<Vec<StyleNode>>(),
     );
-    self.block_node.append(
+    info.block_node.append(
       &mut rulelist
         .into_iter()
         .map(StyleNode::Rule)
         .collect::<Vec<StyleNode>>(),
     );
-    self.import_files = importfiles;
+    info.import_files = importfiles
+      .iter()
+      .map(|x| FileNode { info: x.clone() })
+      .collect::<Vec<FileNode>>();
     Ok(())
   }
 }
@@ -180,7 +189,7 @@ pub trait Parse {
       if braces_level == 0
         && wirte_comment
         && ((wirte_line_comment && (*char == '\n' || *char == '\r'))
-        || (wirte_closure_comment && (char, next) == (&'*', Some(&'/'))))
+          || (wirte_closure_comment && (char, next) == (&'*', Some(&'/'))))
       {
         wirte_comment = false;
         if wirte_line_comment {

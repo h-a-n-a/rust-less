@@ -1,5 +1,4 @@
-use crate::new_less::file_manger::FileManger;
-use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
+use crate::new_less::fileinfo::{FileInfo, FileWeakRef};
 use crate::new_less::option::ParseOption;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -11,6 +10,8 @@ pub type ParseCacheMap = HashMap<String, FileWeakRef>;
 
 pub type ParseContext = Rc<RefCell<Context>>;
 
+pub type RenderCacheMap = HashMap<String, String>;
+
 ///
 /// 全局调用 转化时的 上下文
 ///
@@ -19,6 +20,8 @@ pub struct Context {
   pub option: ParseOption,
   // 转文件 的缓存
   pub filecache: ParseCacheMap,
+  // 渲染结果 的缓存
+  pub render_cache: RenderCacheMap,
   // 文件的绝对路径 入口文件
   pub application_fold: String,
   // 已经生成目录的 文件
@@ -51,7 +54,7 @@ impl Context {
     if filepath.exists() {
       if filepath.is_absolute() {
         if filepath.is_file() {
-          let current_dir = FileManger::get_dir(&fold)?;
+          let current_dir = FileInfo::get_dir(&fold)?;
           fold = current_dir
         } else if !filepath.is_dir() {
           return Err(format!("application_fold is not file or dir,{}", fold));
@@ -68,6 +71,7 @@ impl Context {
     let mut obj = Context {
       option,
       filecache: HashMap::new(),
+      render_cache: HashMap::new(),
       application_fold: fold.clone(),
       code_gen_file_path: vec![],
     };
@@ -78,7 +82,7 @@ impl Context {
   ///
   /// 查询 缓存上 翻译结果
   ///
-  pub fn get_cache(&self, file_path: &str) -> FileWeakRef {
+  pub fn get_parse_cache(&self, file_path: &str) -> FileWeakRef {
     let map = &self.filecache;
     let res = map.get(file_path);
     res.map(|x| x.clone().as_ref().unwrap().clone())
@@ -87,11 +91,19 @@ impl Context {
   ///
   /// 添加 缓存上 翻译结果
   ///
-  pub fn set_cache(&mut self, file_path: &str, file_weak_ref: FileWeakRef) {
+  pub fn set_parse_cache(&mut self, file_path: &str, file_weak_ref: FileWeakRef) {
     let res = self.filecache.get(file_path);
     if res.is_none() {
       self.filecache.insert(file_path.to_string(), file_weak_ref);
     }
+  }
+
+  ///
+  /// 清除 parse cache
+  /// 由于现在 缓存的是 指针 只能 单次 transform 同一个文件多次使用
+  ///
+  pub fn clear_parse_cache(&mut self) {
+    self.filecache.clear();
   }
 
   ///
@@ -113,19 +125,46 @@ impl Context {
   }
 
   ///
-  /// 产生代码
+  /// 增加一个css transform 下 @import 引用生成的记录
   ///
-  pub fn render(self, filepath: String) -> Result<String, String> {
-    let context = Rc::new(RefCell::new(self));
-    FileInfo::create_disklocation(filepath, context)
+  pub fn add_codegen_record(&mut self, path: &str) {
+    self.code_gen_file_path.push(path.to_string());
   }
 
   ///
-  /// 解析代码
+  /// 清除本次 codegen 文件的记录
   ///
-  pub fn parse(self, filepath: String) -> Result<FileRef, String> {
-    let context = Rc::new(RefCell::new(self));
-    FileInfo::create_disklocation_parse(filepath, context)
+  pub fn clear_codegen_record(&mut self) {
+    self.code_gen_file_path.clear();
+  }
+
+  ///
+  /// 是否已经生成过 该文件
+  ///
+  pub fn has_codegen_record(&self, path: &str) -> bool {
+    self.code_gen_file_path.contains(&path.to_string())
+  }
+
+
+  ///
+  /// 插入 生成 样式文件的缓存
+  ///
+  pub fn add_render_cache(&mut self, filepath: &str, source: &str) {
+    self.render_cache.insert(filepath.to_string(), source.to_string());
+  }
+
+  ///
+  /// 清除本次 codegen 文件的记录
+  ///
+  pub fn clear_render_cache(&mut self) {
+    self.render_cache.clear();
+  }
+
+  ///
+  /// 获取 codegen 缓存 目标样式代码
+  ///
+  pub fn get_render_cache(&self, filepath: &str) -> Option<&String> {
+    self.render_cache.get(filepath)
   }
 
   ///
@@ -134,19 +173,5 @@ impl Context {
   pub fn default() -> ParseContext {
     let obj = Self::new(Default::default(), None).unwrap();
     Rc::new(RefCell::new(obj))
-  }
-
-  ///
-  /// 清楚生成 文件名
-  ///
-  pub fn clear_codegen(&mut self) {
-    self.code_gen_file_path.clear();
-  }
-
-  ///
-  /// 是否已经生成了
-  ///
-  pub fn has_codegen(&self, path: &str) -> bool {
-    self.code_gen_file_path.contains(&path.to_string())
   }
 }
