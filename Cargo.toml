@@ -1,5 +1,5 @@
 [package]
-name = "rust-less"
+name = "rspack_style"
 version = "0.1.0"
 edition = "2021"
 
