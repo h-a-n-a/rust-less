@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 repository = "https://github.com/zhusjfaker/rust-less.git"
 keywords = ["style", "less", "scss", "sass", "css", "rust-style-toolkit", "rust-toolkit"]
-readme = "https://github.com/zhusjfaker/rust-less/blob/main/readme.md"
+readme = "readme.md"
 
 [profile.bench]
 debug = true
