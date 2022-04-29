@@ -1,7 +1,6 @@
 use crate::extend::string::StringExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::file::{path_join, readfile};
-use crate::new_less::file_manger::FileManger;
 use crate::new_less::loc::LocMap;
 use crate::new_less::node::{NodeRef, StyleNode};
 use crate::new_less::parse::Parse;
@@ -100,7 +99,7 @@ impl FileInfo {
     let charlist: Vec<char>;
     let mut locmap: Option<LocMap> = None;
     let option = context.deref().borrow().get_options();
-    let obj = match FileManger::resolve(filepath, option.include_path.clone()) {
+    let obj = match Self::resolve(filepath, &option.include_path) {
       Ok((abs_path, content)) => {
         text_content = content.clone();
         charlist = content.tocharlist();
@@ -252,7 +251,7 @@ impl FileInfo {
         .borrow()
         .option
         .include_path
-        .contains(filepath.as_ref())
+        .contains(&filepath.to_string())
       {
         return;
       } else {
@@ -297,14 +296,14 @@ impl FileInfo {
   /// 文件查找对应解析路径
   /// 返回值 -> (路径, 文件内容)
   ///
-  pub fn resolve(&self, filepath: String) -> Result<(String, String), String> {
+  pub fn resolve(filepath: String, include_path: &Vec<String>) -> Result<(String, String), String> {
     // 相对路径 和 绝对路径 分开计算
-    return if FileManger::is_relative_path(&filepath) {
+    return if Self::is_relative_path(&filepath) {
       // 相对路径的情况
       let mut abs_path: Option<String> = None;
       let mut failpath = vec![];
       let mut content: Option<String> = None;
-      for basepath in self.context.borrow().option.include_path {
+      for basepath in include_path {
         let temp_path = path_join(basepath.as_str(), filepath.as_str());
         match readfile(temp_path.as_str()) {
           Ok(res) => {

@@ -1,6 +1,7 @@
 mod arco_pro;
 mod comment;
 mod import;
+mod life_time;
 mod loc;
 mod media;
 mod parse;

@@ -1,5 +1,4 @@
-use crate::new_less::file_manger::FileManger;
-use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
+use crate::new_less::fileinfo::{FileInfo, FileWeakRef};
 use crate::new_less::option::ParseOption;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -51,7 +50,7 @@ impl Context {
     if filepath.exists() {
       if filepath.is_absolute() {
         if filepath.is_file() {
-          let current_dir = FileManger::get_dir(&fold)?;
+          let current_dir = FileInfo::get_dir(&fold)?;
           fold = current_dir
         } else if !filepath.is_dir() {
           return Err(format!("application_fold is not file or dir,{}", fold));
@@ -113,30 +112,6 @@ impl Context {
   }
 
   ///
-  /// 产生代码
-  ///
-  pub fn render(self, filepath: String) -> Result<String, String> {
-    let context = Rc::new(RefCell::new(self));
-    FileInfo::create_disklocation(filepath, context)
-  }
-
-  ///
-  /// 解析代码
-  ///
-  pub fn parse(self, filepath: String) -> Result<FileRef, String> {
-    let context = Rc::new(RefCell::new(self));
-    FileInfo::create_disklocation_parse(filepath, context)
-  }
-
-  ///
-  /// 生成默认上下文
-  ///
-  pub fn default() -> ParseContext {
-    let obj = Self::new(Default::default(), None).unwrap();
-    Rc::new(RefCell::new(obj))
-  }
-
-  ///
   /// 清楚生成 文件名
   ///
   pub fn clear_codegen(&mut self) {
@@ -148,5 +123,13 @@ impl Context {
   ///
   pub fn has_codegen(&self, path: &str) -> bool {
     self.code_gen_file_path.contains(&path.to_string())
+  }
+
+  ///
+  /// 生成默认上下文
+  ///
+  pub fn default() -> ParseContext {
+    let obj = Self::new(Default::default(), None).unwrap();
+    Rc::new(RefCell::new(obj))
   }
 }

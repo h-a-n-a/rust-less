@@ -1,6 +1,5 @@
 use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::context::ParseContext;
-use crate::new_less::file_manger::FileManger;
 use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::NodeWeakRef;
@@ -183,8 +182,8 @@ impl ImportNode {
     }
     // 处理递归解析 若节点不存在 则 不进行处理
     let file_path = self.parse_hook_url.clone();
-    let include_path = self.get_options().include_path;
-    let (abs_path, _file_content) = FileManger::resolve(file_path, include_path)?;
+    let include_path = self.get_include_path();
+    let (abs_path, _file_content) = FileInfo::resolve(file_path, &include_path)?;
     let weak_file_ref_option = self.context.borrow().get_cache(abs_path.as_str());
     // 自动忽略已经翻译后的文件
     if let Some(weak_file_ref) = weak_file_ref_option {
@@ -206,5 +205,12 @@ impl ImportNode {
   ///
   pub fn get_options(&self) -> ParseOption {
     self.context.borrow().option.clone()
+  }
+
+  pub fn get_include_path(&self) -> Vec<String> {
+    let mut include_path = self.get_options().include_path;
+    let fileinfo = self.fileinfo.as_ref().unwrap().upgrade().unwrap();
+    include_path.push(fileinfo.borrow().disk_location.clone());
+    include_path
   }
 }

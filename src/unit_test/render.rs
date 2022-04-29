@@ -1,12 +1,12 @@
 use crate::extend::string::StringExtend;
-use crate::new_less::context::Context;
+use crate::new_less::applicationn::Application;
 use crate::new_less::file::path_resolve;
 
 #[test]
 fn test_less_render() {
   let filepath = path_resolve("assets/test.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let res = context.render(filepath.clone()).unwrap();
+  let app = Application::default();
+  let res = app.render(filepath.clone()).unwrap();
   // let context1 = Context::new(Default::default(), Some(filepath.clone())).unwrap();
   // let info = context1.parse(filepath).unwrap();
   // let json = serde_json::to_string_pretty(&info).unwrap();
@@ -17,8 +17,8 @@ fn test_less_render() {
 #[test]
 fn test_keyframe_at_select_render() {
   let filepath = path_resolve("assets/keyframes.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let res = context.render(filepath.clone()).unwrap();
+  let app = Application::default();
+  let res = app.render(filepath.clone()).unwrap();
   println!("{}", res);
   let target_code = r#"
 .a, .b {
@@ -71,8 +71,8 @@ fn test_keyframe_at_select_render() {
 #[test]
 fn test_demo_render() {
   let filepath = path_resolve("assets/demo.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let res = context.render(filepath).unwrap();
+  let app = Application::default();
+  let res = app.render(filepath).unwrap();
   println!("{}", res);
   let target_code = r#"
   h2 {
@@ -133,8 +133,8 @@ textarea .b {
 #[test]
 fn test_string_const_support_var_render() {
   let filepath = path_resolve("assets/stringconst.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let res = context.render(filepath.clone()).unwrap();
+  let app = Application::default();
+  let res = app.render(filepath.clone()).unwrap();
   println!("{}", res);
   let target_code = r#"
 .d {
@@ -152,10 +152,10 @@ fn test_string_const_support_var_render() {
 #[test]
 fn test_select_support_var_render() {
   let filepath = path_resolve("assets/select_var.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let res = context.render(filepath.clone()).unwrap();
+  let app = Application::default();
+  let res = app.render(filepath.clone()).unwrap();
   println!("{}", res);
-    let target_code = r#"
+  let target_code = r#"
 .a {
   height: 20px;
 }
@@ -169,34 +169,34 @@ fn test_select_support_var_render() {
   100% { -webkit-transform: rotate(360deg); }
 }
     "#;
-    assert_eq!(
-      res.simple_compare(),
-      target_code.to_string().simple_compare()
-    );
+  assert_eq!(
+    res.simple_compare(),
+    target_code.to_string().simple_compare()
+  );
 }
 
 #[test]
 fn test_select_mixin_render() {
   let filepath = path_resolve("assets/mixin.less");
-  let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-  let res = context.render(filepath.clone()).unwrap();
+  let app = Application::default();
+  let res = app.render(filepath.clone()).unwrap();
   println!("{}", res);
-//   let target_code = r#"
-// .a {
-//   height: 20px;
-// }
-//
-// .a h2 {
-//   width: 10px;
-// }
-//
-// @-webkit-keyframes nprogress-spinner {
-//   0%   { -webkit-transform: rotate(0deg); }
-//   100% { -webkit-transform: rotate(360deg); }
-// }
-//     "#;
-//   assert_eq!(
-//     res.simple_compare(),
-//     target_code.to_string().simple_compare()
-//   );
+  //   let target_code = r#"
+  // .a {
+  //   height: 20px;
+  // }
+  //
+  // .a h2 {
+  //   width: 10px;
+  // }
+  //
+  // @-webkit-keyframes nprogress-spinner {
+  //   0%   { -webkit-transform: rotate(0deg); }
+  //   100% { -webkit-transform: rotate(360deg); }
+  // }
+  //     "#;
+  //   assert_eq!(
+  //     res.simple_compare(),
+  //     target_code.to_string().simple_compare()
+  //   );
 }

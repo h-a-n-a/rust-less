@@ -1,4 +1,4 @@
-use crate::new_less::context::Context;
+use crate::new_less::applicationn::Application;
 use crate::new_less::file::path_resolve;
 use crate::new_less::option::ParseOption;
 use test::Bencher;
@@ -8,8 +8,8 @@ fn parse_less_bench(bench: &mut Bencher) {
   bench.iter(|| {
     // 处理过程
     let filepath = path_resolve("assets/demo.less");
-    let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-    context.render(filepath).unwrap();
+    let app = Application::default();
+    app.render(filepath).unwrap();
   });
 }
 
@@ -17,7 +17,7 @@ fn parse_less_bench(bench: &mut Bencher) {
 fn parse_var_bench(bench: &mut Bencher) {
   bench.iter(|| {
     let filepath = path_resolve("assets/var.less");
-    let context = Context::new(
+    let app = Application::new(
       ParseOption {
         include_path: vec![],
         sourcemap: false,
@@ -27,7 +27,7 @@ fn parse_var_bench(bench: &mut Bencher) {
       Some(filepath.clone()),
     )
     .unwrap();
-    context.render(filepath).unwrap();
+    app.render(filepath).unwrap();
   });
 }
 
@@ -36,8 +36,8 @@ fn render_less_arco_pro_bench(bench: &mut Bencher) {
   bench.iter(|| {
     // 处理过程
     let filepath = path_resolve("assets/arco-pro/13.less");
-    let context = Context::new(Default::default(), Some(filepath.clone())).unwrap();
-    context.render(filepath).unwrap();
+    let app = Application::default();
+    app.render(filepath).unwrap();
   });
 }
 
@@ -46,7 +46,7 @@ fn render_less_arco_pro_bench_without_sourcemap(bench: &mut Bencher) {
   bench.iter(|| {
     // 处理过程
     let filepath = path_resolve("assets/arco-pro/13.less");
-    let context = Context::new(
+    let app = Application::new(
       ParseOption {
         include_path: vec![],
         sourcemap: false,
@@ -56,6 +56,6 @@ fn render_less_arco_pro_bench_without_sourcemap(bench: &mut Bencher) {
       Some(filepath.clone()),
     )
     .unwrap();
-    context.render(filepath).unwrap();
+    app.render(filepath).unwrap();
   });
 }
