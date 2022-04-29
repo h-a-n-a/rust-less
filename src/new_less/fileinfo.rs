@@ -1,17 +1,14 @@
-use crate::extend::string::StringExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::file::{path_join, readfile};
+use crate::new_less::filenode::FileNode;
 use crate::new_less::loc::LocMap;
-use crate::new_less::node::{NodeRef, StyleNode};
-use crate::new_less::parse::Parse;
-use crate::new_less::select_node::SelectorNode;
+use crate::new_less::node::StyleNode;
 use crate::new_less::var::VarRuleNode;
 use crate::new_less::var_node::VarNode;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
-use std::ops::Deref;
 use std::path::Path;
 use std::rc::{Rc, Weak};
 
@@ -32,7 +29,7 @@ pub struct FileInfo {
   // 自身弱引用
   pub self_weak: FileWeakRef,
   // 该文件的引用文件
-  pub import_files: Vec<FileRef>,
+  pub import_files: Vec<FileNode>,
 }
 
 pub type FileRef = Rc<RefCell<FileInfo>>;
@@ -73,197 +70,29 @@ impl FileInfo {
   }
 
   ///
-  /// 生成整个文件的 locmap 地图
-  ///
-  pub fn get_loc_by_content(chars: &[char]) -> LocMap {
-    LocMap::new(chars)
-  }
-
-  ///
-  /// 根据文件路径 转换 文件
-  ///
-  pub fn create_disklocation(filepath: String, context: ParseContext) -> Result<String, String> {
-    let obj_heap = Self::create_disklocation_parse(filepath, context)?;
-    let res = obj_heap.deref().borrow().code_gen()?;
-    Ok(res)
-  }
-
-  ///
-  /// 根据文件路径 解析 文件
-  ///
-  pub fn create_disklocation_parse(
-    filepath: String,
-    context: ParseContext,
-  ) -> Result<FileRef, String> {
-    let text_content: String;
-    let charlist: Vec<char>;
-    let mut locmap: Option<LocMap> = None;
-    let option = context.deref().borrow().get_options();
-    let obj = match Self::resolve(filepath, &option.include_path) {
-      Ok((abs_path, content)) => {
-        text_content = content.clone();
-        charlist = content.tocharlist();
-        if option.sourcemap {
-          locmap = Some(FileInfo::get_loc_by_content(&charlist));
-        }
-        FileInfo {
-          disk_location: abs_path,
-          block_node: vec![],
-          origin_txt_content: text_content,
-          origin_charlist: charlist,
-          locmap,
-          context,
-          self_weak: None,
-          import_files: vec![],
-        }
-      }
-      Err(msg) => {
-        return Err(msg);
-      }
-    };
-    let obj_heap = obj.toheap();
-    obj_heap.borrow_mut().parse_heap()?;
-    obj_heap.borrow().parse_select_all_node()?;
-    Ok(obj_heap)
-  }
-
-  ///
-  /// 根据文件内容 解析文件
-  ///
-  pub fn create_txt_content_parse(
-    content: String,
-    context: ParseContext,
-    filename: String,
-  ) -> Result<FileRef, String> {
-    let text_content: String = content;
-    let charlist = text_content.tocharlist();
-    let option = context.deref().borrow().get_options();
-    let mut locmap: Option<LocMap> = None;
-    if option.sourcemap {
-      locmap = Some(FileInfo::get_loc_by_content(&charlist));
-    }
-    let obj = FileInfo {
-      disk_location: filename,
-      block_node: vec![],
-      origin_txt_content: text_content,
-      origin_charlist: charlist,
-      locmap,
-      context,
-      self_weak: None,
-      import_files: vec![],
-    };
-    let obj_heap = obj.toheap();
-    obj_heap.borrow_mut().parse_heap()?;
-    obj_heap.borrow().parse_select_all_node()?;
-    Ok(obj_heap)
-  }
-
-  ///
-  /// parse 当前文件下 所有的 select 字符串
-  /// 需要 第一遍 完成基本遍历
-  ///
-  pub fn parse_select_all_node(&self) -> Result<(), String> {
-    // todo! 若要支持 @{abc} 变量 跨文件调用 select 需要 select 解析放到 codegen 里
-    for node in self.block_node.iter() {
-      if let StyleNode::Rule(heapnode) = node {
-        let mut mut_node = heapnode.borrow_mut();
-        if let Some(SelectorNode::Select(s_node)) = mut_node.selector.as_mut() {
-          s_node.parse(None)?;
-        }
-        drop(mut_node);
-        heapnode.borrow().parse_select_all_node()?;
-      }
-    }
-    Ok(())
-  }
-
-  pub fn create_txt_content(
-    content: String,
-    context: ParseContext,
-    filename: String,
-  ) -> Result<String, String> {
-    let obj = Self::create_txt_content_parse(content, context, filename)?;
-    let res = obj.deref().borrow().code_gen()?;
-    Ok(res)
-  }
-
-  pub fn getrules(&self) -> Vec<NodeRef> {
-    let mut list = vec![];
-
-    self.block_node.iter().for_each(|x| {
-      if let StyleNode::Rule(rule) = x {
-        list.push(rule.clone())
-      }
-    });
-    list
-  }
-
-  ///
-  /// 生成代码
-  ///
-  pub fn code_gen(&self) -> Result<String, String> {
-    let mut res = "".to_string();
-    if !self.import_files.is_empty() {
-      for item in self.import_files.iter() {
-        if !self
-          .context
-          .borrow()
-          .has_codegen(&item.deref().borrow().disk_location)
-        {
-          let import_res = item.deref().borrow().code_gen()?;
-          res += &import_res;
-          res += "\n";
-        }
-      }
-    }
-    for item in self.getrules() {
-      item.deref().borrow().code_gen(&mut res)?;
-    }
-    Ok(res)
-  }
-
-  ///
   /// 获取 某文件下 所有的 变量节点
   /// 递归 获取所有 fileinfo 上 block_node -> var 节点
   ///
   pub fn collect_vars(&self) -> Vec<VarNode> {
     let mut varlist = vec![];
-    for fileinfo in &self.import_files {
-      for item in &fileinfo.borrow().block_node {
-        if let StyleNode::Var(VarRuleNode::Var(var)) = item.deref() {
+    for filenode in &self.import_files {
+      for item in &filenode.info.borrow().block_node {
+        if let StyleNode::Var(VarRuleNode::Var(var)) = &item {
           varlist.push(var.clone());
         }
       }
       // 递归收集
-      let mut child_var_list = fileinfo.borrow().collect_vars();
+      let mut child_var_list = filenode.info.borrow().collect_vars();
       varlist.append(&mut child_var_list)
     }
     varlist
   }
 
   ///
-  /// 修复路径
+  /// 生成整个文件的 locmap 地图
   ///
-  pub fn save_include_paths_with_context(&mut self, filepath: &str) {
-    if !Self::is_relative_path(filepath) {
-      if self
-        .context
-        .borrow()
-        .option
-        .include_path
-        .contains(&filepath.to_string())
-      {
-        return;
-      } else {
-        self
-          .context
-          .borrow_mut()
-          .option
-          .include_path
-          .push(filepath.to_string());
-      }
-    } else {
-    }
+  pub fn get_loc_by_content(chars: &[char]) -> LocMap {
+    LocMap::new(chars)
   }
 
   ///

@@ -10,8 +10,8 @@ fn test_comment_remove() {
   let record = wastetime("test_less");
   let filepath = path_resolve("assets/comment.less");
   let app = Application::default();
-  let info = app.parse(filepath).unwrap();
-  let content = info.borrow().rm_comment();
+  let node = app.parse(filepath).unwrap();
+  let content = node.info.borrow().rm_comment();
   record();
   let target = r#"
 @height: 300px;

@@ -1,5 +1,5 @@
 use crate::new_less::context::{Context, ParseContext};
-use crate::new_less::fileinfo::{FileInfo, FileRef};
+use crate::new_less::filenode::FileNode;
 use crate::new_less::option::ParseOption;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -20,14 +20,14 @@ impl Application {
   /// 产生代码
   ///
   pub fn render(&self, filepath: String) -> Result<String, String> {
-    FileInfo::create_disklocation(filepath, self.context.clone())
+    FileNode::create_disklocation(filepath, self.context.clone())
   }
 
   ///
   /// 解析代码
   ///
-  pub fn parse(self, filepath: String) -> Result<FileRef, String> {
-    FileInfo::create_disklocation_parse(filepath, self.context.clone())
+  pub fn parse(self, filepath: String) -> Result<FileNode, String> {
+    FileNode::create_disklocation_parse(filepath, self.context.clone())
   }
 
   ///
