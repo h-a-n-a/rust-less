@@ -187,6 +187,7 @@ impl ImportNode {
     let (abs_path, _file_content) = FileInfo::resolve(file_path, &include_path)?;
     let weak_file_ref_option = self.context.borrow().get_parse_cache(abs_path.as_str());
     // 自动忽略已经翻译后的文件
+    // todo 暂时不能跨 css -> transform 使用Parse缓存
     if let Some(weak_file_ref) = weak_file_ref_option {
       let heap_obj = weak_file_ref.upgrade().unwrap();
       importfiles.push(heap_obj);

@@ -2,6 +2,7 @@ use crate::new_less::context::{Context, ParseContext};
 use crate::new_less::filenode::FileNode;
 use crate::new_less::option::ParseOption;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 pub struct Application {
@@ -21,6 +22,14 @@ impl Application {
   ///
   pub fn render(&self, filepath: String) -> Result<String, String> {
     FileNode::create_disklocation(filepath, self.context.clone())
+  }
+
+  ///
+  /// 产生代码
+  /// 并且分层 进入 hashmap
+  ///
+  pub fn render_into_hashmap(&self, filepath: String) -> Result<HashMap<String, String>, String> {
+    FileNode::create_disklocation_into_hashmap(filepath, self.context.clone())
   }
 
   ///

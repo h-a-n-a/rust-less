@@ -170,8 +170,21 @@ impl FileNode {
   pub fn create_disklocation(filepath: String, context: ParseContext) -> Result<String, String> {
     let obj = Self::create_disklocation_parse(filepath, context.clone())?;
     let res = obj.code_gen()?;
+    context.borrow_mut().clear_parse_cache();
     context.borrow_mut().clear_codegen_record();
     Ok(res)
+  }
+
+  ///
+  /// 根据文件路径 转换 文件
+  ///
+  pub fn create_disklocation_into_hashmap(filepath: String, context: ParseContext) -> Result<HashMap<String, String>, String> {
+    let obj = Self::create_disklocation_parse(filepath, context.clone())?;
+    let mut map = HashMap::new();
+    obj.code_gen_into_map(&mut map)?;
+    context.borrow_mut().clear_parse_cache();
+    context.borrow_mut().clear_codegen_record();
+    Ok(map)
   }
 
   ///

@@ -99,6 +99,14 @@ impl Context {
   }
 
   ///
+  /// 清除 parse cache
+  /// 由于现在 缓存的是 指针 只能 单次 transform 同一个文件多次使用
+  ///
+  pub fn clear_parse_cache(&mut self) {
+    self.filecache.clear();
+  }
+
+  ///
   /// 获取选项
   ///
   pub fn get_options(&self) -> ParseOption {

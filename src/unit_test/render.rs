@@ -176,6 +176,16 @@ fn test_select_support_var_render() {
 }
 
 #[test]
+fn test_multi_file_render() {
+  let filepath1 = path_resolve("assets/demo.less");
+  let filepath2 = path_resolve("assets/multi_same_import.less");
+  let app = Application::default();
+  let map1 = app.render_into_hashmap(filepath1).unwrap();
+  let map2 = app.render_into_hashmap(filepath2).unwrap();
+  println!("map1->{:#?} \n map2->{:#?}", map1, map2)
+}
+
+#[test]
 fn test_select_mixin_render() {
   let filepath = path_resolve("assets/mixin.less");
   let app = Application::default();
