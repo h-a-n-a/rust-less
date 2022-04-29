@@ -185,7 +185,7 @@ impl ImportNode {
     let file_path = self.parse_hook_url.clone();
     let include_path = self.get_include_path();
     let (abs_path, _file_content) = FileInfo::resolve(file_path, &include_path)?;
-    let weak_file_ref_option = self.context.borrow().get_cache(abs_path.as_str());
+    let weak_file_ref_option = self.context.borrow().get_parse_cache(abs_path.as_str());
     // 自动忽略已经翻译后的文件
     if let Some(weak_file_ref) = weak_file_ref_option {
       let heap_obj = weak_file_ref.upgrade().unwrap();
@@ -196,7 +196,7 @@ impl ImportNode {
       self
         .context
         .borrow_mut()
-        .set_cache(abs_path.as_str(), Some(Rc::downgrade(&node.info)));
+        .set_parse_cache(abs_path.as_str(), Some(Rc::downgrade(&node.info)));
     }
     Ok(())
   }

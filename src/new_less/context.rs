@@ -10,6 +10,8 @@ pub type ParseCacheMap = HashMap<String, FileWeakRef>;
 
 pub type ParseContext = Rc<RefCell<Context>>;
 
+pub type RenderCacheMap = HashMap<String, String>;
+
 ///
 /// 全局调用 转化时的 上下文
 ///
@@ -18,6 +20,8 @@ pub struct Context {
   pub option: ParseOption,
   // 转文件 的缓存
   pub filecache: ParseCacheMap,
+  // 渲染结果 的缓存
+  pub render_cache: RenderCacheMap,
   // 文件的绝对路径 入口文件
   pub application_fold: String,
   // 已经生成目录的 文件
@@ -67,6 +71,7 @@ impl Context {
     let mut obj = Context {
       option,
       filecache: HashMap::new(),
+      render_cache: HashMap::new(),
       application_fold: fold.clone(),
       code_gen_file_path: vec![],
     };
@@ -77,7 +82,7 @@ impl Context {
   ///
   /// 查询 缓存上 翻译结果
   ///
-  pub fn get_cache(&self, file_path: &str) -> FileWeakRef {
+  pub fn get_parse_cache(&self, file_path: &str) -> FileWeakRef {
     let map = &self.filecache;
     let res = map.get(file_path);
     res.map(|x| x.clone().as_ref().unwrap().clone())
@@ -86,7 +91,7 @@ impl Context {
   ///
   /// 添加 缓存上 翻译结果
   ///
-  pub fn set_cache(&mut self, file_path: &str, file_weak_ref: FileWeakRef) {
+  pub fn set_parse_cache(&mut self, file_path: &str, file_weak_ref: FileWeakRef) {
     let res = self.filecache.get(file_path);
     if res.is_none() {
       self.filecache.insert(file_path.to_string(), file_weak_ref);
@@ -112,17 +117,46 @@ impl Context {
   }
 
   ///
-  /// 清楚生成 文件名
+  /// 增加一个css transform 下 @import 引用生成的记录
   ///
-  pub fn clear_codegen(&mut self) {
+  pub fn add_codegen_record(&mut self, path: &str) {
+    self.code_gen_file_path.push(path.to_string());
+  }
+
+  ///
+  /// 清除本次 codegen 文件的记录
+  ///
+  pub fn clear_codegen_record(&mut self) {
     self.code_gen_file_path.clear();
   }
 
   ///
-  /// 是否已经生成了
+  /// 是否已经生成过 该文件
   ///
-  pub fn has_codegen(&self, path: &str) -> bool {
+  pub fn has_codegen_record(&self, path: &str) -> bool {
     self.code_gen_file_path.contains(&path.to_string())
+  }
+
+
+  ///
+  /// 插入 生成 样式文件的缓存
+  ///
+  pub fn add_render_cache(&mut self, filepath: &str, source: &str) {
+    self.render_cache.insert(filepath.to_string(), source.to_string());
+  }
+
+  ///
+  /// 清除本次 codegen 文件的记录
+  ///
+  pub fn clear_render_cache(&mut self) {
+    self.render_cache.clear();
+  }
+
+  ///
+  /// 获取 codegen 缓存 目标样式代码
+  ///
+  pub fn get_render_cache(&self, filepath: &str) -> Option<&String> {
+    self.render_cache.get(filepath)
   }
 
   ///

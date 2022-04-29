@@ -18,7 +18,7 @@ impl Parse for FileNode {
       info
         .context
         .borrow_mut()
-        .set_cache(disk_location_path.as_str(), info.self_weak.clone());
+        .set_parse_cache(disk_location_path.as_str(), info.self_weak.clone());
       let res = Self::parse(
         info.context.clone(),
         &info.origin_charlist,

@@ -21,8 +21,6 @@ fn test_str() {
   assert_eq!(index_1, -1);
   assert_eq!(index_2, 1);
   assert_eq!(index_3, 1);
-  // let _t = &strore[1..1];
-  // println!("......");
 }
 
 #[test]
