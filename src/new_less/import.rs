@@ -173,13 +173,15 @@ impl ImportNode {
     if has_apost || has_quote {
       return Err(self.error_msg(&(self.charlist.len() - 2)));
     }
-    let options = self.get_options();
     // 过滤 对应 hook
-    if options.hooks.import_alias.is_some() {
-      let convert = options.hooks.import_alias.as_ref().unwrap();
-      self.parse_hook_url = convert(path);
-    } else {
-      self.parse_hook_url = path;
+    {
+      let context = self.context.borrow();
+      if context.hooks.import_alias.is_some() {
+        let convert = context.hooks.import_alias.as_ref().unwrap();
+        self.parse_hook_url = convert(path);
+      } else {
+        self.parse_hook_url = path;
+      }
     }
     // 处理递归解析 若节点不存在 则 不进行处理
     let file_path = self.parse_hook_url.clone();

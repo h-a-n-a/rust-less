@@ -1,16 +1,38 @@
-use crate::new_less::fileinfo::{FileInfo, FileWeakRef};
+use crate::new_less::fileinfo::{FileInfo, FileWeakRef, FileWeakRefAsync};
+use crate::new_less::hooks::ParseHooks;
 use crate::new_less::option::ParseOption;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::path::Path;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 pub type ParseCacheMap = HashMap<String, FileWeakRef>;
 
 pub type ParseContext = Rc<RefCell<Context>>;
 
+pub type ParseCacheMapAsync = HashMap<String, FileWeakRefAsync>;
+
+pub type ParseContextAsync = Arc<RefCell<Context>>;
+
 pub type RenderCacheMap = HashMap<String, String>;
+
+///
+/// 全局调用 转化时的 上下文
+///
+pub struct ContextAsync {
+  // 内部调用方式时 需要拿到对应的 转化配置
+  pub option: ParseOption,
+  // 转文件 的缓存
+  pub filecache: Mutex<ParseCacheMapAsync>,
+  // // 渲染结果 的缓存
+  pub render_cache: Mutex<RenderCacheMap>,
+  // 文件的绝对路径 入口文件
+  pub application_fold: String,
+  // 已经生成目录的 文件
+  pub code_gen_file_path: Vec<String>,
+}
 
 ///
 /// 全局调用 转化时的 上下文
@@ -26,6 +48,18 @@ pub struct Context {
   pub application_fold: String,
   // 已经生成目录的 文件
   pub code_gen_file_path: Vec<String>,
+  // 插件 -> hook
+  pub hooks: ParseHooks,
+}
+
+impl Debug for ContextAsync {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("Context")
+      .field("option", &self.option)
+      .field("entry", &self.application_fold)
+      .field("filepaths", &self.code_gen_file_path)
+      .finish()
+  }
 }
 
 impl Debug for Context {
@@ -74,6 +108,7 @@ impl Context {
       render_cache: HashMap::new(),
       application_fold: fold.clone(),
       code_gen_file_path: vec![],
+      hooks: Default::default(),
     };
     obj.set_include_paths(vec![fold]);
     Ok(obj)
@@ -145,12 +180,13 @@ impl Context {
     self.code_gen_file_path.contains(&path.to_string())
   }
 
-
   ///
   /// 插入 生成 样式文件的缓存
   ///
   pub fn add_render_cache(&mut self, filepath: &str, source: &str) {
-    self.render_cache.insert(filepath.to_string(), source.to_string());
+    self
+      .render_cache
+      .insert(filepath.to_string(), source.to_string());
   }
 
   ///

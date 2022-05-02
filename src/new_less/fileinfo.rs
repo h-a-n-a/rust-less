@@ -11,6 +11,7 @@ use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
 use std::path::Path;
 use std::rc::{Rc, Weak};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct FileInfo {
@@ -34,7 +35,11 @@ pub struct FileInfo {
 
 pub type FileRef = Rc<RefCell<FileInfo>>;
 
+pub type FileRefAsync = Arc<RefCell<FileInfo>>;
+
 pub type FileWeakRef = Option<Weak<RefCell<FileInfo>>>;
+
+pub type FileWeakRefAsync = Option<std::sync::Weak<RefCell<FileInfo>>>;
 
 impl Serialize for FileInfo {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

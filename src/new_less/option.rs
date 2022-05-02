@@ -1,5 +1,4 @@
 use crate::new_less::fileinfo::FileInfo;
-use crate::new_less::hooks::ParseHooks;
 use crate::new_less::rule::RuleNode;
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
@@ -9,7 +8,6 @@ pub struct ParseOption {
   pub include_path: Vec<String>,
   pub sourcemap: bool,
   pub tabspaces: usize,
-  pub hooks: ParseHooks,
 }
 
 impl Debug for ParseOption {
@@ -36,7 +34,6 @@ impl Default for ParseOption {
       include_path: vec![],
       sourcemap: true,
       tabspaces: 2,
-      hooks: Default::default(),
     }
   }
 }
