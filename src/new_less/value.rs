@@ -9,6 +9,7 @@ use crate::new_less::token::lib::Token;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
 use std::fmt::{Debug, Formatter};
+use serde_json::{Map, Value};
 
 #[derive(Clone)]
 pub struct ValueNode {
@@ -24,17 +25,21 @@ pub struct ValueNode {
   // 内部处理 地图
   map: LocMap,
 
+  // 起始位置
+  pub loc: Option<Loc>,
+
   // 单词 范式
   pub word_ident_list: Vec<IdentType>,
 }
 
 impl Serialize for ValueNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: Serializer,
+    where
+      S: Serializer,
   {
     let mut state = serializer.serialize_struct("ValueNode", 2)?;
     state.serialize_field("content", &self.charlist.poly())?;
+    state.serialize_field("loc", &self.loc)?;
     state.serialize_field("ident", &self.word_ident_list)?;
     state.end()
   }
@@ -66,9 +71,41 @@ impl ValueNode {
       parent,
       fileinfo,
       map,
+      loc,
       word_ident_list: vec![],
     };
     obj.parse()?;
+    Ok(obj)
+  }
+
+  ///
+  /// 反序列
+  ///
+  pub fn deserializer(map: &Map<String, Value>, parent: NodeWeakRef, fileinfo: FileWeakRef) -> Result<Self, String> {
+    let mut obj = Self {
+      charlist: vec![],
+      parent,
+      fileinfo,
+      map: LocMap::new(&vec![]),
+      loc: None,
+      word_ident_list: vec![],
+    };
+    if let Some(Value::String(content)) = map.get("content") {
+      obj.charlist = content.tocharlist();
+    } else {
+      return Err(format!("deserializer ValueNode has error -> content is empty!"));
+    }
+    if let Some(Value::Object(loc)) = map.get("loc") {
+      obj.loc = Some(Loc::deserializer(loc));
+      obj.map = LocMap::merge(&obj.loc.as_ref().unwrap(), &obj.charlist).0;
+    } else {
+      obj.map = LocMap::new(&obj.charlist);
+    }
+    if let Some(Value::Array(array_value)) = map.get("ident") {
+      obj.word_ident_list = array_value.iter().map(IdentType::deserializer).collect::<Vec<IdentType>>()
+    } else {
+      return Err(format!("deserializer ValueNode has error -> ident is empty!"));
+    }
     Ok(obj)
   }
 
@@ -495,7 +532,7 @@ impl ValueNode {
             if last_item.is_some()
               && last_item.unwrap().is_number()
               && (Self::is_number(Some(&next_char_no_space))
-                || Self::is_brackets(Some(&next_char_no_space)))
+              || Self::is_brackets(Some(&next_char_no_space)))
             {
               self
                 .word_ident_list

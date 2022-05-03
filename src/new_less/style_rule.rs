@@ -11,7 +11,9 @@ use crate::new_less::var::HandleResult;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
 use std::fmt::{Debug, Formatter};
+use serde_json::{Map, Value};
 use uuid::Uuid;
+use crate::extend::string::StringExtend;
 
 #[derive(Clone)]
 pub struct StyleRuleNode {
@@ -98,6 +100,48 @@ impl StyleRuleNode {
       Ok(_) => HandleResult::Success(obj),
       Err(msg) => HandleResult::Fail(msg),
     }
+  }
+
+  ///
+  /// 反序列
+  ///
+  pub fn deserializer(map: &Map<String, Value>, context: ParseContext, parent: NodeWeakRef, fileinfo: FileWeakRef) -> Result<Self, String> {
+    let mut obj = Self {
+      loc: None,
+      uuid: "".to_string(),
+      map: LocMap::new(&vec![]),
+      charlist: vec![],
+      parent: parent.as_ref().cloned(),
+      fileinfo: fileinfo.as_ref().cloned(),
+      key: None,
+      value: None,
+      context,
+    };
+    if let Some(Value::String(content)) = map.get("content") {
+      obj.charlist = content.tocharlist();
+    } else {
+      return Err(format!("deserializer VarNode has error -> content is empty!"));
+    }
+    if let Some(Value::Object(loc)) = map.get("loc") {
+      obj.loc = Some(Loc::deserializer(loc));
+      obj.map = LocMap::merge(&obj.loc.as_ref().unwrap(), &obj.charlist).0;
+    } else {
+      obj.map = LocMap::new(&obj.charlist);
+    }
+    if let Some(Value::String(uuid)) = map.get("uuid") {
+      obj.uuid = uuid.to_string();
+    } else {
+      return Err(format!("deserializer VarNode has error -> uuid is empty!"));
+    }
+    if let Some(Value::String(key)) = map.get("key") {
+      obj.key = Some(key.to_string());
+    } else {
+      return Err(format!("deserializer VarNode has error -> key is empty!"));
+    }
+    if let Some(Value::Object(value_map)) = map.get("value") {
+      obj.value = Some(ValueNode::deserializer(value_map, parent, fileinfo)?);
+    }
+    Ok(obj)
   }
 
   ///

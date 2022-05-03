@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::Value;
 
 #[derive(Clone, Serialize, Debug, PartialEq, Deserialize)]
 #[serde(tag = "type", content = "value")]
@@ -31,6 +32,14 @@ pub enum IdentType {
 }
 
 impl IdentType {
+
+  ///
+  /// 反序列化
+  ///
+  pub fn deserializer(val:&Value)->Self{
+    serde_json::from_str(&serde_json::to_string(val).unwrap()).unwrap()
+  }
+
   pub fn is_number(&self) -> bool {
     matches!(self, IdentType::Number(_, _))
   }

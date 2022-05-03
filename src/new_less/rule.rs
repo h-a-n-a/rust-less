@@ -14,6 +14,8 @@ use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
 use std::rc::Rc;
+use serde_json::{Map, Value};
+use crate::extend::string::StringExtend;
 
 #[derive(Clone)]
 pub struct RuleNode {
@@ -39,13 +41,13 @@ pub struct RuleNode {
 
 impl Serialize for RuleNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: Serializer,
+    where
+      S: Serializer,
   {
     let mut state = serializer.serialize_struct("RuleNode", 4)?;
     state.serialize_field("content", &self.origin_charlist.poly())?;
     state.serialize_field("loc", &self.loc)?;
-    state.serialize_field("select", &self.selector.as_ref().unwrap().value())?;
+    state.serialize_field("select", &self.selector.as_ref().unwrap())?;
     state.serialize_field("block_node", &self.block_node)?;
     state.end()
   }
@@ -98,6 +100,7 @@ impl RuleNode {
     };
     heapobj.borrow_mut().selector = Some(selector);
     if heapobj.deref().borrow().get_options().sourcemap {
+      heapobj.borrow_mut().loc = change_loc.as_ref().cloned();
       let (calcmap, _) = LocMap::merge(
         change_loc.as_ref().unwrap(),
         &heapobj.borrow().origin_charlist,
@@ -105,6 +108,53 @@ impl RuleNode {
       heapobj.borrow_mut().locmap = Some(calcmap);
     }
     heapobj.borrow_mut().parse_heap()?;
+    Ok(heapobj)
+  }
+
+  ///
+  /// 反序列化
+  ///
+  pub fn deserializer(map: &Map<String, Value>, context: ParseContext, parent: NodeWeakRef, fileinfo: FileWeakRef) -> Result<Rc<RefCell<Self>>, String> {
+    let mut rule_node = Self {
+      selector: None,
+      origin_charlist: vec![],
+      loc: None,
+      locmap: None,
+      parent: parent.as_ref().cloned(),
+      weak_self: None,
+      block_node: vec![],
+      file_info: fileinfo.as_ref().cloned(),
+      context: context.clone(),
+    };
+    if let Some(Value::String(content)) = map.get("content") {
+      rule_node.origin_charlist = content.tocharlist();
+    } else {
+      return Err(format!("deserializer RuleNode has error -> content is empty!"));
+    }
+    if let Some(Value::Object(map)) = map.get("select") {
+      rule_node.selector = Some(SelectorNode::deserializer(map, parent, fileinfo.as_ref().cloned())?);
+    } else {
+      return Err(format!("deserializer RuleNode has error -> select is empty!"));
+    }
+    if let Some(Value::Object(loc)) = map.get("loc") {
+      rule_node.loc = Some(Loc::deserializer(loc));
+      rule_node.locmap = Some(LocMap::merge(rule_node.loc.as_ref().unwrap(), &rule_node.origin_charlist).0);
+    } else {
+      rule_node.locmap = Some(LocMap::new(&rule_node.origin_charlist));
+    }
+    let heapobj = Rc::new(RefCell::new(rule_node));
+    let weak_self = Rc::downgrade(&heapobj);
+    heapobj.borrow_mut().weak_self = Some(weak_self.clone());
+    let json_block_node = map.get("block_node");
+    let mut block_node_recovery_list = vec![];
+    if let Some(Value::Array(block_nodes)) = json_block_node {
+      for json_node in block_nodes {
+        if let Value::Object(json_stylenode) = json_node {
+          block_node_recovery_list.push(StyleNode::deserializer(json_stylenode, context.clone(), Some(weak_self.clone()), fileinfo.as_ref().cloned())?);
+        }
+      }
+    }
+    heapobj.borrow_mut().block_node = block_node_recovery_list;
     Ok(heapobj)
   }
 
@@ -177,7 +227,7 @@ impl RuleNode {
           tab.clone() + &tab.clone() + self.origin_charlist.poly().as_str(),
           "}"
         )
-        .as_str();
+          .as_str();
       } else {
         *content += format!(
           "\n{}{}\n{}{}\n{}\n{}\n{}",
@@ -189,7 +239,7 @@ impl RuleNode {
           tab.clone() + "}",
           "}"
         )
-        .as_str();
+          .as_str();
       }
 
       // 后续不递归了
@@ -215,7 +265,7 @@ impl RuleNode {
           create_rules(tab)?,
           "}"
         )
-        .as_ref();
+          .as_ref();
       } else {
         *content += format!(
           "\n{}{}\n{}{}\n{}\n{}\n{}",
@@ -227,7 +277,7 @@ impl RuleNode {
           "  }",
           "}"
         )
-        .as_ref();
+          .as_ref();
       }
     }
 

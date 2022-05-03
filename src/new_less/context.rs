@@ -1,12 +1,14 @@
-use crate::new_less::fileinfo::{FileInfo, FileWeakRef};
+use crate::new_less::fileinfo::{FileInfo};
 use crate::new_less::option::ParseOption;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::path::Path;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
+use serde_json::Value;
+use crate::new_less::filenode::FileNode;
 
-pub type ParseCacheMap = HashMap<String, FileWeakRef>;
+pub type ParseCacheMap = HashMap<String, String>;
 
 pub type ParseContext = Rc<RefCell<Context>>;
 
@@ -26,6 +28,8 @@ pub struct Context {
   pub application_fold: String,
   // 已经生成目录的 文件
   pub code_gen_file_path: Vec<String>,
+  // 自身的弱引用
+  pub weak_ref: Option<Weak<RefCell<Context>>>,
 }
 
 impl Debug for Context {
@@ -42,7 +46,7 @@ impl Context {
   ///
   /// 创建全局应用 共享上下文
   ///
-  pub fn new(option: ParseOption, application_fold: Option<String>) -> Result<Self, String> {
+  pub fn new(option: ParseOption, application_fold: Option<String>) -> Result<Rc<RefCell<Self>>, String> {
     let mut fold = application_fold.unwrap_or_else(|| {
       std::env::current_dir()
         .unwrap()
@@ -74,27 +78,34 @@ impl Context {
       render_cache: HashMap::new(),
       application_fold: fold.clone(),
       code_gen_file_path: vec![],
+      weak_ref: None,
     };
     obj.set_include_paths(vec![fold]);
-    Ok(obj)
+    let heap_obj = Rc::new(RefCell::new(obj));
+    heap_obj.borrow_mut().weak_ref = Some(Rc::downgrade(&heap_obj));
+    Ok(heap_obj)
   }
 
   ///
   /// 查询 缓存上 翻译结果
   ///
-  pub fn get_parse_cache(&self, file_path: &str) -> FileWeakRef {
+  pub fn get_parse_cache(&self, file_path: &str) -> String {
     let map = &self.filecache;
     let res = map.get(file_path);
-    res.map(|x| x.clone().as_ref().unwrap().clone())
+    if let Some(json_str) = res {
+      json_str.clone()
+    } else {
+      "".to_string()
+    }
   }
 
   ///
   /// 添加 缓存上 翻译结果
   ///
-  pub fn set_parse_cache(&mut self, file_path: &str, file_weak_ref: FileWeakRef) {
+  pub fn set_parse_cache(&mut self, file_path: &str, file_info_json: String) {
     let res = self.filecache.get(file_path);
     if res.is_none() {
-      self.filecache.insert(file_path.to_string(), file_weak_ref);
+      self.filecache.insert(file_path.to_string(), file_info_json);
     }
   }
 
@@ -172,7 +183,23 @@ impl Context {
   /// 生成默认上下文
   ///
   pub fn default() -> ParseContext {
-    let obj = Self::new(Default::default(), None).unwrap();
-    Rc::new(RefCell::new(obj))
+    Self::new(Default::default(), None).unwrap()
+  }
+
+  ///
+  /// 递归恢复 json 上下文
+  ///
+  pub fn recovery_parse_object(&self, key: &str) -> Result<FileNode, String> {
+    let json = self.get_parse_cache(key);
+    if !json.is_empty() {
+      let root: HashMap<String, Value> = serde_json::from_str(&json).unwrap();
+      return if let Some(Value::Object(map)) = root.get("info") {
+        let node = FileNode::deserializer(map, self.weak_ref.as_ref().unwrap().upgrade().unwrap().clone())?;
+        Ok(node)
+      } else {
+        Err(format!("info value is empty!"))
+      };
+    }
+    Err("cache json is empty".to_string())
   }
 }

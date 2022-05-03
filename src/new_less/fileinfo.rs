@@ -38,11 +38,12 @@ pub type FileWeakRef = Option<Weak<RefCell<FileInfo>>>;
 
 impl Serialize for FileInfo {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: Serializer,
+    where
+      S: Serializer,
   {
     let mut state = serializer.serialize_struct("FileInfo", 3)?;
     state.serialize_field("disk_location", &self.disk_location)?;
+    state.serialize_field("origin_txt_content", &self.disk_location)?;
     state.serialize_field("block_node", &self.block_node)?;
     state.serialize_field("import_file", &self.import_files)?;
     state.end()

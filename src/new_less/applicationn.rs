@@ -1,42 +1,40 @@
 use crate::new_less::context::{Context, ParseContext};
 use crate::new_less::filenode::FileNode;
 use crate::new_less::option::ParseOption;
-use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
 
 pub struct Application {
-  context: ParseContext,
+  pub context: ParseContext,
 }
 
 impl Application {
   pub fn new(option: ParseOption, application_fold: Option<String>) -> Result<Self, String> {
     let context = Context::new(option, application_fold)?;
     Ok(Application {
-      context: Rc::new(RefCell::new(context)),
+      context,
     })
   }
 
   ///
   /// 产生代码
   ///
-  pub fn render(&self, filepath: String) -> Result<String, String> {
-    FileNode::create_disklocation(filepath, self.context.clone())
+  pub fn render(&self, filepath: &str) -> Result<String, String> {
+    FileNode::create_disklocation(filepath.to_string(), self.context.clone())
   }
 
   ///
   /// 产生代码
   /// 并且分层 进入 hashmap
   ///
-  pub fn render_into_hashmap(&self, filepath: String) -> Result<HashMap<String, String>, String> {
-    FileNode::create_disklocation_into_hashmap(filepath, self.context.clone())
+  pub fn render_into_hashmap(&self, filepath: &str) -> Result<HashMap<String, String>, String> {
+    FileNode::create_disklocation_into_hashmap(filepath.to_string(), self.context.clone())
   }
 
   ///
   /// 解析代码
   ///
-  pub fn parse(self, filepath: String) -> Result<FileNode, String> {
-    FileNode::create_disklocation_parse(filepath, self.context.clone())
+  pub fn parse(&self, filepath: &str) -> Result<FileNode, String> {
+    FileNode::create_disklocation_parse(filepath.to_string(), self.context.clone())
   }
 
   ///

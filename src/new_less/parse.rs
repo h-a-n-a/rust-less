@@ -13,12 +13,6 @@ impl Parse for FileNode {
     let mut importfiles: Vec<FileRef> = vec![];
     let (commentlsit, varlist, rulelist) = {
       let info = self.info.borrow();
-      // 把当前 节点 的 对象 指针 放到 节点上 缓存中
-      let disk_location_path = info.disk_location.clone();
-      info
-        .context
-        .borrow_mut()
-        .set_parse_cache(disk_location_path.as_str(), info.self_weak.clone());
       let res = Self::parse(
         info.context.clone(),
         &info.origin_charlist,
@@ -189,7 +183,7 @@ pub trait Parse {
       if braces_level == 0
         && wirte_comment
         && ((wirte_line_comment && (*char == '\n' || *char == '\r'))
-          || (wirte_closure_comment && (char, next) == (&'*', Some(&'/'))))
+        || (wirte_closure_comment && (char, next) == (&'*', Some(&'/'))))
       {
         wirte_comment = false;
         if wirte_line_comment {
@@ -280,7 +274,7 @@ pub trait Parse {
             let _content = temp_word[0..temp_word.len() - 1].to_vec().trim();
             if braces_level == 0 {
               match RuleNode::new(
-                temp_word[0..temp_word.len() - 1].to_vec().trim(),
+                temp_word[0..temp_word.len() - 1].to_vec(),
                 selector_txt.clone(),
                 record_loc,
                 fileinfo.clone(),

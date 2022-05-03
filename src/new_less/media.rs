@@ -7,22 +7,35 @@ use crate::new_less::select_node::SelectorNode;
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::media::{TokenMediaFeature, TokenMediaLogic, TokenMediaType};
 use crate::new_less::var::HandleResult;
-use serde::Serialize;
+use serde::{Serialize, Serializer};
+use serde::ser::SerializeStruct;
+use serde_json::{Map, Value};
+use crate::extend::string::StringExtend;
 
 ///
 /// 媒体查询
 ///
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone)]
 pub struct MediaQuery {
   pub loc: Option<Loc>,
 
-  #[serde(skip_serializing)]
   map: LocMap,
 
   pub charlist: Vec<char>,
 
-  #[serde(skip_serializing)]
   pub parent: NodeWeakRef,
+}
+
+impl Serialize for MediaQuery {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+      S: Serializer,
+  {
+    let mut state = serializer.serialize_struct("FileInfo", 2)?;
+    state.serialize_field("loc", &self.loc)?;
+    state.serialize_field("content", &self.charlist.poly())?;
+    state.end()
+  }
 }
 
 impl MediaQuery {
@@ -51,6 +64,30 @@ impl MediaQuery {
         }
       }
     }
+  }
+
+  ///
+  /// 反序列化
+  ///
+  pub fn deserializer(map: &Map<String, Value>, parent: NodeWeakRef) -> Result<Self, String> {
+    let mut media = Self {
+      loc: None,
+      map: LocMap::new(&vec![]),
+      charlist: vec![],
+      parent,
+    };
+    if let Some(Value::String(content)) = map.get("content") {
+      media.charlist = content.tocharlist();
+    } else {
+      return Err(format!("deserializer MediaQuery has error -> charlist is empty!"));
+    }
+    if let Some(Value::Object(loc)) = map.get("loc") {
+      media.loc = Some(Loc::deserializer(loc));
+      media.map = LocMap::merge(media.loc.as_ref().unwrap(), &media.charlist).0;
+    } else {
+      media.map = LocMap::new(&media.charlist);
+    }
+    Ok(media)
   }
 
   ///

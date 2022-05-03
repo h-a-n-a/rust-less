@@ -6,7 +6,7 @@ use crate::new_less::file::path_resolve;
 fn test_less_render() {
   let filepath = path_resolve("assets/test.less");
   let app = Application::default();
-  let res = app.render(filepath.clone()).unwrap();
+  let res = app.render(filepath.as_str()).unwrap();
   // let context1 = Context::new(Default::default(), Some(filepath.clone())).unwrap();
   // let info = context1.parse(filepath).unwrap();
   // let json = serde_json::to_string_pretty(&info).unwrap();
@@ -18,7 +18,7 @@ fn test_less_render() {
 fn test_keyframe_at_select_render() {
   let filepath = path_resolve("assets/keyframes.less");
   let app = Application::default();
-  let res = app.render(filepath.clone()).unwrap();
+  let res = app.render(filepath.as_str()).unwrap();
   println!("{}", res);
   let target_code = r#"
 .a, .b {
@@ -72,7 +72,7 @@ fn test_keyframe_at_select_render() {
 fn test_demo_render() {
   let filepath = path_resolve("assets/demo.less");
   let app = Application::default();
-  let res = app.render(filepath).unwrap();
+  let res = app.render(filepath.as_str()).unwrap();
   println!("{}", res);
   let target_code = r#"
   h2 {
@@ -134,7 +134,7 @@ textarea .b {
 fn test_string_const_support_var_render() {
   let filepath = path_resolve("assets/stringconst.less");
   let app = Application::default();
-  let res = app.render(filepath.clone()).unwrap();
+  let res = app.render(filepath.as_str()).unwrap();
   println!("{}", res);
   let target_code = r#"
 .d {
@@ -153,7 +153,7 @@ fn test_string_const_support_var_render() {
 fn test_select_support_var_render() {
   let filepath = path_resolve("assets/select_var.less");
   let app = Application::default();
-  let res = app.render(filepath.clone()).unwrap();
+  let res = app.render(filepath.as_str()).unwrap();
   println!("{}", res);
   let target_code = r#"
 .a {
@@ -180,8 +180,8 @@ fn test_multi_file_render() {
   let filepath1 = path_resolve("assets/demo.less");
   let filepath2 = path_resolve("assets/multi_same_import.less");
   let app = Application::default();
-  let map1 = app.render_into_hashmap(filepath1).unwrap();
-  let map2 = app.render_into_hashmap(filepath2).unwrap();
+  let map1 = app.render_into_hashmap(filepath1.as_str()).unwrap();
+  let map2 = app.render_into_hashmap(filepath2.as_str()).unwrap();
   println!("map1->{:#?} \n map2->{:#?}", map1, map2)
 }
 
@@ -189,7 +189,7 @@ fn test_multi_file_render() {
 fn test_select_mixin_render() {
   let filepath = path_resolve("assets/mixin.less");
   let app = Application::default();
-  let res = app.render(filepath.clone()).unwrap();
+  let res = app.render(filepath.as_str()).unwrap();
   println!("{}", res);
   //   let target_code = r#"
   // .a {
