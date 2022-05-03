@@ -10,6 +10,7 @@ pub type NodeRef = Rc<RefCell<RuleNode>>;
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", content = "value")]
 pub enum StyleNode {
   Comment(CommentNode),
   Var(VarRuleNode),

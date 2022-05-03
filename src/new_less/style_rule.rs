@@ -2,12 +2,12 @@ use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{NodeWeakRef};
+use crate::new_less::node::NodeWeakRef;
 use crate::new_less::option::ParseOption;
 use crate::new_less::scan::traversal;
 use crate::new_less::token::lib::Token;
 use crate::new_less::value::ValueNode;
-use crate::new_less::var::{HandleResult};
+use crate::new_less::var::HandleResult;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
 use std::fmt::{Debug, Formatter};
@@ -45,8 +45,8 @@ pub struct StyleRuleNode {
 
 impl Serialize for StyleRuleNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-      S: Serializer,
+  where
+    S: Serializer,
   {
     let mut state = serializer.serialize_struct("StyleRuleNode", 5)?;
     state.serialize_field("content", &self.charlist.poly())?;
@@ -227,10 +227,8 @@ impl StyleRuleNode {
   ///
   pub fn code_gen(&self) -> Result<String, String> {
     let res = match self.value.as_ref() {
-      None => { "".to_string() }
-      Some(value) => {
-        value.code_gen()?
-      }
+      None => "".to_string(),
+      Some(value) => value.code_gen()?,
     };
     let code_res = format!("{}: {};", self.key.as_ref().unwrap(), res);
     Ok(code_res)

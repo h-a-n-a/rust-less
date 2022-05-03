@@ -14,7 +14,6 @@ fn parse_number_bench(bench: &mut Bencher) {
   });
 }
 
-
 #[bench]
 fn parse_number_compare_bench(bench: &mut Bencher) {
   bench.iter(|| {
@@ -74,7 +73,6 @@ fn scan_oirgin_bench(bench: &mut Bencher) {
   });
 }
 
-
 fn traversal(
   arg_start: Option<usize>,
   charlist: &[char],
@@ -91,7 +89,6 @@ fn traversal(
   Ok((vec![], index))
 }
 
-
 #[bench]
 fn scan_bench(bench: &mut Bencher) {
   let mut txt = "a".to_string();
@@ -102,21 +99,18 @@ fn scan_bench(bench: &mut Bencher) {
   }
   let list = txt.chars().map(|x| x).collect::<Vec<char>>();
   bench.iter(|| {
-    let res = traversal(None, &list, &mut (|arg, charword| {
-      let (
-        _,
-        temp,
-      ) = arg;
-      temp.push(*charword);
-      Ok(())
-    }));
+    let res = traversal(
+      None,
+      &list,
+      &mut (|arg, charword| {
+        let (_, temp) = arg;
+        temp.push(*charword);
+        Ok(())
+      }),
+    );
     match res {
-      Ok(_) => {
-        2
-      }
-      Err(_) => {
-        1
-      }
+      Ok(_) => 2,
+      Err(_) => 1,
     };
   });
 }

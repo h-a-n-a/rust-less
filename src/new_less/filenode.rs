@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use crate::extend::string::StringExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::{FileInfo, FileRef};
@@ -7,6 +6,7 @@ use crate::new_less::node::{NodeRef, StyleNode};
 use crate::new_less::parse::Parse;
 use crate::new_less::select_node::SelectorNode;
 use serde::Serialize;
+use std::collections::HashMap;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct FileNode {
@@ -48,7 +48,11 @@ impl FileNode {
       }
     }
     let mut self_code_gen_res = "".to_string();
-    if let Some(source) = info.context.borrow().get_render_cache(info.disk_location.as_str()) {
+    if let Some(source) = info
+      .context
+      .borrow()
+      .get_render_cache(info.disk_location.as_str())
+    {
       self_code_gen_res = source.to_string();
     } else {
       for item in self.getrules() {
@@ -57,10 +61,14 @@ impl FileNode {
       need_add_cache = true;
     }
     res += self_code_gen_res.as_str();
-    info.context.borrow_mut().add_codegen_record(info.disk_location.as_str());
+    info
+      .context
+      .borrow_mut()
+      .add_codegen_record(info.disk_location.as_str());
     // 增加缓存
     if need_add_cache {
-      info.context
+      info
+        .context
         .borrow_mut()
         .add_render_cache(info.disk_location.as_str(), self_code_gen_res.as_str());
     }
@@ -86,7 +94,11 @@ impl FileNode {
       }
     }
     let mut res = "".to_string();
-    if let Some(source) = info.context.borrow().get_render_cache(info.disk_location.as_str()) {
+    if let Some(source) = info
+      .context
+      .borrow()
+      .get_render_cache(info.disk_location.as_str())
+    {
       res = source.to_string();
     } else {
       for item in self.getrules() {
@@ -96,12 +108,16 @@ impl FileNode {
     }
     // 增加缓存
     if need_add_cache {
-      info.context
+      info
+        .context
         .borrow_mut()
         .add_render_cache(info.disk_location.as_str(), res.as_str());
     }
     map.insert(self.info.borrow().disk_location.clone(), res);
-    info.context.borrow_mut().add_codegen_record(info.disk_location.as_str());
+    info
+      .context
+      .borrow_mut()
+      .add_codegen_record(info.disk_location.as_str());
     Ok(())
   }
 
@@ -178,7 +194,10 @@ impl FileNode {
   ///
   /// 根据文件路径 转换 文件
   ///
-  pub fn create_disklocation_into_hashmap(filepath: String, context: ParseContext) -> Result<HashMap<String, String>, String> {
+  pub fn create_disklocation_into_hashmap(
+    filepath: String,
+    context: ParseContext,
+  ) -> Result<HashMap<String, String>, String> {
     let obj = Self::create_disklocation_parse(filepath, context.clone())?;
     let mut map = HashMap::new();
     obj.code_gen_into_map(&mut map)?;

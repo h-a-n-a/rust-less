@@ -1,8 +1,8 @@
 #![feature(test)]
 #[macro_use]
 extern crate strum;
-extern crate test;
 extern crate core;
+extern crate test;
 
 #[cfg(test)]
 mod example;

@@ -30,8 +30,8 @@ pub struct ValueNode {
 
 impl Serialize for ValueNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-      S: Serializer,
+  where
+    S: Serializer,
   {
     let mut state = serializer.serialize_struct("ValueNode", 2)?;
     state.serialize_field("content", &self.charlist.poly())?;
@@ -495,7 +495,7 @@ impl ValueNode {
             if last_item.is_some()
               && last_item.unwrap().is_number()
               && (Self::is_number(Some(&next_char_no_space))
-              || Self::is_brackets(Some(&next_char_no_space)))
+                || Self::is_brackets(Some(&next_char_no_space)))
             {
               self
                 .word_ident_list

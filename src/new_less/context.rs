@@ -145,12 +145,13 @@ impl Context {
     self.code_gen_file_path.contains(&path.to_string())
   }
 
-
   ///
   /// 插入 生成 样式文件的缓存
   ///
   pub fn add_render_cache(&mut self, filepath: &str, source: &str) {
-    self.render_cache.insert(filepath.to_string(), source.to_string());
+    self
+      .render_cache
+      .insert(filepath.to_string(), source.to_string());
   }
 
   ///

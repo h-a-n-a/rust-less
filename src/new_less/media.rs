@@ -3,11 +3,11 @@ use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::NodeWeakRef;
 use crate::new_less::scan::traversal;
+use crate::new_less::select_node::SelectorNode;
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::media::{TokenMediaFeature, TokenMediaLogic, TokenMediaType};
 use crate::new_less::var::HandleResult;
 use serde::Serialize;
-use crate::new_less::select_node::SelectorNode;
 
 ///
 /// 媒体查询
@@ -19,7 +19,6 @@ pub struct MediaQuery {
   #[serde(skip_serializing)]
   map: LocMap,
 
-  #[serde(skip_serializing)]
   pub charlist: Vec<char>,
 
   #[serde(skip_serializing)]
@@ -79,7 +78,10 @@ impl MediaQuery {
   pub fn find_up_media_node(node: NodeWeakRef) -> NodeWeakRef {
     if let Some(ref heap_node) = node {
       let rule = heap_node.upgrade().unwrap();
-      if matches!(*rule.borrow().selector.as_ref().unwrap(),SelectorNode::Media(..)) {
+      if matches!(
+        *rule.borrow().selector.as_ref().unwrap(),
+        SelectorNode::Media(..)
+      ) {
         node.clone()
       } else {
         let parent = rule.borrow().parent.clone();
@@ -108,9 +110,9 @@ impl MediaQuery {
     }
 
     // 计算自己
-    if split_media_txt.is_empty(){
+    if split_media_txt.is_empty() {
       split_media_txt.push(self.charlist.poly());
-    }else{
+    } else {
       split_media_txt.push(self.charlist.poly()[6..].to_string())
     }
 

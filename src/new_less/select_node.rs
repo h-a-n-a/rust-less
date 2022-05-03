@@ -9,6 +9,7 @@ use serde::Serialize;
 use std::ops::Deref;
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", content = "value")]
 pub enum SelectorNode {
   Select(NewSelector),
   Media(MediaQuery),

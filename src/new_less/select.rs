@@ -16,12 +16,14 @@ use std::cmp::Ordering;
 use std::ops::Deref;
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(tag = "type", content = "value")]
 enum SelectVarText {
   Txt(String),
   Var(String),
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(tag = "type", content = "value")]
 pub enum SelectParadigm {
   SelectWrap(String),
   CominaWrap(TokenCombinaChar),
@@ -67,7 +69,6 @@ pub struct NewSelector {
   map: LocMap,
 
   // 字符串 操作 序列
-  #[serde(skip_serializing)]
   pub charlist: Vec<char>,
 
   // 节点 父节点
@@ -140,7 +141,7 @@ impl NewSelector {
       if let Some(any_parent_rule) = select_rule_node {
         let heap_any_parent_rule = any_parent_rule.upgrade().unwrap();
         if let Some(SelectorNode::Select(ps)) =
-        heap_any_parent_rule.deref().borrow().selector.as_ref()
+          heap_any_parent_rule.deref().borrow().selector.as_ref()
         {
           parent_select_txt = ps.code_gen()
         };
@@ -809,8 +810,11 @@ impl NewSelector {
         } else if let SelectVarText::Var(v) = tt {
           let val = v.tocharlist()[2..v.len() - 1].to_vec().poly();
           let var_ident = format!("@{}", val);
-          let var_node_value =
-            self.get_var_by_key(var_ident.as_str(), parent_node.clone(), self.fileinfo.clone())?;
+          let var_node_value = self.get_var_by_key(
+            var_ident.as_str(),
+            parent_node.clone(),
+            self.fileinfo.clone(),
+          )?;
 
           new_content += &var_node_value.code_gen()?;
         }
