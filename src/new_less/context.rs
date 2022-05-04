@@ -4,15 +4,15 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::path::Path;
-use std::rc::{Rc, Weak};
+use std::sync::{Arc, Mutex, Weak};
 use serde_json::Value;
 use crate::new_less::filenode::FileNode;
 
-pub type ParseCacheMap = HashMap<String, String>;
+pub type ParseCacheMap = Mutex<HashMap<String, String>>;
 
-pub type ParseContext = Rc<RefCell<Context>>;
+pub type ParseContext = Arc<RefCell<Context>>;
 
-pub type RenderCacheMap = HashMap<String, String>;
+pub type RenderCacheMap = Mutex<HashMap<String, String>>;
 
 ///
 /// 全局调用 转化时的 上下文
@@ -46,7 +46,7 @@ impl Context {
   ///
   /// 创建全局应用 共享上下文
   ///
-  pub fn new(option: ParseOption, application_fold: Option<String>) -> Result<Rc<RefCell<Self>>, String> {
+  pub fn new(option: ParseOption, application_fold: Option<String>) -> Result<Arc<RefCell<Self>>, String> {
     let mut fold = application_fold.unwrap_or_else(|| {
       std::env::current_dir()
         .unwrap()
@@ -74,15 +74,15 @@ impl Context {
     }
     let mut obj = Context {
       option,
-      filecache: HashMap::new(),
-      render_cache: HashMap::new(),
+      filecache: Mutex::new(HashMap::new()),
+      render_cache: Mutex::new(HashMap::new()),
       application_fold: fold.clone(),
       code_gen_file_path: vec![],
       weak_ref: None,
     };
     obj.set_include_paths(vec![fold]);
-    let heap_obj = Rc::new(RefCell::new(obj));
-    heap_obj.borrow_mut().weak_ref = Some(Rc::downgrade(&heap_obj));
+    let heap_obj = Arc::new(RefCell::new(obj));
+    heap_obj.borrow_mut().weak_ref = Some(Arc::downgrade(&heap_obj));
     Ok(heap_obj)
   }
 
@@ -91,7 +91,7 @@ impl Context {
   ///
   pub fn get_parse_cache(&self, file_path: &str) -> String {
     let map = &self.filecache;
-    let res = map.get(file_path);
+    let res = map.try_lock().unwrap().get(file_path).cloned();
     if let Some(json_str) = res {
       json_str.clone()
     } else {
@@ -103,9 +103,10 @@ impl Context {
   /// 添加 缓存上 翻译结果
   ///
   pub fn set_parse_cache(&mut self, file_path: &str, file_info_json: String) {
-    let res = self.filecache.get(file_path);
+    let mut filecache = self.filecache.try_lock().unwrap();
+    let res = filecache.get(file_path);
     if res.is_none() {
-      self.filecache.insert(file_path.to_string(), file_info_json);
+      filecache.insert(file_path.to_string(), file_info_json);
     }
   }
 
@@ -114,7 +115,7 @@ impl Context {
   /// 由于现在 缓存的是 指针 只能 单次 transform 同一个文件多次使用
   ///
   pub fn clear_parse_cache(&mut self) {
-    self.filecache.clear();
+    self.filecache.try_lock().unwrap().clear();
   }
 
   ///
@@ -161,7 +162,7 @@ impl Context {
   ///
   pub fn add_render_cache(&mut self, filepath: &str, source: &str) {
     self
-      .render_cache
+      .render_cache.try_lock().unwrap()
       .insert(filepath.to_string(), source.to_string());
   }
 
@@ -169,14 +170,14 @@ impl Context {
   /// 清除本次 codegen 文件的记录
   ///
   pub fn clear_render_cache(&mut self) {
-    self.render_cache.clear();
+    self.render_cache.try_lock().unwrap().clear();
   }
 
   ///
   /// 获取 codegen 缓存 目标样式代码
   ///
-  pub fn get_render_cache(&self, filepath: &str) -> Option<&String> {
-    self.render_cache.get(filepath)
+  pub fn get_render_cache(&self, filepath: &str) -> Option<String> {
+    self.render_cache.try_lock().unwrap().get(filepath).cloned()
   }
 
   ///
