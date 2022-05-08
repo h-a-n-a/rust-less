@@ -7,7 +7,7 @@ use crate::new_less::parse::Parse;
 use crate::new_less::select_node::SelectorNode;
 use serde::Serialize;
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::sync::Arc;
 use serde_json::{Map, Value};
 
 #[derive(Clone, Debug, Serialize)]
@@ -181,8 +181,8 @@ impl FileNode {
     obj.parse_select_all_node()?;
     // 把当前 节点 的 对象 指针 放到 节点上 缓存中
     let disk_location = info.borrow().disk_location.clone();
-    let file_info_json = serde_json::to_string_pretty(&obj).unwrap();
-    obj.info.borrow().context.borrow_mut().set_parse_cache(disk_location.as_str(), file_info_json);
+    // let file_info_json = serde_json::to_string_pretty(&obj).unwrap();
+    obj.info.borrow().context.borrow_mut().set_parse_cache(disk_location.as_str(), obj.info.clone());
     Ok(obj)
   }
 
@@ -232,7 +232,7 @@ impl FileNode {
     if let Some(Value::Array(block_nodes)) = json_block_node {
       for json_node in block_nodes {
         if let Value::Object(json_stylenode) = json_node {
-          block_node_recovery_list.push(StyleNode::deserializer(json_stylenode, context.clone(), None, Some(Rc::downgrade(&info)))?);
+          block_node_recovery_list.push(StyleNode::deserializer(json_stylenode, context.clone(), None, Some(Arc::downgrade(&info)))?);
         }
       }
     }
@@ -298,8 +298,8 @@ impl FileNode {
     obj.parse_select_all_node()?;
     // 把当前 节点 的 对象 指针 放到 节点上 缓存中
     let disk_location = info.borrow().disk_location.clone();
-    let file_info_json = serde_json::to_string_pretty(&obj).unwrap();
-    obj.info.borrow().context.borrow_mut().set_parse_cache(disk_location.as_str(), file_info_json);
+    // let file_info_json = serde_json::to_string_pretty(&obj).unwrap();
+    obj.info.borrow().context.borrow_mut().set_parse_cache(disk_location.as_str(), obj.info.clone());
     Ok(obj)
   }
 

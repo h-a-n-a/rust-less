@@ -22,15 +22,6 @@ fn parse_var_bench(bench: &mut Bencher) {
   });
 }
 
-#[bench]
-fn parse_var_recovery_bench(bench: &mut Bencher) {
-  let filepath = path_resolve("assets/var.less");
-  let app = Application::default();
-  app.parse(filepath.as_str()).unwrap();
-  bench.iter(|| {
-    app.context.borrow().recovery_parse_object(filepath.as_str()).unwrap();
-  });
-}
 
 #[bench]
 fn render_less_arco_pro_bench(bench: &mut Bencher) {

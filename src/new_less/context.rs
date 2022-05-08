@@ -1,14 +1,12 @@
-use crate::new_less::fileinfo::{FileInfo};
+use crate::new_less::fileinfo::{FileInfo, FileRef};
 use crate::new_less::option::ParseOption;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::path::Path;
 use std::sync::{Arc, Mutex, Weak};
-use serde_json::Value;
-use crate::new_less::filenode::FileNode;
 
-pub type ParseCacheMap = Mutex<HashMap<String, String>>;
+pub type ParseCacheMap = Mutex<HashMap<String, Mutex<FileRef>>>;
 
 pub type ParseContext = Arc<RefCell<Context>>;
 
@@ -89,24 +87,26 @@ impl Context {
   ///
   /// 查询 缓存上 翻译结果
   ///
-  pub fn get_parse_cache(&self, file_path: &str) -> String {
+  pub fn get_parse_cache(&self, file_path: &str) -> Option<FileRef> {
     let map = &self.filecache;
-    let res = map.try_lock().unwrap().get(file_path).cloned();
-    if let Some(json_str) = res {
-      json_str.clone()
+    let mapvalue = map.try_lock().unwrap();
+    let res = mapvalue.get(file_path);
+    if let Some(info) = res {
+      let p = info.try_lock().unwrap().clone();
+      Some(p)
     } else {
-      "".to_string()
+      None
     }
   }
 
   ///
   /// 添加 缓存上 翻译结果
   ///
-  pub fn set_parse_cache(&mut self, file_path: &str, file_info_json: String) {
+  pub fn set_parse_cache(&mut self, file_path: &str, file_info: FileRef) {
     let mut filecache = self.filecache.try_lock().unwrap();
     let res = filecache.get(file_path);
     if res.is_none() {
-      filecache.insert(file_path.to_string(), file_info_json);
+      filecache.insert(file_path.to_string(), Mutex::new(file_info));
     }
   }
 
@@ -185,22 +185,5 @@ impl Context {
   ///
   pub fn default() -> ParseContext {
     Self::new(Default::default(), None).unwrap()
-  }
-
-  ///
-  /// 递归恢复 json 上下文
-  ///
-  pub fn recovery_parse_object(&self, key: &str) -> Result<FileNode, String> {
-    let json = self.get_parse_cache(key);
-    if !json.is_empty() {
-      let root: HashMap<String, Value> = serde_json::from_str(&json).unwrap();
-      return if let Some(Value::Object(map)) = root.get("info") {
-        let node = FileNode::deserializer(map, self.weak_ref.as_ref().unwrap().upgrade().unwrap().clone())?;
-        Ok(node)
-      } else {
-        Err(format!("info value is empty!"))
-      };
-    }
-    Err("cache json is empty".to_string())
   }
 }
