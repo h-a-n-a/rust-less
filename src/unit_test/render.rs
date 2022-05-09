@@ -15,6 +15,20 @@ fn test_less_render() {
 }
 
 #[test]
+fn test_less_render_into_map() {
+  let filepath1 = path_resolve("assets/render_map/index.css");
+  let filepath2 = path_resolve("assets/render_map/lib_2.css");
+  let filepath3 = path_resolve("assets/render_map/lib_1.css");
+  let filepath4 = path_resolve("assets/render_map/lib_3.css");
+  let app = Application::default();
+  let res1 = app.render_into_hashmap(filepath1.as_str()).unwrap();
+  let res2 = app.render_into_hashmap(filepath2.as_str()).unwrap();
+  let res3 = app.render_into_hashmap(filepath3.as_str()).unwrap();
+  let res4 = app.render_into_hashmap(filepath4.as_str()).unwrap();
+  println!("{:#?}->{:#?}->{:#?}->{:#?}", res1, res2, res3, res4);
+}
+
+#[test]
 fn test_keyframe_at_select_render() {
   let filepath = path_resolve("assets/keyframes.less");
   let app = Application::default();
