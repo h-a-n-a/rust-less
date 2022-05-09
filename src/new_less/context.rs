@@ -3,7 +3,12 @@ use crate::new_less::option::ParseOption;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::path::Path;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex, Weak};
+use serde_json::{Map, Value};
+use crate::extend::string::StringExtend;
+use crate::new_less::filenode::FileNode;
+use crate::new_less::node::StyleNode;
 
 pub type ParseCacheMap = Mutex<HashMap<String, String>>;
 
@@ -89,14 +94,8 @@ impl Context {
   ///
   /// 查询 缓存上 翻译结果
   ///
-  pub fn get_parse_cache(&self, file_path: &str) -> String {
-    let map = &self.filecache;
-    let res = map.lock().unwrap().get(file_path).cloned();
-    if let Some(json_str) = res {
-      json_str.clone()
-    } else {
-      "".to_string()
-    }
+  pub fn get_parse_cache(&self, file_path: &str) -> Result<Option<FileNode>, String> {
+    self.recovery_parse_object(file_path)
   }
 
   ///
@@ -188,4 +187,80 @@ impl Context {
   }
 
 
+  ///
+  /// 递归恢复 json 上下文
+  ///
+  pub fn recovery_parse_object(&self, key: &str) -> Result<Option<FileNode>, String> {
+    let filecache = self.filecache.lock().unwrap();
+    let json_res = filecache.get(key);
+    if let Some(json) = json_res {
+      let root: HashMap<String, Value> = serde_json::from_str(&json).unwrap();
+      return if let Some(Value::Object(map)) = root.get("info") {
+        let node = self.deserializer(map)?;
+        Ok(Some(node))
+      } else {
+        Err(format!("info value is empty!"))
+      };
+    }
+    Ok(None)
+  }
+
+  ///
+  /// 递归调用 json 反序列化 自制方法
+  ///
+  fn deserializer(&self, map: &Map<String, Value>) -> Result<FileNode, String> {
+    let json_disk_location = map.get("disk_location");
+    let json_origin_txt_content = map.get("origin_txt_content");
+    let mut obj = FileInfo {
+      disk_location: "".to_string(),
+      block_node: vec![],
+      origin_txt_content: "".to_string(),
+      origin_charlist: vec![],
+      locmap: None,
+      context: self.weak_ref.as_ref().unwrap().upgrade().unwrap().clone(),
+      self_weak: None,
+      import_files: vec![],
+    };
+    if let Some(Value::String(disk_location)) = json_disk_location {
+      obj.disk_location = disk_location.to_string();
+    } else {
+      return Err(format!("deserializer FileNode -> disk_location is empty!"));
+    }
+    if let Some(Value::String(origin_txt_content)) = json_origin_txt_content {
+      obj.origin_txt_content = origin_txt_content.to_string();
+      obj.origin_charlist = obj.origin_txt_content.tocharlist();
+    } else {
+      return Err(format!("deserializer FileNode -> origin_txt_content is empty!"));
+    }
+    if self.option.sourcemap {
+      obj.locmap = Some(FileInfo::get_loc_by_content(&obj.origin_charlist));
+    }
+    let json_import_files = map.get("import_file");
+    if let Some(Value::Array(disk_location)) = json_import_files {
+      for json_item in disk_location {
+        if let Value::Object(json_import_file_node) = json_item {
+          let import_info = json_import_file_node.get("info").unwrap().as_object().unwrap();
+          obj.import_files.push(self.deserializer(import_info)?);
+        }
+      }
+    }
+    let info = obj.toheap();
+    let json_block_node = map.get("block_node");
+    let mut block_node_recovery_list = vec![];
+    if let Some(Value::Array(block_nodes)) = json_block_node {
+      for json_node in block_nodes {
+        if let Value::Object(json_stylenode) = json_node {
+          block_node_recovery_list.push(StyleNode::deserializer(
+            json_stylenode,
+            self.weak_ref.as_ref().unwrap().upgrade().unwrap().clone(),
+            None,
+            Some(Rc::downgrade(&info)),
+          )?);
+        }
+      }
+    }
+    info.borrow_mut().block_node = block_node_recovery_list;
+    let node = FileNode { info };
+    Ok(node)
+  }
 }

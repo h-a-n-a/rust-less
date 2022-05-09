@@ -7,8 +7,6 @@ use crate::new_less::parse::Parse;
 use crate::new_less::select_node::SelectorNode;
 use serde::Serialize;
 use std::collections::HashMap;
-use std::rc::Rc;
-use serde_json::{Map, Value};
 
 #[derive(Clone, Debug, Serialize)]
 pub struct FileNode {
@@ -144,34 +142,35 @@ impl FileNode {
     filepath: String,
     context: ParseContext,
   ) -> Result<FileNode, String> {
-    let text_content: String;
-    let charlist: Vec<char>;
-    let mut locmap: Option<LocMap> = None;
     let cp_context = context.clone();
-    let context_value = cp_context.lock().unwrap();
-    let option = context_value.get_options();
-    drop(context_value);
-    let obj = match FileInfo::resolve(filepath, &option.include_path) {
-      Ok((abs_path, content)) => {
-        text_content = content.clone();
-        charlist = content.tocharlist();
-        if option.sourcemap {
-          locmap = Some(FileInfo::get_loc_by_content(&charlist));
-        }
-        FileInfo {
-          disk_location: abs_path,
-          block_node: vec![],
-          origin_txt_content: text_content,
-          origin_charlist: charlist,
-          locmap,
-          context,
-          self_weak: None,
-          import_files: vec![],
-        }
-      }
-      Err(msg) => {
-        return Err(msg);
-      }
+    let option = {
+      let context_value = cp_context.lock().unwrap();
+      context_value.get_options()
+    };
+    let (abs_path, content) = FileInfo::resolve(filepath, &option.include_path)?;
+    let node = {
+      let context_value = cp_context.lock().unwrap();
+      context_value.get_parse_cache(&abs_path)?
+    };
+    // 缓存里有的话 直接跳出
+    if node.is_some() {
+      return Ok(node.unwrap());
+    }
+    let text_content = content.clone();
+    let charlist = content.tocharlist();
+    let mut locmap: Option<LocMap> = None;
+    if option.sourcemap {
+      locmap = Some(FileInfo::get_loc_by_content(&charlist));
+    }
+    let obj = FileInfo {
+      disk_location: abs_path,
+      block_node: vec![],
+      origin_txt_content: text_content,
+      origin_charlist: charlist,
+      locmap,
+      context,
+      self_weak: None,
+      import_files: vec![],
     };
     let info = obj.toheap();
     let mut obj = Self { info: info.clone() };
@@ -185,60 +184,6 @@ impl FileNode {
     Ok(obj)
   }
 
-
-  ///
-  /// 递归调用 json 反序列化 自制方法
-  ///
-  pub fn deserializer(map: &Map<String, Value>, context: ParseContext) -> Result<Self, String> {
-    let json_disk_location = map.get("disk_location");
-    let json_origin_txt_content = map.get("origin_txt_content");
-    let mut obj = FileInfo {
-      disk_location: "".to_string(),
-      block_node: vec![],
-      origin_txt_content: "".to_string(),
-      origin_charlist: vec![],
-      locmap: None,
-      context: context.clone(),
-      self_weak: None,
-      import_files: vec![],
-    };
-    if let Some(Value::String(disk_location)) = json_disk_location {
-      obj.disk_location = disk_location.to_string();
-    } else {
-      return Err(format!("deserializer FileNode -> disk_location is empty!"));
-    }
-    if let Some(Value::String(origin_txt_content)) = json_origin_txt_content {
-      obj.origin_txt_content = origin_txt_content.to_string();
-      obj.origin_charlist = obj.origin_txt_content.tocharlist();
-    } else {
-      return Err(format!("deserializer FileNode -> origin_txt_content is empty!"));
-    }
-    if context.lock().unwrap().option.sourcemap {
-      obj.locmap = Some(FileInfo::get_loc_by_content(&obj.origin_charlist));
-    }
-    let json_import_files = map.get("import_file");
-    if let Some(Value::Array(disk_location)) = json_import_files {
-      for json_item in disk_location {
-        if let Value::Object(json_import_file_node) = json_item {
-          let import_info = json_import_file_node.get("info").unwrap().as_object().unwrap();
-          obj.import_files.push(Self::deserializer(import_info, context.clone())?);
-        }
-      }
-    }
-    let info = obj.toheap();
-    let json_block_node = map.get("block_node");
-    let mut block_node_recovery_list = vec![];
-    if let Some(Value::Array(block_nodes)) = json_block_node {
-      for json_node in block_nodes {
-        if let Value::Object(json_stylenode) = json_node {
-          block_node_recovery_list.push(StyleNode::deserializer(json_stylenode, context.clone(), None, Some(Rc::downgrade(&info)))?);
-        }
-      }
-    }
-    info.borrow_mut().block_node = block_node_recovery_list;
-    let node = Self { info };
-    Ok(node)
-  }
 
   ///
   /// 根据文件路径 转换 文件
@@ -281,6 +226,14 @@ impl FileNode {
     context: ParseContext,
     filename: String,
   ) -> Result<Self, String> {
+    let node = {
+      let context_value = context.lock().unwrap();
+      context_value.get_parse_cache(&filename)?
+    };
+    // 缓存里有的话 直接跳出
+    if node.is_some() {
+      return Ok(node.unwrap());
+    }
     let text_content: String = content;
     let charlist = text_content.tocharlist();
     let cp_context = context.clone();
