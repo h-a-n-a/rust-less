@@ -1,5 +1,5 @@
 use crate::new_less::token::lib::TokenInterface;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use std::slice::Iter;
 
 #[derive(Debug, Serialize, PartialEq, Clone)]
@@ -64,7 +64,8 @@ impl TokenInterface for TokenSelectChar {
 ///
 /// Select 允许的连接符
 ///
-#[derive(Debug, Serialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, PartialEq, Clone, Deserialize)]
+#[serde(tag = "type", content = "value")]
 pub enum TokenCombinaChar {
   Comma,
   Space,

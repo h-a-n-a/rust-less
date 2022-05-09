@@ -7,8 +7,10 @@ use crate::new_less::select::NewSelector;
 use crate::new_less::var::HandleResult;
 use serde::Serialize;
 use std::ops::Deref;
+use serde_json::{Map, Value};
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", content = "value")]
 pub enum SelectorNode {
   Select(NewSelector),
   Media(MediaQuery),
@@ -28,6 +30,7 @@ impl SelectorNode {
     fileinfo: FileWeakRef,
   ) -> Result<Self, String> {
     let mut map: Option<LocMap> = None;
+    let start_loc = loc.as_ref().cloned();
     match parent.as_ref().unwrap().upgrade() {
       None => {}
       Some(p) => {
@@ -39,7 +42,7 @@ impl SelectorNode {
       }
     }
     // 处理 media
-    match MediaQuery::new(charlist.clone(), loc.clone(), map.clone(), parent.clone()) {
+    match MediaQuery::new(charlist.clone(), start_loc.clone(), map.clone(), parent.clone()) {
       HandleResult::Success(obj) => {
         return Ok(SelectorNode::Media(obj));
       }
@@ -49,8 +52,25 @@ impl SelectorNode {
       HandleResult::Swtich => {}
     };
     // 处理 select
-    let obj = NewSelector::new(charlist.clone(), loc.clone(), map, parent, fileinfo);
+    let obj = NewSelector::new(charlist.clone(), start_loc.clone(), map, parent, fileinfo);
     Ok(SelectorNode::Select(obj))
+  }
+
+  ///
+  /// 反序列化
+  ///
+  pub fn deserializer(map: &Map<String, Value>, parent: NodeWeakRef, fileinfo: FileWeakRef) -> Result<Self, String> {
+    let value_type = map.get("type").unwrap().to_string();
+    if value_type == r#""Select""# {
+      // 处理引用
+      let value_map = map.get("value").unwrap().as_object().unwrap();
+      return Ok(SelectorNode::Select(NewSelector::deserializer(value_map, parent, fileinfo)?));
+    } else if value_type == r#""Media""# {
+      // 处理变量
+      let value_map = map.get("value").unwrap().as_object().unwrap();
+      return Ok(SelectorNode::Media(MediaQuery::deserializer(value_map, parent)?));
+    }
+    Err("SelectorNode -> noting type is matched".to_string())
   }
 
   pub fn value(&self) -> String {

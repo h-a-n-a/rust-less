@@ -10,7 +10,7 @@ fn test_comment_remove() {
   let record = wastetime("test_less");
   let filepath = path_resolve("assets/comment.less");
   let app = Application::default();
-  let node = app.parse(filepath).unwrap();
+  let node = app.parse(filepath.as_str()).unwrap();
   let content = node.info.borrow().rm_comment();
   record();
   let target = r#"

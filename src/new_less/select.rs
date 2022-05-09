@@ -11,22 +11,35 @@ use crate::new_less::token::select::{
 };
 use crate::new_less::value::ValueNode;
 use crate::new_less::var::VarRuleNode;
-use serde::Serialize;
+use serde::{Deserialize, Serialize, Serializer};
 use std::cmp::Ordering;
 use std::ops::Deref;
+use serde::ser::SerializeStruct;
+use serde_json::{Map, Value};
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(tag = "type", content = "value")]
 enum SelectVarText {
   Txt(String),
   Var(String),
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, PartialEq, Deserialize)]
+#[serde(tag = "type", content = "value")]
 pub enum SelectParadigm {
   SelectWrap(String),
   CominaWrap(TokenCombinaChar),
   VarWrap(char),
   KeyWrap(String),
+}
+
+impl SelectParadigm {
+  ///
+  /// 反序列化
+  ///
+  pub fn deserializer(val: &Value) -> Self {
+    serde_json::from_str(&serde_json::to_string(val).unwrap()).unwrap()
+  }
 }
 
 pub trait Paradigm {
@@ -54,7 +67,7 @@ impl Paradigm for Vec<SelectParadigm> {
   }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone)]
 pub struct NewSelector {
   // 字符串规则 根据逗号分割
   pub paradigm_vec: Vec<Vec<SelectParadigm>>,
@@ -63,24 +76,36 @@ pub struct NewSelector {
   pub loc: Option<Loc>,
 
   // 内部处理 地图
-  #[serde(skip_serializing)]
   map: LocMap,
 
   // 字符串 操作 序列
-  #[serde(skip_serializing)]
   pub charlist: Vec<char>,
 
   // 节点 父节点
   // 延迟赋值
-  #[serde(skip_serializing)]
   pub parent: NodeWeakRef,
 
   // 文件节点
-  #[serde(skip_serializing)]
   pub fileinfo: FileWeakRef,
 }
 
+impl Serialize for NewSelector {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+      S: Serializer,
+  {
+    let mut state = serializer.serialize_struct("FileInfo", 3)?;
+    state.serialize_field("loc", &self.loc)?;
+    state.serialize_field("content", &self.charlist.poly())?;
+    state.serialize_field("paradigm_vec", &self.paradigm_vec)?;
+    state.end()
+  }
+}
+
 impl NewSelector {
+  ///
+  ///  初始化
+  ///
   pub fn new(
     charlist: Vec<char>,
     loc: Option<Loc>,
@@ -97,6 +122,45 @@ impl NewSelector {
       fileinfo,
     };
     obj
+  }
+
+  ///
+  /// 反序列化
+  ///
+  pub fn deserializer(map: &Map<String, Value>, parent: NodeWeakRef, fileinfo: FileWeakRef) -> Result<Self, String> {
+    let mut select = Self {
+      paradigm_vec: vec![],
+      loc: None,
+      map: LocMap::new(&vec![]),
+      charlist: vec![],
+      parent,
+      fileinfo,
+    };
+    if let Some(Value::String(content)) = map.get("content") {
+      select.charlist = content.tocharlist();
+    } else {
+      return Err(format!("deserializer NewSelector has error -> charlist is empty!"));
+    }
+    if let Some(Value::Object(loc)) = map.get("loc") {
+      select.loc = Some(Loc::deserializer(loc));
+      select.map = LocMap::merge(select.loc.as_ref().unwrap(), &select.charlist).0;
+    } else {
+      select.map = LocMap::new(&select.charlist);
+    }
+    if let Some(Value::Array(charlist)) = map.get("paradigm_vec") {
+      for paradigm_vec in charlist {
+        let mut list = vec![];
+        if let Value::Array(paradigm) = paradigm_vec {
+          list = paradigm.iter().map(SelectParadigm::deserializer).collect();
+        }
+        if !list.is_empty() {
+          select.paradigm_vec.push(list);
+        }
+      }
+    } else {
+      return Err(format!("deserializer NewSelector has error -> paradigm_vec is empty!"));
+    }
+    Ok(select)
   }
 
   ///
@@ -809,8 +873,11 @@ impl NewSelector {
         } else if let SelectVarText::Var(v) = tt {
           let val = v.tocharlist()[2..v.len() - 1].to_vec().poly();
           let var_ident = format!("@{}", val);
-          let var_node_value =
-            self.get_var_by_key(var_ident.as_str(), parent_node.clone(), self.fileinfo.clone())?;
+          let var_node_value = self.get_var_by_key(
+            var_ident.as_str(),
+            parent_node.clone(),
+            self.fileinfo.clone(),
+          )?;
 
           new_content += &var_node_value.code_gen()?;
         }

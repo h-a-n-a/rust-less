@@ -2,16 +2,18 @@ use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::FileWeakRef;
 use crate::new_less::loc::{Loc, LocMap};
-use crate::new_less::node::{NodeWeakRef};
+use crate::new_less::node::NodeWeakRef;
 use crate::new_less::option::ParseOption;
 use crate::new_less::scan::traversal;
 use crate::new_less::token::lib::Token;
 use crate::new_less::value::ValueNode;
-use crate::new_less::var::{HandleResult};
+use crate::new_less::var::HandleResult;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
 use std::fmt::{Debug, Formatter};
+use serde_json::{Map, Value};
 use uuid::Uuid;
+use crate::extend::string::StringExtend;
 
 #[derive(Clone)]
 pub struct StyleRuleNode {
@@ -45,8 +47,8 @@ pub struct StyleRuleNode {
 
 impl Serialize for StyleRuleNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-      S: Serializer,
+  where
+    S: Serializer,
   {
     let mut state = serializer.serialize_struct("StyleRuleNode", 5)?;
     state.serialize_field("content", &self.charlist.poly())?;
@@ -101,10 +103,52 @@ impl StyleRuleNode {
   }
 
   ///
+  /// 反序列
+  ///
+  pub fn deserializer(map: &Map<String, Value>, context: ParseContext, parent: NodeWeakRef, fileinfo: FileWeakRef) -> Result<Self, String> {
+    let mut obj = Self {
+      loc: None,
+      uuid: "".to_string(),
+      map: LocMap::new(&vec![]),
+      charlist: vec![],
+      parent: parent.as_ref().cloned(),
+      fileinfo: fileinfo.as_ref().cloned(),
+      key: None,
+      value: None,
+      context,
+    };
+    if let Some(Value::String(content)) = map.get("content") {
+      obj.charlist = content.tocharlist();
+    } else {
+      return Err(format!("deserializer VarNode has error -> content is empty!"));
+    }
+    if let Some(Value::Object(loc)) = map.get("loc") {
+      obj.loc = Some(Loc::deserializer(loc));
+      obj.map = LocMap::merge(&obj.loc.as_ref().unwrap(), &obj.charlist).0;
+    } else {
+      obj.map = LocMap::new(&obj.charlist);
+    }
+    if let Some(Value::String(uuid)) = map.get("uuid") {
+      obj.uuid = uuid.to_string();
+    } else {
+      return Err(format!("deserializer VarNode has error -> uuid is empty!"));
+    }
+    if let Some(Value::String(key)) = map.get("key") {
+      obj.key = Some(key.to_string());
+    } else {
+      return Err(format!("deserializer VarNode has error -> key is empty!"));
+    }
+    if let Some(Value::Object(value_map)) = map.get("value") {
+      obj.value = Some(ValueNode::deserializer(value_map, parent, fileinfo)?);
+    }
+    Ok(obj)
+  }
+
+  ///
   /// 获取选项
   ///
   pub fn get_options(&self) -> ParseOption {
-    self.context.borrow().option.clone()
+    self.context.lock().unwrap().option.clone()
   }
 
   ///
@@ -227,10 +271,8 @@ impl StyleRuleNode {
   ///
   pub fn code_gen(&self) -> Result<String, String> {
     let res = match self.value.as_ref() {
-      None => { "".to_string() }
-      Some(value) => {
-        value.code_gen()?
-      }
+      None => "".to_string(),
+      Some(value) => value.code_gen()?,
     };
     let code_res = format!("{}: {};", self.key.as_ref().unwrap(), res);
     Ok(code_res)

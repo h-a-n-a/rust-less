@@ -47,12 +47,12 @@ pub trait OptionExtend {
 
 impl OptionExtend for FileInfo {
   fn get_options(&self) -> ParseOption {
-    self.context.deref().borrow().option.clone()
+    self.context.deref().lock().unwrap().option.clone()
   }
 }
 
 impl OptionExtend for RuleNode {
   fn get_options(&self) -> ParseOption {
-    self.context.deref().borrow().option.clone()
+    self.context.deref().lock().unwrap().option.clone()
   }
 }

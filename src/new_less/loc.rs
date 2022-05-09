@@ -1,5 +1,6 @@
-use serde::{Deserialize, Serialize};
+use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
+use serde_json::{Map, Value};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Loc {
@@ -7,6 +8,12 @@ pub struct Loc {
   pub col: usize,
   pub char: char,
   pub index: usize,
+}
+
+impl Loc {
+  pub fn deserializer(map: &Map<String, Value>) -> Self {
+    serde_json::from_str(&serde_json::to_string(map).unwrap()).unwrap()
+  }
 }
 
 #[derive(Debug, Clone)]

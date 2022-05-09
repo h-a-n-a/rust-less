@@ -1,6 +1,6 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Clone, Default)]
 pub struct ParseHooks {
-  pub import_alias: Option<Rc<dyn Fn(String) -> String>>,
+  pub import_alias: Option<Arc<dyn Fn(String) -> String + Send + Sync>>,
 }

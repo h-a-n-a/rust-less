@@ -3,9 +3,10 @@ use crate::new_less::fileinfo::FileInfo;
 use crate::new_less::loc::Loc;
 use crate::new_less::node::StyleNode;
 use crate::new_less::rule::RuleNode;
-use serde::Serialize;
+use serde::{Serialize};
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
+use serde_json::{Map, Value};
 
 pub trait Comment {
   fn get_comment_blocknode(&self) -> Vec<CommentNode>;
@@ -20,7 +21,6 @@ pub struct CommentNode {
   // 节点坐标
   pub loc: Option<Loc>,
   // 注释开始索引
-  #[serde(skip_serializing)]
   pub startindex: usize,
 }
 
@@ -32,6 +32,34 @@ impl Debug for CommentNode {
       .finish()
   }
 }
+
+impl CommentNode {
+  pub fn deserializer(map: &Map<String, Value>) -> Result<Self, String> {
+    let mut comment = CommentNode {
+      content: "".to_string(),
+      loc: None,
+      startindex: 0,
+    };
+    if let Some(Value::String(content)) = map.get("content") {
+      comment.content = content.to_string();
+    } else {
+      return Err(format!("deserializer CommentNode has error -> content is empty"));
+    }
+    if let Some(Value::Object(loc)) = map.get("loc") {
+      comment.loc = Some(Loc::deserializer(loc));
+    } else {
+      return Err(format!("deserializer CommentNode has error -> loc is empty"));
+    }
+    if let Some(Value::Number(startindex)) = map.get("startindex") {
+      comment.startindex = startindex.to_string().parse::<usize>().unwrap();
+    } else {
+      return Err(format!("deserializer CommentNode has error -> startindex is empty"));
+    }
+
+    Ok(comment)
+  }
+}
+
 
 impl Comment for FileInfo {
   fn get_comment_blocknode(&self) -> Vec<CommentNode> {

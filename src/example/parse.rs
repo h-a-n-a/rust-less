@@ -9,7 +9,7 @@ fn parse_less_bench(bench: &mut Bencher) {
     // 处理过程
     let filepath = path_resolve("assets/demo.less");
     let app = Application::default();
-    app.render(filepath).unwrap();
+    app.render(filepath.as_str()).unwrap();
   });
 }
 
@@ -17,17 +17,18 @@ fn parse_less_bench(bench: &mut Bencher) {
 fn parse_var_bench(bench: &mut Bencher) {
   bench.iter(|| {
     let filepath = path_resolve("assets/var.less");
-    let app = Application::new(
-      ParseOption {
-        include_path: vec![],
-        sourcemap: false,
-        tabspaces: 2,
-        hooks: Default::default(),
-      },
-      Some(filepath.clone()),
-    )
-    .unwrap();
-    app.render(filepath).unwrap();
+    let app = Application::default();
+    app.parse(filepath.as_str()).unwrap();
+  });
+}
+
+#[bench]
+fn parse_var_recovery_bench(bench: &mut Bencher) {
+  let filepath = path_resolve("assets/var.less");
+  let app = Application::default();
+  app.parse(filepath.as_str()).unwrap();
+  bench.iter(|| {
+    app.context.lock().unwrap().recovery_parse_object(filepath.as_str()).unwrap();
   });
 }
 
@@ -37,7 +38,7 @@ fn render_less_arco_pro_bench(bench: &mut Bencher) {
     // 处理过程
     let filepath = path_resolve("assets/arco-pro/13.less");
     let app = Application::default();
-    app.render(filepath).unwrap();
+    app.render(filepath.as_str()).unwrap();
   });
 }
 
@@ -55,7 +56,7 @@ fn render_less_arco_pro_bench_without_sourcemap(bench: &mut Bencher) {
       },
       Some(filepath.clone()),
     )
-    .unwrap();
-    app.render(filepath).unwrap();
+      .unwrap();
+    app.render(filepath.as_str()).unwrap();
   });
 }

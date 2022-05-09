@@ -11,7 +11,8 @@ use crate::new_less::var::HandleResult;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
 use std::fmt::{Debug, Formatter};
-use std::rc::Rc;
+use serde_json::{Map, Value};
+use crate::extend::string::StringExtend;
 
 ///
 /// import 处理
@@ -52,8 +53,8 @@ impl Debug for ImportNode {
 
 impl Serialize for ImportNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: Serializer,
+    where
+      S: Serializer,
   {
     let mut state = serializer.serialize_struct("ImportNode", 3)?;
     state.serialize_field("content", &self.charlist.poly())?;
@@ -93,6 +94,38 @@ impl ImportNode {
       Ok(_) => HandleResult::Success(obj),
       Err(msg) => HandleResult::Fail(msg),
     }
+  }
+
+  ///
+  /// 反序列
+  ///
+  pub fn deserializer(map: &Map<String, Value>, context: ParseContext, parent: NodeWeakRef, fileinfo: FileWeakRef) -> Result<Self, String> {
+    let mut obj = Self {
+      loc: None,
+      map: LocMap::new(&vec![]),
+      parent,
+      fileinfo,
+      charlist: vec![],
+      parse_hook_url: "".to_string(),
+      context,
+    };
+    if let Some(Value::String(content)) = map.get("content") {
+      obj.charlist = content.tocharlist();
+    } else {
+      return Err(format!("deserializer ImportNode has error -> content is empty!"));
+    }
+    if let Some(Value::Object(loc)) = map.get("loc") {
+      obj.loc = Some(Loc::deserializer(loc));
+      obj.map = LocMap::merge(&obj.loc.as_ref().unwrap(), &obj.charlist).0;
+    } else {
+      obj.map = LocMap::new(&obj.charlist);
+    }
+    if let Some(Value::String(path)) = map.get("path") {
+      obj.parse_hook_url = path.to_string();
+    } else {
+      return Err(format!("deserializer ImportNode has error -> parse_hook_url is empty!"));
+    }
+    Ok(obj)
   }
 
   ///
@@ -185,20 +218,8 @@ impl ImportNode {
     let file_path = self.parse_hook_url.clone();
     let include_path = self.get_include_path();
     let (abs_path, _file_content) = FileInfo::resolve(file_path, &include_path)?;
-    let weak_file_ref_option = self.context.borrow().get_parse_cache(abs_path.as_str());
-    // 自动忽略已经翻译后的文件
-    // todo 暂时不能跨 css -> transform 使用Parse缓存
-    if let Some(weak_file_ref) = weak_file_ref_option {
-      let heap_obj = weak_file_ref.upgrade().unwrap();
-      importfiles.push(heap_obj);
-    } else {
-      let node = FileNode::create_disklocation_parse(abs_path.clone(), self.context.clone())?;
-      importfiles.push(node.info.clone());
-      self
-        .context
-        .borrow_mut()
-        .set_parse_cache(abs_path.as_str(), Some(Rc::downgrade(&node.info)));
-    }
+    let node = FileNode::create_disklocation_parse(abs_path.clone(), self.context.clone())?;
+    importfiles.push(node.info.clone());
     Ok(())
   }
 
@@ -206,7 +227,7 @@ impl ImportNode {
   /// 获取选项
   ///
   pub fn get_options(&self) -> ParseOption {
-    self.context.borrow().option.clone()
+    self.context.lock().unwrap().option.clone()
   }
 
   pub fn get_include_path(&self) -> Vec<String> {
