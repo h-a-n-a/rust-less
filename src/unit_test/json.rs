@@ -8,7 +8,7 @@ fn test_less_json_deserializer() {
   let app = Application::default();
   let info = app.parse(filepath.as_str()).unwrap();
   let json = serde_json::to_string_pretty(&info).unwrap();
-  let res = app.context.borrow().recovery_parse_object(filepath.as_str()).unwrap();
+  let res = app.recovery_parse_object(filepath.as_str()).unwrap();
   let back_json = serde_json::to_string_pretty(&res).unwrap();
   assert_eq!(json, back_json);
 }

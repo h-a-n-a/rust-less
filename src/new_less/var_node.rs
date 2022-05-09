@@ -157,7 +157,7 @@ impl VarNode {
   /// 获取选项
   ///
   pub fn get_options(&self) -> ParseOption {
-    self.context.borrow().option.clone()
+    self.context.lock().unwrap().option.clone()
   }
 
   ///

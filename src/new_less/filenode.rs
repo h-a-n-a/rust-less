@@ -38,10 +38,11 @@ impl FileNode {
     let mut need_add_cache = false;
     if !info.import_files.is_empty() {
       for item in info.import_files.iter() {
-        if !info
-          .context
-          .borrow()
-          .has_codegen_record(&item.info.borrow().disk_location)
+        let has_codegen_record = {
+          let context = info.context.lock().unwrap();
+          context.has_codegen_record(&item.info.borrow().disk_location)
+        };
+        if !has_codegen_record
         {
           let import_res = item.code_gen()?;
           res += &import_res;
@@ -50,12 +51,14 @@ impl FileNode {
       }
     }
     let mut self_code_gen_res = "".to_string();
-    if let Some(source) = info
-      .context
-      .borrow()
-      .get_render_cache(info.disk_location.as_str())
+
+    let source = {
+      info.context.lock().unwrap()
+        .get_render_cache(info.disk_location.as_str())
+    };
+    if let Some(code) = source
     {
-      self_code_gen_res = source.to_string();
+      self_code_gen_res = code.to_string();
     } else {
       for item in self.getrules() {
         item.borrow().code_gen(&mut self_code_gen_res)?;
@@ -63,16 +66,11 @@ impl FileNode {
       need_add_cache = true;
     }
     res += self_code_gen_res.as_str();
-    info
-      .context
-      .borrow_mut()
-      .add_codegen_record(info.disk_location.as_str());
+    let mut context = info.context.lock().unwrap();
+    context.add_codegen_record(info.disk_location.as_str());
     // 增加缓存
     if need_add_cache {
-      info
-        .context
-        .borrow_mut()
-        .add_render_cache(info.disk_location.as_str(), self_code_gen_res.as_str());
+      context.add_render_cache(info.disk_location.as_str(), self_code_gen_res.as_str());
     }
     Ok(res)
   }
@@ -86,22 +84,24 @@ impl FileNode {
     let mut need_add_cache = false;
     if !info.import_files.is_empty() {
       for item in info.import_files.iter() {
-        if !info
-          .context
-          .borrow()
-          .has_codegen_record(&item.info.borrow().disk_location)
+        let has_codegen_record = {
+          let context = info.context.lock().unwrap();
+          context.has_codegen_record(&item.info.borrow().disk_location)
+        };
+        if !has_codegen_record
         {
           item.code_gen_into_map(map)?;
         }
       }
     }
     let mut res = "".to_string();
-    if let Some(source) = info
-      .context
-      .borrow()
-      .get_render_cache(info.disk_location.as_str())
+    let source = {
+      info.context.lock().unwrap()
+        .get_render_cache(info.disk_location.as_str())
+    };
+    if let Some(code) = source
     {
-      res = source.to_string();
+      res = code.to_string();
     } else {
       for item in self.getrules() {
         item.borrow().code_gen(&mut res)?;
@@ -109,17 +109,12 @@ impl FileNode {
       need_add_cache = true;
     }
     // 增加缓存
+    let mut context = info.context.lock().unwrap();
     if need_add_cache {
-      info
-        .context
-        .borrow_mut()
-        .add_render_cache(info.disk_location.as_str(), res.as_str());
+      context.add_render_cache(info.disk_location.as_str(), res.as_str());
     }
     map.insert(self.info.borrow().disk_location.clone(), res);
-    info
-      .context
-      .borrow_mut()
-      .add_codegen_record(info.disk_location.as_str());
+    context.add_codegen_record(info.disk_location.as_str());
     Ok(())
   }
 
@@ -152,7 +147,10 @@ impl FileNode {
     let text_content: String;
     let charlist: Vec<char>;
     let mut locmap: Option<LocMap> = None;
-    let option = context.borrow().get_options();
+    let cp_context = context.clone();
+    let context_value = cp_context.lock().unwrap();
+    let option = context_value.get_options();
+    drop(context_value);
     let obj = match FileInfo::resolve(filepath, &option.include_path) {
       Ok((abs_path, content)) => {
         text_content = content.clone();
@@ -182,7 +180,8 @@ impl FileNode {
     // 把当前 节点 的 对象 指针 放到 节点上 缓存中
     let disk_location = info.borrow().disk_location.clone();
     let file_info_json = serde_json::to_string_pretty(&obj).unwrap();
-    obj.info.borrow().context.borrow_mut().set_parse_cache(disk_location.as_str(), file_info_json);
+    let mut context_value = cp_context.lock().unwrap();
+    context_value.set_parse_cache(disk_location.as_str(), file_info_json);
     Ok(obj)
   }
 
@@ -214,7 +213,7 @@ impl FileNode {
     } else {
       return Err(format!("deserializer FileNode -> origin_txt_content is empty!"));
     }
-    if context.borrow().option.sourcemap {
+    if context.lock().unwrap().option.sourcemap {
       obj.locmap = Some(FileInfo::get_loc_by_content(&obj.origin_charlist));
     }
     let json_import_files = map.get("import_file");
@@ -247,8 +246,9 @@ impl FileNode {
   pub fn create_disklocation(filepath: String, context: ParseContext) -> Result<String, String> {
     let obj = Self::create_disklocation_parse(filepath, context.clone())?;
     let res = obj.code_gen()?;
-    context.borrow_mut().clear_parse_cache();
-    context.borrow_mut().clear_codegen_record();
+    let mut sync_context = context.lock().unwrap();
+    sync_context.clear_parse_cache();
+    sync_context.clear_codegen_record();
     Ok(res)
   }
 
@@ -261,9 +261,15 @@ impl FileNode {
   ) -> Result<HashMap<String, String>, String> {
     let obj = Self::create_disklocation_parse(filepath, context.clone())?;
     let mut map = HashMap::new();
-    obj.code_gen_into_map(&mut map)?;
-    context.borrow_mut().clear_parse_cache();
-    context.borrow_mut().clear_codegen_record();
+    match obj.code_gen_into_map(&mut map) {
+      Ok(_) => {}
+      Err(msg) => {
+        println!("{}", msg);
+      }
+    };
+    let mut sync_context = context.lock().unwrap();
+    sync_context.clear_parse_cache();
+    sync_context.clear_codegen_record();
     Ok(map)
   }
 
@@ -277,7 +283,9 @@ impl FileNode {
   ) -> Result<Self, String> {
     let text_content: String = content;
     let charlist = text_content.tocharlist();
-    let option = context.borrow().get_options();
+    let cp_context = context.clone();
+    let mut sync_context = cp_context.lock().unwrap();
+    let option = sync_context.get_options();
     let mut locmap: Option<LocMap> = None;
     if option.sourcemap {
       locmap = Some(FileInfo::get_loc_by_content(&charlist));
@@ -299,7 +307,7 @@ impl FileNode {
     // 把当前 节点 的 对象 指针 放到 节点上 缓存中
     let disk_location = info.borrow().disk_location.clone();
     let file_info_json = serde_json::to_string_pretty(&obj).unwrap();
-    obj.info.borrow().context.borrow_mut().set_parse_cache(disk_location.as_str(), file_info_json);
+    sync_context.set_parse_cache(disk_location.as_str(), file_info_json);
     Ok(obj)
   }
 
@@ -309,8 +317,9 @@ impl FileNode {
     filename: String,
   ) -> Result<String, String> {
     let obj = Self::create_txt_content_parse(content, context.clone(), filename)?;
+    let mut sync_context = context.lock().unwrap();
     let res = obj.code_gen()?;
-    context.borrow_mut().clear_codegen_record();
+    sync_context.clear_codegen_record();
     Ok(res)
   }
 }

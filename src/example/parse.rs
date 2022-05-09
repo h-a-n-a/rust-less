@@ -28,7 +28,7 @@ fn parse_var_recovery_bench(bench: &mut Bencher) {
   let app = Application::default();
   app.parse(filepath.as_str()).unwrap();
   bench.iter(|| {
-    app.context.borrow().recovery_parse_object(filepath.as_str()).unwrap();
+    app.recovery_parse_object(filepath.as_str()).unwrap();
   });
 }
 

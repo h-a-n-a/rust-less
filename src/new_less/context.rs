@@ -1,16 +1,13 @@
 use crate::new_less::fileinfo::{FileInfo};
 use crate::new_less::option::ParseOption;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::path::Path;
 use std::sync::{Arc, Mutex, Weak};
-use serde_json::Value;
-use crate::new_less::filenode::FileNode;
 
 pub type ParseCacheMap = Mutex<HashMap<String, String>>;
 
-pub type ParseContext = Arc<RefCell<Context>>;
+pub type ParseContext = Arc<Mutex<Context>>;
 
 pub type RenderCacheMap = Mutex<HashMap<String, String>>;
 
@@ -29,7 +26,7 @@ pub struct Context {
   // 已经生成目录的 文件
   pub code_gen_file_path: Vec<String>,
   // 自身的弱引用
-  pub weak_ref: Option<Weak<RefCell<Context>>>,
+  pub weak_ref: Option<Weak<Mutex<Context>>>,
 }
 
 impl Debug for Context {
@@ -46,7 +43,7 @@ impl Context {
   ///
   /// 创建全局应用 共享上下文
   ///
-  pub fn new(option: ParseOption, application_fold: Option<String>) -> Result<Arc<RefCell<Self>>, String> {
+  pub fn new(option: ParseOption, application_fold: Option<String>) -> Result<Arc<Mutex<Self>>, String> {
     let mut fold = application_fold.unwrap_or_else(|| {
       std::env::current_dir()
         .unwrap()
@@ -81,8 +78,11 @@ impl Context {
       weak_ref: None,
     };
     obj.set_include_paths(vec![fold]);
-    let heap_obj = Arc::new(RefCell::new(obj));
-    heap_obj.borrow_mut().weak_ref = Some(Arc::downgrade(&heap_obj));
+    let heap_obj = Arc::new(Mutex::new(obj));
+    {
+      let mut self_value = heap_obj.try_lock().unwrap();
+      self_value.weak_ref = Some(Arc::downgrade(&heap_obj));
+    }
     Ok(heap_obj)
   }
 
@@ -91,7 +91,7 @@ impl Context {
   ///
   pub fn get_parse_cache(&self, file_path: &str) -> String {
     let map = &self.filecache;
-    let res = map.try_lock().unwrap().get(file_path).cloned();
+    let res = map.lock().unwrap().get(file_path).cloned();
     if let Some(json_str) = res {
       json_str.clone()
     } else {
@@ -103,7 +103,7 @@ impl Context {
   /// 添加 缓存上 翻译结果
   ///
   pub fn set_parse_cache(&mut self, file_path: &str, file_info_json: String) {
-    let mut filecache = self.filecache.try_lock().unwrap();
+    let mut filecache = self.filecache.lock().unwrap();
     let res = filecache.get(file_path);
     if res.is_none() {
       filecache.insert(file_path.to_string(), file_info_json);
@@ -115,7 +115,7 @@ impl Context {
   /// 由于现在 缓存的是 指针 只能 单次 transform 同一个文件多次使用
   ///
   pub fn clear_parse_cache(&mut self) {
-    self.filecache.try_lock().unwrap().clear();
+    self.filecache.lock().unwrap().clear();
   }
 
   ///
@@ -162,7 +162,7 @@ impl Context {
   ///
   pub fn add_render_cache(&mut self, filepath: &str, source: &str) {
     self
-      .render_cache.try_lock().unwrap()
+      .render_cache.lock().unwrap()
       .insert(filepath.to_string(), source.to_string());
   }
 
@@ -170,14 +170,14 @@ impl Context {
   /// 清除本次 codegen 文件的记录
   ///
   pub fn clear_render_cache(&mut self) {
-    self.render_cache.try_lock().unwrap().clear();
+    self.render_cache.lock().unwrap().clear();
   }
 
   ///
   /// 获取 codegen 缓存 目标样式代码
   ///
   pub fn get_render_cache(&self, filepath: &str) -> Option<String> {
-    self.render_cache.try_lock().unwrap().get(filepath).cloned()
+    self.render_cache.lock().unwrap().get(filepath).cloned()
   }
 
   ///
@@ -187,20 +187,5 @@ impl Context {
     Self::new(Default::default(), None).unwrap()
   }
 
-  ///
-  /// 递归恢复 json 上下文
-  ///
-  pub fn recovery_parse_object(&self, key: &str) -> Result<FileNode, String> {
-    let json = self.get_parse_cache(key);
-    if !json.is_empty() {
-      let root: HashMap<String, Value> = serde_json::from_str(&json).unwrap();
-      return if let Some(Value::Object(map)) = root.get("info") {
-        let node = FileNode::deserializer(map, self.weak_ref.as_ref().unwrap().upgrade().unwrap().clone())?;
-        Ok(node)
-      } else {
-        Err(format!("info value is empty!"))
-      };
-    }
-    Err("cache json is empty".to_string())
-  }
+
 }

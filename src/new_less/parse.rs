@@ -133,6 +133,11 @@ pub trait Parse {
 
     let mut ignore_braces_level = 0;
 
+    let option = {
+      let sync_context = context.lock().unwrap();
+      sync_context.option.clone()
+    };
+
     while index < origin_charlist.len() {
       // 处理字符
       let char = origin_charlist.get(index).unwrap();
@@ -209,7 +214,7 @@ pub trait Parse {
       }
       if wirte_comment {
         // 如果启用 sourcemap 则记录坐标
-        if context.borrow().option.sourcemap
+        if option.sourcemap
           && *char != '\r'
           && *char != '\n'
           && record_loc.is_none()
@@ -224,7 +229,7 @@ pub trait Parse {
         // 进行 var 和 rule 的计算
 
         // 记录坐标
-        if context.borrow().option.sourcemap
+        if option.sourcemap
           && *char != ' '
           && *char != '\r'
           && *char != '\n'

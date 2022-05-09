@@ -227,7 +227,7 @@ impl ImportNode {
   /// 获取选项
   ///
   pub fn get_options(&self) -> ParseOption {
-    self.context.borrow().option.clone()
+    self.context.lock().unwrap().option.clone()
   }
 
   pub fn get_include_path(&self) -> Vec<String> {
