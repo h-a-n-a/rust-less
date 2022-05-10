@@ -51,7 +51,7 @@ impl SelectorNode {
       }
       HandleResult::Swtich => {}
     };
-    // 处理 select
+
     let obj = NewSelector::new(charlist.clone(), start_loc.clone(), map, parent, fileinfo);
     Ok(SelectorNode::Select(obj))
   }
@@ -60,6 +60,10 @@ impl SelectorNode {
   /// 反序列化
   ///
   pub fn deserializer(map: &Map<String, Value>, parent: NodeWeakRef, fileinfo: FileWeakRef) -> Result<Self, String> {
+    // 处理 select
+    if parent.is_none() {
+      return Err("SelectorNode -> parent must not be None!".to_string());
+    }
     let value_type = map.get("type").unwrap().to_string();
     if value_type == r#""Select""# {
       // 处理引用
@@ -92,7 +96,11 @@ impl SelectorNode {
     }
 
     let nearly_select_node = NewSelector::find_up_select_node(node.clone());
-    let nearly_media_node = MediaQuery::find_up_media_node(node);
+    let nearly_media_node = MediaQuery::find_up_media_node(node.clone());
+
+    if nearly_select_node.is_none() && nearly_media_node.is_none() {
+      return Err("codegen select_node -> nearly_select_node || nearly_media_node  one of them is not empty!".to_string());
+    }
 
     let mut select_res = "".to_string();
     if let Some(snode) = nearly_select_node {

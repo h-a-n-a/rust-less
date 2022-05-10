@@ -131,11 +131,6 @@ impl RuleNode {
     } else {
       return Err(format!("deserializer RuleNode has error -> content is empty!"));
     }
-    if let Some(Value::Object(map)) = map.get("select") {
-      rule_node.selector = Some(SelectorNode::deserializer(map, parent, fileinfo.as_ref().cloned())?);
-    } else {
-      return Err(format!("deserializer RuleNode has error -> select is empty!"));
-    }
     if let Some(Value::Object(loc)) = map.get("loc") {
       rule_node.loc = Some(Loc::deserializer(loc));
       rule_node.locmap = Some(LocMap::merge(rule_node.loc.as_ref().unwrap(), &rule_node.origin_charlist).0);
@@ -153,6 +148,11 @@ impl RuleNode {
           block_node_recovery_list.push(StyleNode::deserializer(json_stylenode, context.clone(), Some(weak_self.clone()), fileinfo.as_ref().cloned())?);
         }
       }
+    }
+    if let Some(Value::Object(map)) = map.get("select") {
+       heapobj.borrow_mut().selector = Some(SelectorNode::deserializer(map, Some(weak_self.clone()), fileinfo.as_ref().cloned())?);
+    } else {
+      return Err(format!("deserializer RuleNode has error -> select is empty!"));
     }
     heapobj.borrow_mut().block_node = block_node_recovery_list;
     Ok(heapobj)
