@@ -5,6 +5,7 @@ pub mod context;
 pub mod file;
 pub mod fileinfo;
 pub mod filenode;
+pub mod hash;
 pub mod hooks;
 pub mod ident;
 pub mod import;
