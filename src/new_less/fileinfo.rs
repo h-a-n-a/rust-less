@@ -8,6 +8,7 @@ use crate::new_less::var_node::VarNode;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
 use std::cell::RefCell;
+use std::collections::HashSet;
 use std::fmt::{Debug, Formatter};
 use std::path::Path;
 use std::rc::{Rc, Weak};
@@ -30,6 +31,10 @@ pub struct FileInfo {
   pub self_weak: FileWeakRef,
   // 该文件的引用文件
   pub import_files: Vec<FileNode>,
+  // 是否 codegen 时需要处理 css_module
+  pub modules: bool,
+  // 处理 css 所有的 类选择器的 合集 已经去重
+  pub class_selector_collect: HashSet<String>,
 }
 
 pub type FileRef = Rc<RefCell<FileInfo>>;
@@ -38,8 +43,8 @@ pub type FileWeakRef = Option<Weak<RefCell<FileInfo>>>;
 
 impl Serialize for FileInfo {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-      S: Serializer,
+  where
+    S: Serializer,
   {
     let mut state = serializer.serialize_struct("FileInfo", 3)?;
     state.serialize_field("disk_location", &self.disk_location)?;

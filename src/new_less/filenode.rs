@@ -7,6 +7,7 @@ use crate::new_less::parse::Parse;
 use crate::new_less::select_node::SelectorNode;
 use serde::Serialize;
 use std::collections::HashMap;
+use std::path::Path;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct FileNode {
@@ -40,8 +41,7 @@ impl FileNode {
           let context = info.context.lock().unwrap();
           context.has_codegen_record(&item.info.borrow().disk_location)
         };
-        if !has_codegen_record
-        {
+        if !has_codegen_record {
           let import_res = item.code_gen()?;
           res += &import_res;
           res += "\n";
@@ -51,11 +51,13 @@ impl FileNode {
     let mut self_code_gen_res = "".to_string();
 
     let source = {
-      info.context.lock().unwrap()
+      info
+        .context
+        .lock()
+        .unwrap()
         .get_render_cache(info.disk_location.as_str())
     };
-    if let Some(code) = source
-    {
+    if let Some(code) = source {
       self_code_gen_res = code.to_string();
     } else {
       for item in self.getrules() {
@@ -86,19 +88,20 @@ impl FileNode {
           let context = info.context.lock().unwrap();
           context.has_codegen_record(&item.info.borrow().disk_location)
         };
-        if !has_codegen_record
-        {
+        if !has_codegen_record {
           item.code_gen_into_map(map)?;
         }
       }
     }
     let mut res = "".to_string();
     let source = {
-      info.context.lock().unwrap()
+      info
+        .context
+        .lock()
+        .unwrap()
         .get_render_cache(info.disk_location.as_str())
     };
-    if let Some(code) = source
-    {
+    if let Some(code) = source {
       res = code.to_string();
     } else {
       for item in self.getrules() {
@@ -136,6 +139,20 @@ impl FileNode {
   }
 
   ///
+  /// 是否需要 css module
+  ///
+  pub fn is_need_css_modules(filepath: &str, modules: Option<bool>) -> bool {
+    if let Some(module) = modules {
+      module
+    } else {
+      let path = Path::new(filepath);
+      let filename = path.file_name().unwrap().to_str().unwrap().to_string();
+      let ext = format!(".module.{}", path.extension().unwrap().to_str().unwrap());
+      filename.to_lowercase().contains(&ext.to_lowercase())
+    }
+  }
+
+  ///
   /// 根据文件路径 解析 文件
   ///
   pub fn create_disklocation_parse(
@@ -146,6 +163,10 @@ impl FileNode {
     let option = {
       let context_value = cp_context.lock().unwrap();
       context_value.get_options()
+    };
+    let need_modules = {
+      let modules = context.lock().unwrap().option.modules;
+      Self::is_need_css_modules(filepath.as_str(), modules)
     };
     let (abs_path, content) = FileInfo::resolve(filepath, &option.include_path)?;
     let node = {
@@ -171,6 +192,8 @@ impl FileNode {
       context,
       self_weak: None,
       import_files: vec![],
+      modules: need_modules,
+      class_selector_collect: Default::default(),
     };
     let info = obj.toheap();
     let mut obj = Self { info: info.clone() };
@@ -183,7 +206,6 @@ impl FileNode {
     context_value.set_parse_cache(disk_location.as_str(), file_info_json);
     Ok(obj)
   }
-
 
   ///
   /// 根据文件路径 转换 文件
@@ -230,6 +252,10 @@ impl FileNode {
       let context_value = context.lock().unwrap();
       context_value.get_parse_cache(&filename)?
     };
+    let need_modules = {
+      let modules = context.lock().unwrap().option.modules;
+      Self::is_need_css_modules(filename.as_str(), modules)
+    };
     // 缓存里有的话 直接跳出
     if node.is_some() {
       return Ok(node.unwrap());
@@ -252,6 +278,8 @@ impl FileNode {
       context,
       self_weak: None,
       import_files: vec![],
+      modules: need_modules,
+      class_selector_collect: Default::default(),
     };
     let info = obj.toheap();
     let mut obj = Self { info: info.clone() };

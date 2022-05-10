@@ -28,7 +28,12 @@ fn parse_var_recovery_bench(bench: &mut Bencher) {
   let app = Application::default();
   app.parse(filepath.as_str()).unwrap();
   bench.iter(|| {
-    app.context.lock().unwrap().recovery_parse_object(filepath.as_str()).unwrap();
+    app
+      .context
+      .lock()
+      .unwrap()
+      .recovery_parse_object(filepath.as_str())
+      .unwrap();
   });
 }
 
@@ -52,11 +57,12 @@ fn render_less_arco_pro_bench_without_sourcemap(bench: &mut Bencher) {
         include_path: vec![],
         sourcemap: false,
         tabspaces: 2,
+        modules: None,
         hooks: Default::default(),
       },
       Some(filepath.clone()),
     )
-      .unwrap();
+    .unwrap();
     app.render(filepath.as_str()).unwrap();
   });
 }
