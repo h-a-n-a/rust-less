@@ -35,6 +35,8 @@ pub struct FileInfo {
   pub modules: bool,
   // 处理 css 所有的 类选择器的 合集 已经去重
   pub class_selector_collect: HashSet<String>,
+  // css_modules 需要增加的 hash 尾串
+  pub hash_perfix: String,
 }
 
 pub type FileRef = Rc<RefCell<FileInfo>>;
@@ -43,8 +45,8 @@ pub type FileWeakRef = Option<Weak<RefCell<FileInfo>>>;
 
 impl Serialize for FileInfo {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: Serializer,
+    where
+      S: Serializer,
   {
     let mut state = serializer.serialize_struct("FileInfo", 3)?;
     state.serialize_field("disk_location", &self.disk_location)?;

@@ -9,6 +9,7 @@ use std::fmt::{Debug, Formatter};
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, Weak};
+use crate::new_less::hash::StyleHash;
 
 pub type ParseCacheMap = Mutex<HashMap<String, String>>;
 
@@ -227,6 +228,7 @@ impl Context {
       import_files: vec![],
       modules: false,
       class_selector_collect: Default::default(),
+      hash_perfix: "".to_string(),
     };
     if let Some(Value::String(disk_location)) = json_disk_location {
       obj.disk_location = disk_location.to_string();
@@ -238,6 +240,7 @@ impl Context {
     obj.modules = need_modules;
     if let Some(Value::String(origin_txt_content)) = json_origin_txt_content {
       obj.origin_txt_content = origin_txt_content.to_string();
+      obj.hash_perfix = StyleHash::generate_css_module_hash(&obj.disk_location, &origin_txt_content);
       obj.origin_charlist = obj.origin_txt_content.tocharlist();
     } else {
       return Err(format!(

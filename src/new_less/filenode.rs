@@ -8,6 +8,7 @@ use crate::new_less::select_node::SelectorNode;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::Path;
+use crate::new_less::hash::StyleHash;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct FileNode {
@@ -184,7 +185,7 @@ impl FileNode {
       locmap = Some(FileInfo::get_loc_by_content(&charlist));
     }
     let obj = FileInfo {
-      disk_location: abs_path,
+      disk_location: abs_path.clone(),
       block_node: vec![],
       origin_txt_content: text_content,
       origin_charlist: charlist,
@@ -194,6 +195,7 @@ impl FileNode {
       import_files: vec![],
       modules: need_modules,
       class_selector_collect: Default::default(),
+      hash_perfix: StyleHash::generate_css_module_hash(&abs_path, &content),
     };
     let info = obj.toheap();
     let mut obj = Self { info: info.clone() };
@@ -260,7 +262,7 @@ impl FileNode {
     if node.is_some() {
       return Ok(node.unwrap());
     }
-    let text_content: String = content;
+    let text_content: String = content.clone();
     let charlist = text_content.tocharlist();
     let cp_context = context.clone();
     let mut sync_context = cp_context.lock().unwrap();
@@ -270,7 +272,7 @@ impl FileNode {
       locmap = Some(FileInfo::get_loc_by_content(&charlist));
     }
     let obj = FileInfo {
-      disk_location: filename,
+      disk_location: filename.clone(),
       block_node: vec![],
       origin_txt_content: text_content,
       origin_charlist: charlist,
@@ -280,6 +282,7 @@ impl FileNode {
       import_files: vec![],
       modules: need_modules,
       class_selector_collect: Default::default(),
+      hash_perfix: StyleHash::generate_css_module_hash(&filename, &content),
     };
     let info = obj.toheap();
     let mut obj = Self { info: info.clone() };

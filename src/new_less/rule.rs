@@ -41,8 +41,8 @@ pub struct RuleNode {
 
 impl Serialize for RuleNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: Serializer,
+    where
+      S: Serializer,
   {
     let mut state = serializer.serialize_struct("RuleNode", 4)?;
     state.serialize_field("content", &self.origin_charlist.poly())?;
@@ -235,15 +235,6 @@ impl RuleNode {
       tab += " ";
       index += 1;
     }
-    let css_module = self
-      .file_info
-      .as_ref()
-      .unwrap()
-      .upgrade()
-      .unwrap()
-      .borrow()
-      .modules;
-    println!("{}", css_module);
 
     // example -> @keyframes, @font-family
     if select_txt.find("@") == Some(0) {
@@ -255,7 +246,7 @@ impl RuleNode {
           tab.clone() + &tab.clone() + self.origin_charlist.poly().as_str(),
           "}"
         )
-        .as_str();
+          .as_str();
       } else {
         *content += format!(
           "\n{}{}\n{}{}\n{}\n{}\n{}",
@@ -267,7 +258,7 @@ impl RuleNode {
           tab.clone() + "}",
           "}"
         )
-        .as_str();
+          .as_str();
       }
 
       // 后续不递归了
@@ -293,7 +284,7 @@ impl RuleNode {
           create_rules(tab)?,
           "}"
         )
-        .as_ref();
+          .as_ref();
       } else {
         *content += format!(
           "\n{}{}\n{}{}\n{}\n{}\n{}",
@@ -305,7 +296,7 @@ impl RuleNode {
           "  }",
           "}"
         )
-        .as_ref();
+          .as_ref();
       }
     }
 
