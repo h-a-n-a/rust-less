@@ -263,10 +263,6 @@ impl MediaQuery {
     word_vec.push(")".to_string());
     index = jump + 1;
 
-    if index < charlist.len() {
-      return Err(self.errormsg(&index).err().unwrap());
-    }
-
     Ok((word_vec.join(""), index))
   }
 

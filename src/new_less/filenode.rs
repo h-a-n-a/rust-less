@@ -169,7 +169,13 @@ impl FileNode {
       let modules = context.lock().unwrap().option.modules;
       Self::is_need_css_modules(filepath.as_str(), modules)
     };
-    let (abs_path, content) = FileInfo::resolve(filepath, &option.include_path)?;
+    let (abs_path, mut content) = FileInfo::resolve(filepath, &option.include_path)?;
+    let content_transform = {
+      context.lock().unwrap().option.hooks.content_interceptor.as_ref().cloned()
+    };
+    if let Some(content_transform_fn) = content_transform {
+      content = content_transform_fn(abs_path.as_str(), content.as_str())?;
+    }
     let node = {
       let context_value = cp_context.lock().unwrap();
       context_value.get_parse_cache(&abs_path)?
@@ -246,7 +252,7 @@ impl FileNode {
   /// 根据文件内容 解析文件
   ///
   pub fn create_txt_content_parse(
-    content: String,
+    mut content: String,
     context: ParseContext,
     filename: String,
   ) -> Result<Self, String> {
@@ -261,6 +267,12 @@ impl FileNode {
     // 缓存里有的话 直接跳出
     if node.is_some() {
       return Ok(node.unwrap());
+    }
+    let content_transform = {
+      context.lock().unwrap().option.hooks.content_interceptor.as_ref().cloned()
+    };
+    if let Some(content_transform_fn) = content_transform {
+      content = content_transform_fn(filename.as_str(), content.as_str())?;
     }
     let text_content: String = content.clone();
     let charlist = text_content.tocharlist();
