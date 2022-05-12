@@ -206,14 +206,7 @@ impl ImportNode {
     if has_apost || has_quote {
       return Err(self.error_msg(&(self.charlist.len() - 2)));
     }
-    let options = self.get_options();
-    // 过滤 对应 hook
-    if options.hooks.import_alias.is_some() {
-      let convert = options.hooks.import_alias.as_ref().unwrap();
-      self.parse_hook_url = convert(path)?;
-    } else {
-      self.parse_hook_url = path;
-    }
+    self.parse_hook_url = path;
     // 处理递归解析 若节点不存在 则 不进行处理
     let mut file_path = self.parse_hook_url.clone();
     let include_path = self.get_include_path();
@@ -221,8 +214,14 @@ impl ImportNode {
       let context = self.context.lock().unwrap();
       context.option.hooks.import_alias.as_ref().cloned()
     };
+    let self_disk_path = {
+      let file = self.fileinfo.as_ref().unwrap().upgrade().unwrap();
+      let disk_location = file.borrow().disk_location.clone();
+      disk_location
+    };
     if let Some(import_fn) = import_alias_fn {
-      file_path = import_fn(file_path)?;
+      file_path = import_fn(self_disk_path, file_path)?;
+      self.parse_hook_url = file_path.clone();
     }
     let (abs_path, _file_content) = FileInfo::resolve(file_path, &include_path)?;
     let node = FileNode::create_disklocation_parse(abs_path.clone(), self.context.clone())?;
