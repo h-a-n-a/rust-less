@@ -210,13 +210,20 @@ impl ImportNode {
     // 过滤 对应 hook
     if options.hooks.import_alias.is_some() {
       let convert = options.hooks.import_alias.as_ref().unwrap();
-      self.parse_hook_url = convert(path);
+      self.parse_hook_url = convert(path)?;
     } else {
       self.parse_hook_url = path;
     }
     // 处理递归解析 若节点不存在 则 不进行处理
-    let file_path = self.parse_hook_url.clone();
+    let mut file_path = self.parse_hook_url.clone();
     let include_path = self.get_include_path();
+    let import_alias_fn = {
+      let context = self.context.lock().unwrap();
+      context.option.hooks.import_alias.as_ref().cloned()
+    };
+    if let Some(import_fn) = import_alias_fn {
+      file_path = import_fn(file_path)?;
+    }
     let (abs_path, _file_content) = FileInfo::resolve(file_path, &include_path)?;
     let node = FileNode::create_disklocation_parse(abs_path.clone(), self.context.clone())?;
     importfiles.push(node.info.clone());
