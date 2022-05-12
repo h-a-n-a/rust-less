@@ -237,7 +237,6 @@ impl MediaQuery {
   /// 子转化 媒体功能
   ///
   pub fn parse_media_feature(&self, start: &usize) -> Result<(String, usize), String> {
-    let charlist = &self.charlist;
     let mut index = *start + 1;
     let mut word_vec: Vec<String> = vec!["(".to_string()];
 

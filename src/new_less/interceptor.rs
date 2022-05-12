@@ -18,9 +18,8 @@ impl LessInterceptor {
       option_map.insert("paths", include_path);
       let mut content_map = HashMap::new();
       content_map.insert("content".to_string(), content.to_string());
-      let mut task = Command::new("npx");
-      task.arg("ts-node");
-      task.arg("./jslib/index.ts");
+      let mut task = Command::new("node");
+      task.arg("./dist/main.js");
       task.arg("--content");
       task.arg(serde_json::to_string(&content_map).unwrap());
       task.arg("--option");
