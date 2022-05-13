@@ -1,5 +1,6 @@
 import type Less from 'less';
 import { resolve } from './resolve';
+import path from 'path';
 
 
 export default class LessAliasesPlugin {
@@ -27,7 +28,10 @@ export default class LessAliasesPlugin {
 
         let resolved = undefined;
         try {
-          resolved = resolve(currentDirectory ? currentDirectory : current_dir, filename);
+          let base_file = currentDirectory ? currentDirectory : path.dirname(current_dir);
+          console.log("filepath->", base_file);
+          console.log("import_path->", filename);
+          resolved = resolve(base_file, filename);
         } catch (err: any) {
           callback_error(err);
           return Promise.resolve({

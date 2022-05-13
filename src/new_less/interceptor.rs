@@ -29,7 +29,8 @@ impl LessInterceptor {
       let mut content_map = HashMap::new();
       content_map.insert("content".to_string(), content.to_string());
       let js_file = path_resolve("./dist/main.js");
-      let mut task = Command::new("node");
+      let mut task = Command::new("npx");
+      task.arg("ts-node");
       task.arg(js_file);
       task.arg("--content");
       task.arg(serde_json::to_string(&content_map).unwrap());
@@ -39,13 +40,12 @@ impl LessInterceptor {
       task.current_dir(cwd);
       task.stdout(Stdio::piped());
 
-      let mut task = task
-        .spawn()
+      let task_res = task
+        .output()
         .expect(format!("{}->less.js callback is failed", filepath).as_str());
-      let status = task.wait().unwrap();
-      let output = task.wait_with_output().expect("failed to wait on child");
-      let content = std::str::from_utf8(&*output.stdout).unwrap().to_string();
-      return if status.code().unwrap() > 0 {
+      let status = task_res.status.code().unwrap();
+      let content = std::str::from_utf8(&*task_res.stdout).unwrap().to_string();
+      return if status > 0 {
         Err(format!(
           "parse less file ->{} \n has error in interceptor,\n ex is \n {}",
           filepath, content
@@ -53,6 +53,7 @@ impl LessInterceptor {
       } else {
         Ok(content)
       };
+      // let content = "";
     }
     Ok(content.to_string())
   }

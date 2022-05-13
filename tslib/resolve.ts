@@ -1,7 +1,9 @@
-const { resolveFile } = require('/Users/zhushijie/Desktop/github/rspack/crates/node_binding');
+const {resolveFile} = require('/Users/zhushijie/Desktop/github/rspack/crates/node_binding');
 
 function resolve(filepath: string, import_path: string) {
-  return resolveFile(filepath, import_path);
+    const res = resolveFile(filepath, import_path);
+    console.log(res);
+    return res;
 }
 
-export { resolve }
+export {resolve}
