@@ -38,7 +38,6 @@ impl LessInterceptor {
       task.arg(serde_json::to_string(&content_map).unwrap());
       task.arg("--option");
       task.arg(serde_json::to_string(&option_map).unwrap());
-      println!("cwd->{}", cwd);
       task.current_dir("/Users/zhushijie/Desktop/github/rspack");
       task.stdout(Stdio::piped());
 
