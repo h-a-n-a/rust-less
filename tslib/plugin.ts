@@ -29,8 +29,6 @@ export default class LessAliasesPlugin {
         let resolved = undefined;
         try {
           let base_file = currentDirectory ? currentDirectory : path.dirname(current_dir);
-          console.log("filepath->", base_file);
-          console.log("import_path->", filename);
           resolved = resolve(base_file, filename);
         } catch (err: any) {
           callback_error(err);
