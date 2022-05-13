@@ -1,14 +1,21 @@
-import { existsSync } from 'fs';
-
 import type Less from 'less';
+import { resolve } from './resolve';
 
 
 export default class LessAliasesPlugin {
-  
-  constructor() {
+
+  public current_dir: string;
+
+  public callback_error: Function;
+
+  constructor(current_dir: string, callback_error: Function) {
+    this.callback_error = callback_error;
+    this.current_dir = current_dir
   }
 
   install(less: typeof Less, pluginManager: any) {
+
+    let { current_dir, callback_error } = this;
 
     class AliasPlugin extends less.FileManager {
       loadFile(
@@ -17,38 +24,27 @@ export default class LessAliasesPlugin {
         options: Record<string, unknown>,
         enviroment: Less.Environment
       ) {
-        let resolved;
-    
-        // try {
-        //   resolved = config.node_resolve(
-        //     filename,
-        //     currentDirectory ? currentDirectory : stdinDir
-        //   );
-        //   resolved = getFilePathWithPlatform(
-        //     resolved,
-        //     config?.style?.platform
-        //   );
-        // } catch (err: any) {
-        //   /**
-        //    * 这里如果把 error throw 出去，会导致 less 跑飞，具体原因还未详细研究，
-        //    * 所以这里将错误传递到外面，然后返回空文件，让 less 的转换进行下去，不要卡死在这里。
-        //    */
-        //   onResolveError(err);
-        //   return Promise.resolve({
-        //     filename,
-        //     contents: '',
-        //   });
-        // }
+
+        let resolved = undefined;
+        try {
+          resolved = resolve(currentDirectory ? currentDirectory : current_dir, filename);
+        } catch (err: any) {
+          callback_error(err);
+          return Promise.resolve({
+            filename,
+            contents: '',
+          });
+        }
 
         return super.loadFile(
-          filename,
+          resolved ?? filename,
           currentDirectory,
           options,
           enviroment,
         );
       }
     }
-    
+
     pluginManager.addFileManager(
       new AliasPlugin()
     );

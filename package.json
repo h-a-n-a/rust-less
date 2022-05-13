@@ -6,6 +6,8 @@
   "main": "index.js",
   "scripts": {
     "test": "npx ts-node tslib/index.ts --content '.a{width:10px;}'",
+    "test:resolve": "npx ts-node-dev tslib/resolve.ts",
+    "test:plugin": "npx ts-node-dev tslib/index.ts",
     "build": "npx ts-node tslib/build.ts"
   },
   "repository": {

@@ -1,4 +1,5 @@
 use crate::new_less::file::path_resolve;
+use serde_json::Value;
 use std::collections::HashMap;
 use std::env;
 use std::path::Path;
@@ -18,13 +19,13 @@ impl LessInterceptor {
         .to_string();
       let cwd = env::current_dir().unwrap().to_str().unwrap().to_string();
       let include_path = vec![
-        self_dir,
-        cwd.clone(),
-        "node_modules".to_string(),
-        "/Users/zhushijie/Desktop/github/rspack/node_modules".to_string(),
+        Value::String(self_dir),
+        Value::String(cwd.clone()),
+        Value::String("node_modules".to_string()),
       ];
       let mut option_map = HashMap::new();
-      option_map.insert("paths", include_path);
+      option_map.insert("paths", Value::Array(include_path));
+      option_map.insert("filename", Value::String(filepath.to_string()));
       let mut content_map = HashMap::new();
       content_map.insert("content".to_string(), content.to_string());
       let js_file = path_resolve("./dist/main.js");
