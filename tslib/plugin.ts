@@ -29,8 +29,11 @@ export default class LessAliasesPlugin {
         let resolved = undefined;
         try {
           let base_file = currentDirectory ? currentDirectory : path.dirname(current_dir);
+          // console.log("base_file->" + base_file);
+          // console.log("filename->" + filename);
           resolved = resolve(base_file, filename);
         } catch (err: any) {
+          // console.log("err->" + err);
           callback_error(err);
           return Promise.resolve({
             filename,

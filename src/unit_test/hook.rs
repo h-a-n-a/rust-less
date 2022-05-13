@@ -18,6 +18,6 @@ fn test_less_import_hook() {
 fn test_less_content_hook() {
   let filepath = path_resolve("assets/demo.less");
   let app = Application::default();
-  let res = app.render_into_hashmap(filepath.as_str()).unwrap();
-  println!("rust_res: -> \n {:#?}", res);
+  let res = app.render(filepath.as_str()).unwrap();
+  println!("rust_res: -> \n {}", res);
 }

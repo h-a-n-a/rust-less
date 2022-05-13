@@ -8,4 +8,14 @@ build({
     target: "es2020",
     bundle: true,
     sourcemap: true,
-}).catch(() => process.exit(1));
+    loader: {
+        '.tsx': 'tsx',
+        '.ts': 'ts',
+        '.js': 'js',
+        '.node': 'binary'
+    },
+    external: ['../node_resolver/binding']
+}).catch((ex) => {
+    console.log(ex);
+    process.exit(1)
+});

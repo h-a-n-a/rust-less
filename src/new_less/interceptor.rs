@@ -28,16 +28,18 @@ impl LessInterceptor {
       option_map.insert("filename", Value::String(filepath.to_string()));
       let mut content_map = HashMap::new();
       content_map.insert("content".to_string(), content.to_string());
-      let js_file = path_resolve("./dist/main.js");
-      let mut task = Command::new("npx");
-      task.arg("ts-node");
+      let js_file = Path::join(
+        Path::new("/Users/zhushijie/Desktop/github/rspack"),
+        "./dist/main.js",
+      );
+      let mut task = Command::new("node");
       task.arg(js_file);
       task.arg("--content");
       task.arg(serde_json::to_string(&content_map).unwrap());
       task.arg("--option");
       task.arg(serde_json::to_string(&option_map).unwrap());
-
-      task.current_dir(cwd);
+      println!("cwd->{}", cwd);
+      task.current_dir("/Users/zhushijie/Desktop/github/rspack");
       task.stdout(Stdio::piped());
 
       let task_res = task
