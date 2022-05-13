@@ -1,4 +1,5 @@
 import less from "less";
+// import LessAliasesPlugin from "./plugin";
 
 function get_argv(key: string) {
     let list = process.argv;
@@ -26,6 +27,7 @@ async function main() {
                 ...(options?.paths || ['node_modules']),
                 ...(options?.root ? [options.root] : []),
             ],
+            // plugins:[new LessAliasesPlugin()]
         }).then(res => {
             console.log(res.css)
             if (process.send) {
