@@ -6,9 +6,9 @@ use crate::new_less::file::path_resolve;
 fn test_less_render() {
   let filepath = path_resolve("assets/css_modules/index.module.less");
   let app = Application::default();
-  {
-    app.context.lock().unwrap().option.hooks.content_interceptor = None;
-  }
+  // {
+  //   app.context.lock().unwrap().option.hooks.content_interceptor = None;
+  // }
   let res = app.render(filepath.as_str()).unwrap();
   let target_code = r#"
 .x {

@@ -296,4 +296,9 @@ fn test_splic_vec() {
   let a = list.get(2).unwrap();
   let index = list.iter().position(|x| x == a).unwrap();
   println!("{:#?}", index);
+
+  let mut list = vec![1, 2, 3, 4, 5, 6];
+  let insert_list = vec![10, 9, 8];
+  list.splice(1..1, insert_list);
+  println!("{:#?}", list);
 }

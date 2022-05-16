@@ -3,11 +3,12 @@ use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::media::MediaQuery;
 use crate::new_less::node::NodeWeakRef;
 use crate::new_less::option::OptionExtend;
-use crate::new_less::select::NewSelector;
+use crate::new_less::select::{NewSelector, SelectParadigm};
 use crate::new_less::var::HandleResult;
 use serde::Serialize;
 use std::ops::Deref;
 use serde_json::{Map, Value};
+use crate::new_less::token::lib::TokenInterface;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", content = "value")]
@@ -84,6 +85,36 @@ impl SelectorNode {
     }
   }
 
+  pub fn calc_paradigm(list: Vec<Vec<SelectParadigm>>) -> Result<String, String> {
+    let mut select_res = "".to_string();
+
+    for (index, index_list) in list.iter().enumerate() {
+      let mut txt = "".to_string();
+      for par in index_list.iter() {
+        match par {
+          SelectParadigm::SelectWrap(ss) => {
+            txt += ss;
+          }
+          SelectParadigm::CominaWrap(cc) => {
+            txt += &cc.to_str().to_string()
+          }
+          SelectParadigm::KeyWrap(key) => {
+            txt += key;
+          }
+          _ => {
+            return Err(format!("{:#?} \n -> list_paradigm must not include SelectParadigm::VarWrap", list));
+          }
+        }
+      }
+      select_res += &txt;
+      if index != list.len() - 1 {
+        select_res += ",";
+      }
+    }
+
+    Ok(select_res)
+  }
+
   ///
   /// 代码生成方法
   ///
@@ -106,7 +137,7 @@ impl SelectorNode {
     if let Some(snode) = nearly_select_node {
       if let SelectorNode::Select(s) = snode.upgrade().unwrap().borrow().selector.as_ref().unwrap()
       {
-        select_res = s.code_gen()?.join(",");
+        select_res = Self::calc_paradigm(s.code_gen()?)?;
       }
     }
 

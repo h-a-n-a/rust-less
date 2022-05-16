@@ -124,6 +124,28 @@ impl NewSelector {
     obj
   }
 
+
+  ///
+  /// 向上查找 最近 select 节点 非 media
+  ///
+  pub fn find_up_select_node(node: NodeWeakRef) -> NodeWeakRef {
+    if let Some(ref heap_node) = node {
+      let rule = heap_node.upgrade().unwrap();
+      if matches!(
+        *rule.deref().borrow().selector.as_ref().unwrap(),
+        SelectorNode::Select(..)
+      ) {
+        node.clone()
+      } else {
+        let parent = rule.deref().borrow().parent.clone();
+        Self::find_up_select_node(parent)
+      }
+    } else {
+      None
+    }
+  }
+
+
   ///
   /// 反序列化
   ///
@@ -170,135 +192,14 @@ impl NewSelector {
     self.charlist.poly()
   }
 
-  ///
-  /// 向上查找 最近 select 节点 非 media
-  ///
-  pub fn find_up_select_node(node: NodeWeakRef) -> NodeWeakRef {
-    if let Some(ref heap_node) = node {
-      let rule = heap_node.upgrade().unwrap();
-      if matches!(
-        *rule.deref().borrow().selector.as_ref().unwrap(),
-        SelectorNode::Select(..)
-      ) {
-        node.clone()
-      } else {
-        let parent = rule.deref().borrow().parent.clone();
-        Self::find_up_select_node(parent)
-      }
-    } else {
-      None
-    }
-  }
-
-  ///
-  /// 向上查找 是否有 :global 的 rule
-  ///
-  fn has_css_global_rule(node: NodeWeakRef) -> NodeWeakRef {
-    if let Some(ref heap_node) = node {
-      let rule = heap_node.upgrade().unwrap();
-      if let Some(SelectorNode::Select(ss)) = rule.clone().borrow().selector.as_ref() {
-        if ss.charlist == vec![':', 'g', 'l', 'o', 'b', 'a', 'l'] {
-          node.clone()
-        } else {
-          let parent = rule.deref().borrow().parent.clone();
-          Self::has_css_global_rule(parent)
-        }
-      } else {
-        let parent = rule.deref().borrow().parent.clone();
-        Self::has_css_global_rule(parent)
-      }
-    } else {
-      None
-    }
-  }
-
-  ///
-  /// 计算当前字段是否需要 进行 css_module 处理
-  ///
-  pub fn calc_need_modules(&self) -> Result<bool, String> {
-    let rule = self.parent.as_ref().unwrap().upgrade().unwrap();
-    let file = rule.borrow().file_info.as_ref().unwrap().upgrade().unwrap();
-    if file.borrow().modules {
-      let self_rule = self.parent.as_ref().unwrap().upgrade().unwrap();
-      let node = self_rule.deref().borrow().parent.clone();
-      return if let Some(globalnode) = Self::has_css_global_rule(node) {
-        let rule = globalnode.upgrade().unwrap();
-        for item_node in &rule.borrow().block_node {
-          if matches!(item_node,StyleNode::Var(..)) {
-            return Err(format!("{} \n -> must not include any style_rule", serde_json::to_string_pretty(&rule).unwrap()));
-          }
-        }
-        Ok(false)
-      } else {
-        Ok(true)
-      };
-    }
-    Ok(false)
-  }
-
-  ///
-  /// 自动转化 SelectParadigm::SelectWrap 中包裹的字符串 是否需要 进行 css_modules 混合
-  ///
-  pub fn convert_select_wrap(&self, list: &Vec<SelectParadigm>, modules: bool) -> Vec<SelectParadigm> {
-    let mut new_list = list.clone();
-    let mut rm_index_list = vec![];
-    if modules {
-      let mut index = 0;
-      while index < new_list.len() {
-        let current = new_list.get_mut(index).unwrap();
-        if let SelectParadigm::SelectWrap(selector_txt) = current {
-          let list = selector_txt.to_string().tocharlist();
-          let char = list.get(0).unwrap();
-          if *char == '.' {
-            let key = list[1..list.len()].to_vec().poly();
-            let rule = self.parent.as_ref().unwrap().upgrade().unwrap();
-            let file = rule.borrow().file_info.as_ref().unwrap().upgrade().unwrap();
-            let hash = &file.borrow().hash_perfix;
-            *selector_txt = format!(".{}_{}", key, hash);
-          }
-        }
-        drop(current);
-        let current = new_list.get(index).unwrap();
-        let prev = if index == 0 {
-          None
-        } else {
-          new_list.get(index - 1)
-        };
-        // 添加 :global(xx) 的索引位置
-        if let SelectParadigm::SelectWrap(selector_txt) = current {
-          let list = selector_txt.to_string().tocharlist();
-          if list.get(0) == Some(&'(') && list.get(list.len() - 1) == Some(&')') {
-            if let Some(SelectParadigm::SelectWrap(prev_selector_txt)) = prev {
-              if prev_selector_txt == ":global" {
-                rm_index_list.push(index);
-              }
-            }
-          }
-        }
-        index += 1;
-      }
-      // 处理 :global(xx)
-      let mut index = 0;
-      for handle_index in rm_index_list {
-        let clousure_warp_index = handle_index - index;
-        let global_warp_index = handle_index - index - 1;
-        if let SelectParadigm::SelectWrap(clousure_warp) = new_list.get_mut(clousure_warp_index).unwrap() {
-          let list = clousure_warp.to_string().tocharlist();
-          *clousure_warp = list[1..list.len() - 1].to_vec().poly();
-        }
-        new_list.remove(global_warp_index);
-        index += 1;
-      }
-    }
-    new_list
-  }
 
   ///
   /// 生成当前 select 字符
   ///
-  pub fn code_gen(&self) -> Result<Vec<String>, String> {
-    let mut split_select_txt = vec![];
-    let modules = self.calc_need_modules()?;
+  pub fn code_gen(&self) -> Result<Vec<Vec<SelectParadigm>>, String> {
+    let mut split_select_txt: Vec<Vec<SelectParadigm>> = vec![];
+
+
     for list in self.paradigm_vec.iter() {
       // 计算父 表达式
       let self_rule = self.parent.as_ref().unwrap().upgrade().unwrap();
@@ -314,44 +215,43 @@ impl NewSelector {
         };
       }
 
-      let mut txt = "".to_string();
+      // 清洗后 拼接自我结果
+      let mut self_list = vec![];
       let mut has_var = false;
-
-      let list_copy = self.convert_select_wrap(list, modules);
+      let mut has_key = false;
 
       // 计算自己
-      list_copy.iter().for_each(|par| match par {
-        SelectParadigm::SelectWrap(cc) => txt += &cc,
-        SelectParadigm::CominaWrap(cc) => {
-          txt.push(cc.to_str());
-        }
-        SelectParadigm::VarWrap(_) => {
+      let mut var_index = -1;
+      for (np, p) in list.iter().enumerate() {
+        if matches!(p,SelectParadigm::VarWrap(..)) {
+          var_index = np as i32;
+        } else if matches!(p,SelectParadigm::KeyWrap(..)) {
           has_var = true;
-          let base = txt.clone();
-          txt = parent_select_txt.iter().map(|x| {
-            format!("{}{}", base, x)
-          }).collect::<Vec<String>>().join(",");
         }
-        SelectParadigm::KeyWrap(keyword) => {
-          has_var = true;
-          txt = keyword.clone();
-        }
-      });
-
-      // 有 & 符号 则 不合 父 select 字符串做拼接
-      if modules && &txt == ":global" {
-        txt = "".to_string();
       }
-      if has_var || parent_select_txt.is_empty() {
-        if !txt.is_empty() {
-          split_select_txt.push(txt)
+
+      if var_index > -1 {
+        has_var = true;
+        for expr in parent_select_txt.iter() {
+          let mut cplist = list.clone();
+          cplist.splice((var_index as usize)..1, expr.clone());
+          self_list.push(cplist);
         }
       } else {
-        for expr in parent_select_txt {
-          if !txt.is_empty() {
-            split_select_txt.push(format!("{} {}", expr, txt))
-          } else {
-            split_select_txt.push(format!("{}", expr))
+        self_list.push(list.clone());
+      }
+
+      if has_var || parent_select_txt.is_empty() {
+        if !self_list.is_empty() {
+          split_select_txt.append(&mut self_list);
+        }
+      } else {
+        for expr in parent_select_txt.iter() {
+          for m in self_list.iter_mut() {
+            let mut cp_expr = expr.clone();
+            cp_expr.push(SelectParadigm::CominaWrap(TokenCombinaChar::Space));
+            cp_expr.append(m);
+            split_select_txt.push(cp_expr);
           }
         }
       }
