@@ -4,6 +4,7 @@ Cargo.lock
 .DS_Store
 node_modules
 *.node
+.rspack-style
 
 # yarn v2
 .yarn/cache
@@ -11,3 +12,4 @@ node_modules
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
