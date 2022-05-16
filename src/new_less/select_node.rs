@@ -106,7 +106,7 @@ impl SelectorNode {
     if let Some(snode) = nearly_select_node {
       if let SelectorNode::Select(s) = snode.upgrade().unwrap().borrow().selector.as_ref().unwrap()
       {
-        select_res = s.code_gen().join(",");
+        select_res = s.code_gen()?.join(",");
       }
     }
 

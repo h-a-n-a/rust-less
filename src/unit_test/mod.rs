@@ -1,5 +1,6 @@
 mod arco_pro;
 mod comment;
+mod hash;
 mod import;
 mod json;
 mod life_time;
@@ -13,3 +14,5 @@ mod single;
 mod style_rule;
 mod value;
 mod var;
+mod modules;
+mod hook;

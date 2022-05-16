@@ -7,6 +7,8 @@ use crate::new_less::parse::Parse;
 use crate::new_less::select_node::SelectorNode;
 use serde::Serialize;
 use std::collections::HashMap;
+use std::path::Path;
+use crate::new_less::hash::StyleHash;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct FileNode {
@@ -40,8 +42,7 @@ impl FileNode {
           let context = info.context.lock().unwrap();
           context.has_codegen_record(&item.info.borrow().disk_location)
         };
-        if !has_codegen_record
-        {
+        if !has_codegen_record {
           let import_res = item.code_gen()?;
           res += &import_res;
           res += "\n";
@@ -51,11 +52,13 @@ impl FileNode {
     let mut self_code_gen_res = "".to_string();
 
     let source = {
-      info.context.lock().unwrap()
+      info
+        .context
+        .lock()
+        .unwrap()
         .get_render_cache(info.disk_location.as_str())
     };
-    if let Some(code) = source
-    {
+    if let Some(code) = source {
       self_code_gen_res = code.to_string();
     } else {
       for item in self.getrules() {
@@ -86,19 +89,20 @@ impl FileNode {
           let context = info.context.lock().unwrap();
           context.has_codegen_record(&item.info.borrow().disk_location)
         };
-        if !has_codegen_record
-        {
+        if !has_codegen_record {
           item.code_gen_into_map(map)?;
         }
       }
     }
     let mut res = "".to_string();
     let source = {
-      info.context.lock().unwrap()
+      info
+        .context
+        .lock()
+        .unwrap()
         .get_render_cache(info.disk_location.as_str())
     };
-    if let Some(code) = source
-    {
+    if let Some(code) = source {
       res = code.to_string();
     } else {
       for item in self.getrules() {
@@ -136,6 +140,20 @@ impl FileNode {
   }
 
   ///
+  /// 是否需要 css module
+  ///
+  pub fn is_need_css_modules(filepath: &str, modules: Option<bool>) -> bool {
+    if let Some(module) = modules {
+      module
+    } else {
+      let path = Path::new(filepath);
+      let filename = path.file_name().unwrap().to_str().unwrap().to_string();
+      let ext = format!(".module.{}", path.extension().unwrap().to_str().unwrap());
+      filename.to_lowercase().contains(&ext.to_lowercase())
+    }
+  }
+
+  ///
   /// 根据文件路径 解析 文件
   ///
   pub fn create_disklocation_parse(
@@ -147,7 +165,17 @@ impl FileNode {
       let context_value = cp_context.lock().unwrap();
       context_value.get_options()
     };
-    let (abs_path, content) = FileInfo::resolve(filepath, &option.include_path)?;
+    let need_modules = {
+      let modules = context.lock().unwrap().option.modules;
+      Self::is_need_css_modules(filepath.as_str(), modules)
+    };
+    let (abs_path, mut content) = FileInfo::resolve(filepath, &option.include_path)?;
+    let content_transform = {
+      context.lock().unwrap().option.hooks.content_interceptor.as_ref().cloned()
+    };
+    if let Some(content_transform_fn) = content_transform {
+      content = content_transform_fn(abs_path.as_str(), content.as_str())?;
+    }
     let node = {
       let context_value = cp_context.lock().unwrap();
       context_value.get_parse_cache(&abs_path)?
@@ -163,7 +191,7 @@ impl FileNode {
       locmap = Some(FileInfo::get_loc_by_content(&charlist));
     }
     let obj = FileInfo {
-      disk_location: abs_path,
+      disk_location: abs_path.clone(),
       block_node: vec![],
       origin_txt_content: text_content,
       origin_charlist: charlist,
@@ -171,6 +199,9 @@ impl FileNode {
       context,
       self_weak: None,
       import_files: vec![],
+      modules: need_modules,
+      class_selector_collect: Default::default(),
+      hash_perfix: StyleHash::generate_css_module_hash(&abs_path, &content),
     };
     let info = obj.toheap();
     let mut obj = Self { info: info.clone() };
@@ -183,7 +214,6 @@ impl FileNode {
     context_value.set_parse_cache(disk_location.as_str(), file_info_json);
     Ok(obj)
   }
-
 
   ///
   /// 根据文件路径 转换 文件
@@ -222,7 +252,7 @@ impl FileNode {
   /// 根据文件内容 解析文件
   ///
   pub fn create_txt_content_parse(
-    content: String,
+    mut content: String,
     context: ParseContext,
     filename: String,
   ) -> Result<Self, String> {
@@ -230,11 +260,21 @@ impl FileNode {
       let context_value = context.lock().unwrap();
       context_value.get_parse_cache(&filename)?
     };
+    let need_modules = {
+      let modules = context.lock().unwrap().option.modules;
+      Self::is_need_css_modules(filename.as_str(), modules)
+    };
     // 缓存里有的话 直接跳出
     if node.is_some() {
       return Ok(node.unwrap());
     }
-    let text_content: String = content;
+    let content_transform = {
+      context.lock().unwrap().option.hooks.content_interceptor.as_ref().cloned()
+    };
+    if let Some(content_transform_fn) = content_transform {
+      content = content_transform_fn(filename.as_str(), content.as_str())?;
+    }
+    let text_content: String = content.clone();
     let charlist = text_content.tocharlist();
     let cp_context = context.clone();
     let mut sync_context = cp_context.lock().unwrap();
@@ -244,7 +284,7 @@ impl FileNode {
       locmap = Some(FileInfo::get_loc_by_content(&charlist));
     }
     let obj = FileInfo {
-      disk_location: filename,
+      disk_location: filename.clone(),
       block_node: vec![],
       origin_txt_content: text_content,
       origin_charlist: charlist,
@@ -252,6 +292,9 @@ impl FileNode {
       context,
       self_weak: None,
       import_files: vec![],
+      modules: need_modules,
+      class_selector_collect: Default::default(),
+      hash_perfix: StyleHash::generate_css_module_hash(&filename, &content),
     };
     let info = obj.toheap();
     let mut obj = Self { info: info.clone() };

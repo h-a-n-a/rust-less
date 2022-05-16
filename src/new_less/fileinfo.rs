@@ -8,6 +8,7 @@ use crate::new_less::var_node::VarNode;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
 use std::cell::RefCell;
+use std::collections::HashSet;
 use std::fmt::{Debug, Formatter};
 use std::path::Path;
 use std::rc::{Rc, Weak};
@@ -30,6 +31,12 @@ pub struct FileInfo {
   pub self_weak: FileWeakRef,
   // 该文件的引用文件
   pub import_files: Vec<FileNode>,
+  // 是否 codegen 时需要处理 css_module
+  pub modules: bool,
+  // 处理 css 所有的 类选择器的 合集 已经去重
+  pub class_selector_collect: HashSet<String>,
+  // css_modules 需要增加的 hash 尾串
+  pub hash_perfix: String,
 }
 
 pub type FileRef = Rc<RefCell<FileInfo>>;

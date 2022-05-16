@@ -9,6 +9,7 @@ pub struct ParseOption {
   pub include_path: Vec<String>,
   pub sourcemap: bool,
   pub tabspaces: usize,
+  pub modules: Option<bool>,
   pub hooks: ParseHooks,
 }
 
@@ -36,6 +37,7 @@ impl Default for ParseOption {
       include_path: vec![],
       sourcemap: true,
       tabspaces: 2,
+      modules: None,
       hooks: Default::default(),
     }
   }

@@ -1,3 +1,4 @@
+use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::{FileInfo, FileWeakRef};
@@ -10,12 +11,11 @@ use crate::new_less::style_rule::StyleRuleNode;
 use crate::new_less::var::VarRuleNode;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
+use serde_json::{Map, Value};
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
 use std::rc::Rc;
-use serde_json::{Map, Value};
-use crate::extend::string::StringExtend;
 
 #[derive(Clone)]
 pub struct RuleNode {
@@ -114,7 +114,12 @@ impl RuleNode {
   ///
   /// 反序列化
   ///
-  pub fn deserializer(map: &Map<String, Value>, context: ParseContext, parent: NodeWeakRef, fileinfo: FileWeakRef) -> Result<Rc<RefCell<Self>>, String> {
+  pub fn deserializer(
+    map: &Map<String, Value>,
+    context: ParseContext,
+    parent: NodeWeakRef,
+    fileinfo: FileWeakRef,
+  ) -> Result<Rc<RefCell<Self>>, String> {
     let mut rule_node = Self {
       selector: None,
       origin_charlist: vec![],
@@ -129,11 +134,14 @@ impl RuleNode {
     if let Some(Value::String(content)) = map.get("content") {
       rule_node.origin_charlist = content.tocharlist();
     } else {
-      return Err(format!("deserializer RuleNode has error -> content is empty!"));
+      return Err(format!(
+        "deserializer RuleNode has error -> content is empty!"
+      ));
     }
     if let Some(Value::Object(loc)) = map.get("loc") {
       rule_node.loc = Some(Loc::deserializer(loc));
-      rule_node.locmap = Some(LocMap::merge(rule_node.loc.as_ref().unwrap(), &rule_node.origin_charlist).0);
+      rule_node.locmap =
+        Some(LocMap::merge(rule_node.loc.as_ref().unwrap(), &rule_node.origin_charlist).0);
     } else {
       rule_node.locmap = Some(LocMap::new(&rule_node.origin_charlist));
     }
@@ -145,14 +153,25 @@ impl RuleNode {
     if let Some(Value::Array(block_nodes)) = json_block_node {
       for json_node in block_nodes {
         if let Value::Object(json_stylenode) = json_node {
-          block_node_recovery_list.push(StyleNode::deserializer(json_stylenode, context.clone(), Some(weak_self.clone()), fileinfo.as_ref().cloned())?);
+          block_node_recovery_list.push(StyleNode::deserializer(
+            json_stylenode,
+            context.clone(),
+            Some(weak_self.clone()),
+            fileinfo.as_ref().cloned(),
+          )?);
         }
       }
     }
     if let Some(Value::Object(map)) = map.get("select") {
-       heapobj.borrow_mut().selector = Some(SelectorNode::deserializer(map, Some(weak_self.clone()), fileinfo.as_ref().cloned())?);
+      heapobj.borrow_mut().selector = Some(SelectorNode::deserializer(
+        map,
+        Some(weak_self.clone()),
+        fileinfo.as_ref().cloned(),
+      )?);
     } else {
-      return Err(format!("deserializer RuleNode has error -> select is empty!"));
+      return Err(format!(
+        "deserializer RuleNode has error -> select is empty!"
+      ));
     }
     heapobj.borrow_mut().block_node = block_node_recovery_list;
     Ok(heapobj)

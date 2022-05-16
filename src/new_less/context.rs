@@ -1,14 +1,15 @@
-use crate::new_less::fileinfo::{FileInfo};
+use crate::extend::string::StringExtend;
+use crate::new_less::fileinfo::FileInfo;
+use crate::new_less::filenode::FileNode;
+use crate::new_less::node::StyleNode;
 use crate::new_less::option::ParseOption;
+use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, Weak};
-use serde_json::{Map, Value};
-use crate::extend::string::StringExtend;
-use crate::new_less::filenode::FileNode;
-use crate::new_less::node::StyleNode;
+use crate::new_less::hash::StyleHash;
 
 pub type ParseCacheMap = Mutex<HashMap<String, String>>;
 
@@ -48,7 +49,10 @@ impl Context {
   ///
   /// 创建全局应用 共享上下文
   ///
-  pub fn new(option: ParseOption, application_fold: Option<String>) -> Result<Arc<Mutex<Self>>, String> {
+  pub fn new(
+    option: ParseOption,
+    application_fold: Option<String>,
+  ) -> Result<Arc<Mutex<Self>>, String> {
     let mut fold = application_fold.unwrap_or_else(|| {
       std::env::current_dir()
         .unwrap()
@@ -161,7 +165,9 @@ impl Context {
   ///
   pub fn add_render_cache(&mut self, filepath: &str, source: &str) {
     self
-      .render_cache.lock().unwrap()
+      .render_cache
+      .lock()
+      .unwrap()
       .insert(filepath.to_string(), source.to_string());
   }
 
@@ -185,7 +191,6 @@ impl Context {
   pub fn default() -> ParseContext {
     Self::new(Default::default(), None).unwrap()
   }
-
 
   ///
   /// 递归恢复 json 上下文
@@ -211,6 +216,7 @@ impl Context {
   fn deserializer(&self, map: &Map<String, Value>) -> Result<FileNode, String> {
     let json_disk_location = map.get("disk_location");
     let json_origin_txt_content = map.get("origin_txt_content");
+
     let mut obj = FileInfo {
       disk_location: "".to_string(),
       block_node: vec![],
@@ -220,17 +226,26 @@ impl Context {
       context: self.weak_ref.as_ref().unwrap().upgrade().unwrap().clone(),
       self_weak: None,
       import_files: vec![],
+      modules: false,
+      class_selector_collect: Default::default(),
+      hash_perfix: "".to_string(),
     };
     if let Some(Value::String(disk_location)) = json_disk_location {
       obj.disk_location = disk_location.to_string();
     } else {
       return Err(format!("deserializer FileNode -> disk_location is empty!"));
     }
+    let need_modules =
+      FileNode::is_need_css_modules(obj.disk_location.as_str(), self.option.modules);
+    obj.modules = need_modules;
     if let Some(Value::String(origin_txt_content)) = json_origin_txt_content {
       obj.origin_txt_content = origin_txt_content.to_string();
+      obj.hash_perfix = StyleHash::generate_css_module_hash(&obj.disk_location, &origin_txt_content);
       obj.origin_charlist = obj.origin_txt_content.tocharlist();
     } else {
-      return Err(format!("deserializer FileNode -> origin_txt_content is empty!"));
+      return Err(format!(
+        "deserializer FileNode -> origin_txt_content is empty!"
+      ));
     }
     if self.option.sourcemap {
       obj.locmap = Some(FileInfo::get_loc_by_content(&obj.origin_charlist));
@@ -239,7 +254,11 @@ impl Context {
     if let Some(Value::Array(disk_location)) = json_import_files {
       for json_item in disk_location {
         if let Value::Object(json_import_file_node) = json_item {
-          let import_info = json_import_file_node.get("info").unwrap().as_object().unwrap();
+          let import_info = json_import_file_node
+            .get("info")
+            .unwrap()
+            .as_object()
+            .unwrap();
           obj.import_files.push(self.deserializer(import_info)?);
         }
       }

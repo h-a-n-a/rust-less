@@ -41,6 +41,8 @@ fn test_select_parse() {
     r#"p::first-line"#.to_string(),
     r#"selector:pseudo-class"#.to_string(),
     r#".a[id="xyz"]"#.to_string(),
+    r#":global"#.to_string(),
+    r#":global(.abc)"#.to_string(),
   ];
 
   let target = r#"
@@ -61,13 +63,17 @@ h1~img
 p::first-line
 selector:pseudo-class
 .a[id="xyz"]
+:global
+:global(.abc)
   "#;
 
   let mut base = "".to_string();
   demo_select_list.into_iter().for_each(|tt| {
     let mut obj = NewSelector::new(tt.tocharlist(), None, None, None, None);
     match obj.parse(None) {
-      Ok(_) => {}
+      Ok(_) => {
+        println!("{:#?}", obj.paradigm_vec);
+      }
       Err(msg) => {
         println!("{:?}", msg);
       }
