@@ -218,7 +218,6 @@ impl NewSelector {
       // 清洗后 拼接自我结果
       let mut self_list = vec![];
       let mut has_var = false;
-      let mut has_key = false;
 
       // 计算自己
       let mut var_index = -1;
