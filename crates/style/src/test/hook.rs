@@ -26,6 +26,7 @@ fn test_less_content_hook() {
 
 
 #[test]
+#[ignore]
 fn test_js_lib_copy() {
   ///
   /// 复制js-lib
