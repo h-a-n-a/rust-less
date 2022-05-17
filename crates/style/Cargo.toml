@@ -1,13 +1,20 @@
 [package]
 name = "rspack_style"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/zhusjfaker/rust-less.git"
 keywords = ["style", "less", "css", "rust-toolkit"]
 readme = "../../readme.md"
 description = "a rust toolkit bundled for front-end style files"
-
+include = [
+    "**/*.rs",
+    "js-lib/**/*.js",
+    "js-lib/*.js",
+    "js-lib/*.node",
+    "js-lib/**/*.js.map",
+    "Cargo.toml",
+]
 
 [dependencies]
 regex = "1.5.4"
