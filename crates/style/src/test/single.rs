@@ -299,6 +299,13 @@ fn test_splic_vec() {
 
   let mut list = vec![1, 2, 3, 4, 5, 6];
   let insert_list = vec![10, 9, 8];
-  list.splice(1..1, insert_list);
+  list.remove(5);
+  for item in insert_list.iter().rev() {
+    list.insert(5, item.clone());
+  }
+  list.remove(2);
+  for item in insert_list.iter().rev() {
+    list.insert(2, item.clone());
+  }
   println!("{:#?}", list);
 }

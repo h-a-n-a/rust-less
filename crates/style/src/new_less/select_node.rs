@@ -1,7 +1,7 @@
-use crate::new_less::fileinfo::FileWeakRef;
+use crate::new_less::fileinfo::{FileRef, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::media::MediaQuery;
-use crate::new_less::node::NodeWeakRef;
+use crate::new_less::node::{NodeRef, NodeWeakRef};
 use crate::new_less::option::OptionExtend;
 use crate::new_less::select::{NewSelector, SelectParadigm};
 use crate::new_less::var::HandleResult;
@@ -9,6 +9,7 @@ use serde::Serialize;
 use std::ops::Deref;
 use serde_json::{Map, Value};
 use crate::new_less::token::lib::TokenInterface;
+use crate::new_less::token::select::TokenCombinaChar;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", content = "value")]
@@ -85,21 +86,149 @@ impl SelectorNode {
     }
   }
 
-  pub fn calc_paradigm(list: Vec<Vec<SelectParadigm>>) -> Result<String, String> {
+  ///
+  /// 是否需要css_module
+  /// 第一个 是否需要
+  /// 第二个 content_hash
+  ///
+  pub fn need_css_modules(&self) -> (bool, Option<String>) {
+    if let Some(file) = self.get_file() {
+      if file.borrow().modules {
+        return (true, Some(file.borrow().hash_perfix.clone()));
+      }
+    }
+    (false, None)
+  }
+
+
+  ///
+  /// 获取对应 FileInfo 节点
+  ///
+  pub fn get_file(&self) -> Option<FileRef> {
+    let rule = self.get_rule();
+    if let Some(rule_heap) = rule {
+      if let Some(file) = rule_heap.borrow().file_info.as_ref() {
+        Some(file.upgrade().unwrap())
+      } else {
+        None
+      }
+    } else {
+      None
+    }
+  }
+
+  ///
+  /// 获取对应 StyleRule 完整节点
+  ///
+  pub fn get_rule(&self) -> Option<NodeRef> {
+    if let SelectorNode::Select(ss) = &self {
+      return if ss.parent.is_some() {
+        Some(ss.parent.as_ref().unwrap().upgrade().unwrap())
+      } else {
+        None
+      };
+    } else if let SelectorNode::Media(mm) = &self {
+      return if mm.parent.is_some() {
+        Some(mm.parent.as_ref().unwrap().upgrade().unwrap())
+      } else {
+        None
+      };
+    }
+    None
+  }
+
+  pub fn convert_class_paradigm(&self, word: String, hash_value: &str) -> String {
+    let file = self.get_file();
+    if let Some(fileheap) = file {
+      let class_word = word[1..word.len()].to_string();
+      fileheap.borrow_mut().class_selector_collect.insert(class_word);
+    }
+    format!("{}_{}", word, hash_value)
+  }
+
+  ///
+  /// css_module 的 词缀 转化
+  ///
+  pub fn convert_paradigm_to_word(&self, list: &Vec<SelectParadigm>, hash_value: String) -> Result<Vec<SelectParadigm>, String> {
+    let mut new_list = vec![];
+    let mut index = 0;
+    let mut has_global = false;
+    while index < list.len() {
+      let par = list.get(index).unwrap();
+      let nextpar = if index + 1 < list.len() {
+        list.get(index + 1)
+      } else {
+        None
+      };
+      let prevpar = if index > 0 {
+        list.get(index - 1)
+      } else {
+        None
+      };
+      match par {
+        SelectParadigm::SelectWrap(ss) => {
+          if ss == ":global" {
+            if nextpar == Some(&SelectParadigm::CominaWrap(TokenCombinaChar::Space)) && !has_global {
+              has_global = true;
+              index += 1;
+            }
+          } else {
+            if &ss[0..1] == "." && !has_global {
+              // 转化 class 样式选择器
+              let new_value = self.convert_class_paradigm(ss.to_string(), &hash_value);
+              new_list.push(SelectParadigm::SelectWrap(new_value));
+            } else if &ss[0..1] == "." && has_global {
+              // 不转化 class 样式选择器
+              new_list.push(par.clone());
+            } else if &ss[0..1] == "(" &&
+              &ss[ss.len() - 1..ss.len()] == ")" &&
+              prevpar == Some(&SelectParadigm::SelectWrap(":global".to_string())) {
+              // 第一位'(' 最后一位是')'
+              let new_value = ss[1..ss.len() - 1].to_string();
+              new_list.push(SelectParadigm::SelectWrap(new_value));
+            } else {
+              new_list.push(par.clone())
+            }
+          }
+        }
+        SelectParadigm::CominaWrap(..) | SelectParadigm::KeyWrap(..) => {
+          new_list.push(par.clone())
+        }
+        _ => {
+          return Err(format!("{:#?} \n -> list_paradigm must not include SelectParadigm::VarWrap", list));
+        }
+      }
+      index += 1;
+    }
+    Ok(new_list)
+  }
+
+  ///
+  /// 计算语义 合并计算
+  ///
+  pub fn calc_paradigm(&self, list: Vec<Vec<SelectParadigm>>, css_module_info: (bool, Option<String>)) -> Result<String, String> {
     let mut select_res = "".to_string();
+    let (css_module, hash_value) = css_module_info;
 
     for (index, index_list) in list.iter().enumerate() {
       let mut txt = "".to_string();
-      for par in index_list.iter() {
+
+      let calc_index_list = if css_module {
+        self.convert_paradigm_to_word(index_list, hash_value.as_ref().unwrap().to_string())?
+      } else {
+        index_list.to_owned()
+      };
+
+      for par in calc_index_list.iter() {
         match par {
           SelectParadigm::SelectWrap(ss) => {
-            txt += ss;
+            txt += &ss;
           }
           SelectParadigm::CominaWrap(cc) => {
             txt += &cc.to_str().to_string()
           }
           SelectParadigm::KeyWrap(key) => {
-            txt += key;
+            txt += &key;
           }
           _ => {
             return Err(format!("{:#?} \n -> list_paradigm must not include SelectParadigm::VarWrap", list));
@@ -120,6 +249,7 @@ impl SelectorNode {
   ///
   pub fn code_gen(&self) -> Result<(String, String), String> {
     let mut node = None;
+    let css_module_info = self.need_css_modules();
     if let Self::Select(ss) = &self {
       node = ss.parent.clone();
     } else if let Self::Media(ss) = &self {
@@ -137,7 +267,7 @@ impl SelectorNode {
     if let Some(snode) = nearly_select_node {
       if let SelectorNode::Select(s) = snode.upgrade().unwrap().borrow().selector.as_ref().unwrap()
       {
-        select_res = Self::calc_paradigm(s.code_gen()?)?;
+        select_res = self.calc_paradigm(s.code_gen()?, css_module_info)?;
       }
     }
 

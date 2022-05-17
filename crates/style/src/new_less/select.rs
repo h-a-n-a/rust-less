@@ -199,7 +199,6 @@ impl NewSelector {
   pub fn code_gen(&self) -> Result<Vec<Vec<SelectParadigm>>, String> {
     let mut split_select_txt: Vec<Vec<SelectParadigm>> = vec![];
 
-
     for list in self.paradigm_vec.iter() {
       // 计算父 表达式
       let self_rule = self.parent.as_ref().unwrap().upgrade().unwrap();
@@ -231,9 +230,13 @@ impl NewSelector {
 
       if var_index > -1 {
         has_var = true;
+
         for expr in parent_select_txt.iter() {
           let mut cplist = list.clone();
-          cplist.splice((var_index as usize)..1, expr.clone());
+          cplist.remove(var_index as usize);
+          for item in expr.iter().rev() {
+            cplist.insert(var_index as usize, item.clone())
+          }
           self_list.push(cplist);
         }
       } else {
@@ -246,10 +249,12 @@ impl NewSelector {
         }
       } else {
         for expr in parent_select_txt.iter() {
-          for m in self_list.iter_mut() {
+          for m in self_list.iter() {
             let mut cp_expr = expr.clone();
-            cp_expr.push(SelectParadigm::CominaWrap(TokenCombinaChar::Space));
-            cp_expr.append(m);
+            if cp_expr.last() != Some(&SelectParadigm::CominaWrap(TokenCombinaChar::Space)) {
+              cp_expr.push(SelectParadigm::CominaWrap(TokenCombinaChar::Space));
+            }
+            cp_expr.append(&mut m.clone());
             split_select_txt.push(cp_expr);
           }
         }
