@@ -16,7 +16,6 @@ fn test_loc() {
   assert_eq!(x.char, '@');
 }
 
-
 #[test]
 fn test_loc_rule() {
   let filepath = path_resolve("assets/loc_rule.less");

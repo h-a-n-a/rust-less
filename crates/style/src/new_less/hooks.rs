@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use crate::new_less::interceptor::LessInterceptor;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct ParseHooks {
@@ -13,7 +13,6 @@ pub struct ParseHooks {
   ///
   pub content_interceptor: Option<Arc<dyn Fn(&str, &str) -> Result<String, String> + Send + Sync>>,
 }
-
 
 impl Default for ParseHooks {
   fn default() -> Self {

@@ -1,8 +1,7 @@
-use std::path::Path;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use nodejs_resolver::{Resolver, ResolveResult};
-
+use nodejs_resolver::{ResolveResult, Resolver};
+use std::path::Path;
 
 #[napi]
 pub fn resolve_file(filepath: String, importpath: String) -> Result<String> {
@@ -15,9 +14,6 @@ pub fn resolve_file(filepath: String, importpath: String) -> Result<String> {
         Ok(importpath)
       }
     }
-    Err(msg) => {
-      Err(Error::new(Status::Unknown, msg.to_string()))
-    }
+    Err(msg) => Err(Error::new(Status::Unknown, msg.to_string())),
   }
 }
-

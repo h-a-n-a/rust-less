@@ -11,11 +11,11 @@ use crate::new_less::token::select::{
 };
 use crate::new_less::value::ValueNode;
 use crate::new_less::var::VarRuleNode;
+use serde::ser::SerializeStruct;
 use serde::{Deserialize, Serialize, Serializer};
+use serde_json::{Map, Value};
 use std::cmp::Ordering;
 use std::ops::Deref;
-use serde::ser::SerializeStruct;
-use serde_json::{Map, Value};
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(tag = "type", content = "value")]
@@ -91,8 +91,8 @@ pub struct NewSelector {
 
 impl Serialize for NewSelector {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-      S: Serializer,
+  where
+    S: Serializer,
   {
     let mut state = serializer.serialize_struct("FileInfo", 3)?;
     state.serialize_field("loc", &self.loc)?;
@@ -124,7 +124,6 @@ impl NewSelector {
     obj
   }
 
-
   ///
   /// 向上查找 最近 select 节点 非 media
   ///
@@ -145,11 +144,14 @@ impl NewSelector {
     }
   }
 
-
   ///
   /// 反序列化
   ///
-  pub fn deserializer(map: &Map<String, Value>, parent: NodeWeakRef, fileinfo: FileWeakRef) -> Result<Self, String> {
+  pub fn deserializer(
+    map: &Map<String, Value>,
+    parent: NodeWeakRef,
+    fileinfo: FileWeakRef,
+  ) -> Result<Self, String> {
     let mut select = Self {
       paradigm_vec: vec![],
       loc: None,
@@ -161,7 +163,9 @@ impl NewSelector {
     if let Some(Value::String(content)) = map.get("content") {
       select.charlist = content.tocharlist();
     } else {
-      return Err(format!("deserializer NewSelector has error -> charlist is empty!"));
+      return Err(format!(
+        "deserializer NewSelector has error -> charlist is empty!"
+      ));
     }
     if let Some(Value::Object(loc)) = map.get("loc") {
       select.loc = Some(Loc::deserializer(loc));
@@ -180,7 +184,9 @@ impl NewSelector {
         }
       }
     } else {
-      return Err(format!("deserializer NewSelector has error -> paradigm_vec is empty!"));
+      return Err(format!(
+        "deserializer NewSelector has error -> paradigm_vec is empty!"
+      ));
     }
     Ok(select)
   }
@@ -191,7 +197,6 @@ impl NewSelector {
   pub fn value(&self) -> String {
     self.charlist.poly()
   }
-
 
   ///
   /// 生成当前 select 字符
@@ -208,7 +213,7 @@ impl NewSelector {
       if let Some(any_parent_rule) = select_rule_node {
         let heap_any_parent_rule = any_parent_rule.upgrade().unwrap();
         if let Some(SelectorNode::Select(ps)) =
-        heap_any_parent_rule.deref().borrow().selector.as_ref()
+          heap_any_parent_rule.deref().borrow().selector.as_ref()
         {
           parent_select_txt = ps.code_gen()?;
         };
@@ -221,9 +226,9 @@ impl NewSelector {
       // 计算自己
       let mut var_index = -1;
       for (np, p) in list.iter().enumerate() {
-        if matches!(p,SelectParadigm::VarWrap(..)) {
+        if matches!(p, SelectParadigm::VarWrap(..)) {
           var_index = np as i32;
-        } else if matches!(p,SelectParadigm::KeyWrap(..)) {
+        } else if matches!(p, SelectParadigm::KeyWrap(..)) {
           has_var = true;
         }
       }
@@ -310,7 +315,9 @@ impl NewSelector {
         {
           list.remove(0);
         }
-        if list.is_empty() && !matches!(obj, SelectParadigm::CominaWrap(TokenCombinaChar::Space)) || !list.is_empty() {
+        if list.is_empty() && !matches!(obj, SelectParadigm::CominaWrap(TokenCombinaChar::Space))
+          || !list.is_empty()
+        {
           list.push(obj);
         }
       } else {

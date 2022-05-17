@@ -3,7 +3,6 @@ use crate::new_less::filenode::FileNode;
 use crate::new_less::option::ParseOption;
 use std::collections::HashMap;
 
-
 #[derive(Debug)]
 pub struct Application {
   pub context: ParseContext,
@@ -12,9 +11,7 @@ pub struct Application {
 impl Application {
   pub fn new(option: ParseOption, application_fold: Option<String>) -> Result<Self, String> {
     let context = Context::new(option, application_fold)?;
-    Ok(Application {
-      context,
-    })
+    Ok(Application { context })
   }
 
   ///
@@ -45,5 +42,4 @@ impl Application {
   pub fn default() -> Application {
     Self::new(Default::default(), None).unwrap()
   }
-
 }

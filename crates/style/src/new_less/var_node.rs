@@ -1,3 +1,4 @@
+use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::FileWeakRef;
@@ -10,10 +11,9 @@ use crate::new_less::value::ValueNode;
 use crate::new_less::var::HandleResult;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
-use std::fmt::{Debug, Formatter};
 use serde_json::{Map, Value};
+use std::fmt::{Debug, Formatter};
 use uuid::Uuid;
-use crate::extend::string::StringExtend;
 
 #[derive(Clone)]
 pub struct VarNode {
@@ -45,8 +45,8 @@ pub struct VarNode {
 
 impl Serialize for VarNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-      S: Serializer,
+  where
+    S: Serializer,
   {
     let mut state = serializer.serialize_struct("VarNode", 5)?;
     state.serialize_field("content", &self.charlist.poly())?;
@@ -107,7 +107,12 @@ impl VarNode {
   ///
   /// 反序列
   ///
-  pub fn deserializer(map: &Map<String, Value>, context: ParseContext, parent: NodeWeakRef, fileinfo: FileWeakRef) -> Result<Self, String> {
+  pub fn deserializer(
+    map: &Map<String, Value>,
+    context: ParseContext,
+    parent: NodeWeakRef,
+    fileinfo: FileWeakRef,
+  ) -> Result<Self, String> {
     let mut obj = Self {
       loc: None,
       uuid: "".to_string(),
@@ -122,7 +127,9 @@ impl VarNode {
     if let Some(Value::String(content)) = map.get("content") {
       obj.charlist = content.tocharlist();
     } else {
-      return Err(format!("deserializer VarNode has error -> content is empty!"));
+      return Err(format!(
+        "deserializer VarNode has error -> content is empty!"
+      ));
     }
     if let Some(Value::Object(loc)) = map.get("loc") {
       obj.loc = Some(Loc::deserializer(loc));

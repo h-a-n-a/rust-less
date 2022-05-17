@@ -51,5 +51,8 @@ h2 .b,h3 .b {
 }
   "#;
   println!("{}", res);
-  assert_eq!(target_code.to_string().simple_compare(), res.simple_compare());
+  assert_eq!(
+    target_code.to_string().simple_compare(),
+    res.simple_compare()
+  );
 }

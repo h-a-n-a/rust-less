@@ -1,4 +1,5 @@
 use crate::extend::enum_extend::EnumExtend;
+use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::node::NodeWeakRef;
@@ -7,10 +8,9 @@ use crate::new_less::select_node::SelectorNode;
 use crate::new_less::token::lib::Token;
 use crate::new_less::token::media::{TokenMediaFeature, TokenMediaLogic, TokenMediaType};
 use crate::new_less::var::HandleResult;
-use serde::{Serialize, Serializer};
 use serde::ser::SerializeStruct;
+use serde::{Serialize, Serializer};
 use serde_json::{Map, Value};
-use crate::extend::string::StringExtend;
 
 ///
 /// 媒体查询
@@ -28,8 +28,8 @@ pub struct MediaQuery {
 
 impl Serialize for MediaQuery {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-      S: Serializer,
+  where
+    S: Serializer,
   {
     let mut state = serializer.serialize_struct("FileInfo", 2)?;
     state.serialize_field("loc", &self.loc)?;
@@ -79,7 +79,9 @@ impl MediaQuery {
     if let Some(Value::String(content)) = map.get("content") {
       media.charlist = content.tocharlist();
     } else {
-      return Err(format!("deserializer MediaQuery has error -> charlist is empty!"));
+      return Err(format!(
+        "deserializer MediaQuery has error -> charlist is empty!"
+      ));
     }
     if let Some(Value::Object(loc)) = map.get("loc") {
       media.loc = Some(Loc::deserializer(loc));

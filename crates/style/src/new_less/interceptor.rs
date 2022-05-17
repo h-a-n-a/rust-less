@@ -1,12 +1,11 @@
+use crate::new_less::file::path_resolve;
 use serde_json::Value;
 use std::collections::HashMap;
-use std::{env, fs};
 use std::path::Path;
 use std::process::{Command, Stdio};
-use crate::new_less::file::path_resolve;
+use std::{env, fs};
 
 pub struct LessInterceptor;
-
 
 impl LessInterceptor {
   ///
@@ -23,9 +22,7 @@ impl LessInterceptor {
     let js_lib_dir = format!("{}/**", path_resolve("js-lib"));
     let command = format!("cp -rf {} {}", js_lib_dir, target_dir);
     let mut cp_task = Command::new("sh");
-    cp_task
-      .arg("-c")
-      .arg(command);
+    cp_task.arg("-c").arg(command);
     cp_task.current_dir(target_dir).status().unwrap();
   }
 
@@ -53,8 +50,14 @@ impl LessInterceptor {
       Ok(js_main_file.into_os_string().into_string().unwrap())
     } else {
       // maybe .rspack-style is link or file
-      Err(format!("rspack-style LessInterceptor filemanger call ->  {} must be dir", temp_rspack_style_dir.into_os_string().into_string().unwrap()))
-    }
+      Err(format!(
+        "rspack-style LessInterceptor filemanger call ->  {} must be dir",
+        temp_rspack_style_dir
+          .into_os_string()
+          .into_string()
+          .unwrap()
+      ))
+    };
   }
 
   pub fn handle(filepath: &str, content: &str) -> Result<String, String> {

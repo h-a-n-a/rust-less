@@ -88,19 +88,30 @@ impl VarRuleNode {
   ///
   /// 反序列
   ///
-  pub fn deserializer(map: &Map<String, Value>, context: ParseContext, parent: NodeWeakRef, fileinfo: FileWeakRef) -> Result<Self, String> {
+  pub fn deserializer(
+    map: &Map<String, Value>,
+    context: ParseContext,
+    parent: NodeWeakRef,
+    fileinfo: FileWeakRef,
+  ) -> Result<Self, String> {
     let value_type = map.get("type").unwrap().to_string();
     if value_type == r#""Import""# {
       // 处理引用
       let value_map = map.get("value").unwrap().as_object().unwrap();
-      return Ok(VarRuleNode::Import(ImportNode::deserializer(value_map, context, parent, fileinfo)?));
+      return Ok(VarRuleNode::Import(ImportNode::deserializer(
+        value_map, context, parent, fileinfo,
+      )?));
     } else if value_type == r#""Var""# {
       // 处理变量
       let value_map = map.get("value").unwrap().as_object().unwrap();
-      return Ok(VarRuleNode::Var(VarNode::deserializer(value_map, context, parent, fileinfo)?));
+      return Ok(VarRuleNode::Var(VarNode::deserializer(
+        value_map, context, parent, fileinfo,
+      )?));
     } else if value_type == r#""StyleRule""# {
       let value_map = map.get("value").unwrap().as_object().unwrap();
-      return Ok(VarRuleNode::StyleRule(StyleRuleNode::deserializer(value_map, context, parent, fileinfo)?));
+      return Ok(VarRuleNode::StyleRule(StyleRuleNode::deserializer(
+        value_map, context, parent, fileinfo,
+      )?));
     }
     Err("VarRuleNode -> noting type is matched".to_string())
   }

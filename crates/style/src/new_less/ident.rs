@@ -32,11 +32,10 @@ pub enum IdentType {
 }
 
 impl IdentType {
-
   ///
   /// 反序列化
   ///
-  pub fn deserializer(val:&Value)->Self{
+  pub fn deserializer(val: &Value) -> Self {
     serde_json::from_str(&serde_json::to_string(val).unwrap()).unwrap()
   }
 

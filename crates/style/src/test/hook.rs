@@ -1,7 +1,7 @@
-use std::path::Path;
-use std::process::Command;
 use crate::new_less::applicationn::Application;
 use crate::new_less::file::path_resolve;
+use std::path::Path;
+use std::process::Command;
 use std::sync::Arc;
 
 #[test]
@@ -24,7 +24,6 @@ fn test_less_content_hook() {
   println!("rust_res: -> \n {}", res);
 }
 
-
 #[test]
 #[ignore]
 fn test_js_lib_copy() {
@@ -42,9 +41,7 @@ fn test_js_lib_copy() {
     let js_lib_dir = format!("{}/**", path_resolve("js-lib"));
     let command = format!("cp -rf {} {}", js_lib_dir, target_dir);
     let mut cp_task = Command::new("sh");
-    cp_task
-      .arg("-c")
-      .arg(command);
+    cp_task.arg("-c").arg(command);
     cp_task.current_dir(target_dir).status().unwrap();
   }
 

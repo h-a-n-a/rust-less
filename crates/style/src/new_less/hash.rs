@@ -25,7 +25,13 @@ impl StyleHash {
       perfix += parent_path.file_name().unwrap().to_str().unwrap();
       perfix += "_";
     }
-    perfix += path.file_stem().unwrap().to_str().unwrap().replace(".", "_").as_str();
+    perfix += path
+      .file_stem()
+      .unwrap()
+      .to_str()
+      .unwrap()
+      .replace(".", "_")
+      .as_str();
     let content_hash = Self::generate_hash_by_content(content);
     format!("{}_{}", perfix, content_hash)
   }

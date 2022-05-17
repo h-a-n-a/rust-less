@@ -188,7 +188,7 @@ pub trait Parse {
       if braces_level == 0
         && wirte_comment
         && ((wirte_line_comment && (*char == '\n' || *char == '\r'))
-        || (wirte_closure_comment && (char, next) == (&'*', Some(&'/'))))
+          || (wirte_closure_comment && (char, next) == (&'*', Some(&'/'))))
       {
         wirte_comment = false;
         if wirte_line_comment {
@@ -214,11 +214,7 @@ pub trait Parse {
       }
       if wirte_comment {
         // 如果启用 sourcemap 则记录坐标
-        if option.sourcemap
-          && *char != '\r'
-          && *char != '\n'
-          && record_loc.is_none()
-        {
+        if option.sourcemap && *char != '\r' && *char != '\n' && record_loc.is_none() {
           record_loc = Some(locmap.as_ref().unwrap().get(&index).unwrap());
         }
         if comment_start_index.is_none() {

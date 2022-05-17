@@ -1,3 +1,4 @@
+use crate::extend::string::StringExtend;
 use crate::extend::vec_str::VecCharExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::{FileInfo, FileRef, FileWeakRef};
@@ -10,9 +11,8 @@ use crate::new_less::token::lib::Token;
 use crate::new_less::var::HandleResult;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
-use std::fmt::{Debug, Formatter};
 use serde_json::{Map, Value};
-use crate::extend::string::StringExtend;
+use std::fmt::{Debug, Formatter};
 
 ///
 /// import 处理
@@ -53,8 +53,8 @@ impl Debug for ImportNode {
 
 impl Serialize for ImportNode {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-      S: Serializer,
+  where
+    S: Serializer,
   {
     let mut state = serializer.serialize_struct("ImportNode", 3)?;
     state.serialize_field("content", &self.charlist.poly())?;
@@ -99,7 +99,12 @@ impl ImportNode {
   ///
   /// 反序列
   ///
-  pub fn deserializer(map: &Map<String, Value>, context: ParseContext, parent: NodeWeakRef, fileinfo: FileWeakRef) -> Result<Self, String> {
+  pub fn deserializer(
+    map: &Map<String, Value>,
+    context: ParseContext,
+    parent: NodeWeakRef,
+    fileinfo: FileWeakRef,
+  ) -> Result<Self, String> {
     let mut obj = Self {
       loc: None,
       map: LocMap::new(&vec![]),
@@ -112,7 +117,9 @@ impl ImportNode {
     if let Some(Value::String(content)) = map.get("content") {
       obj.charlist = content.tocharlist();
     } else {
-      return Err(format!("deserializer ImportNode has error -> content is empty!"));
+      return Err(format!(
+        "deserializer ImportNode has error -> content is empty!"
+      ));
     }
     if let Some(Value::Object(loc)) = map.get("loc") {
       obj.loc = Some(Loc::deserializer(loc));
@@ -123,7 +130,9 @@ impl ImportNode {
     if let Some(Value::String(path)) = map.get("path") {
       obj.parse_hook_url = path.to_string();
     } else {
-      return Err(format!("deserializer ImportNode has error -> parse_hook_url is empty!"));
+      return Err(format!(
+        "deserializer ImportNode has error -> parse_hook_url is empty!"
+      ));
     }
     Ok(obj)
   }

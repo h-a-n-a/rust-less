@@ -1,6 +1,7 @@
 use crate::extend::string::StringExtend;
 use crate::new_less::context::ParseContext;
 use crate::new_less::fileinfo::{FileInfo, FileRef};
+use crate::new_less::hash::StyleHash;
 use crate::new_less::loc::LocMap;
 use crate::new_less::node::{NodeRef, StyleNode};
 use crate::new_less::parse::Parse;
@@ -8,7 +9,6 @@ use crate::new_less::select_node::SelectorNode;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
-use crate::new_less::hash::StyleHash;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct FileNode {
@@ -179,7 +179,14 @@ impl FileNode {
     };
     let (abs_path, mut content) = FileInfo::resolve(filepath, &option.include_path)?;
     let content_transform = {
-      context.lock().unwrap().option.hooks.content_interceptor.as_ref().cloned()
+      context
+        .lock()
+        .unwrap()
+        .option
+        .hooks
+        .content_interceptor
+        .as_ref()
+        .cloned()
     };
     if let Some(content_transform_fn) = content_transform {
       content = content_transform_fn(abs_path.as_str(), content.as_str())?;
@@ -277,7 +284,14 @@ impl FileNode {
       return Ok(node.unwrap());
     }
     let content_transform = {
-      context.lock().unwrap().option.hooks.content_interceptor.as_ref().cloned()
+      context
+        .lock()
+        .unwrap()
+        .option
+        .hooks
+        .content_interceptor
+        .as_ref()
+        .cloned()
     };
     if let Some(content_transform_fn) = content_transform {
       content = content_transform_fn(filename.as_str(), content.as_str())?;

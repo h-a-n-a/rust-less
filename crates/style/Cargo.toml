@@ -17,7 +17,6 @@ fasteval = "0.2.4"
 uuid = { version = "0.8", features = ["serde", "v4"] }
 strum = { version = "0.23", features = ["derive"] }
 iocutil = "0.1"
-style_resolver = { path = "../resolver" }
 
 
 [dev-dependencies]

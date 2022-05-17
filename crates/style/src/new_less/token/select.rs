@@ -1,5 +1,5 @@
 use crate::new_less::token::lib::TokenInterface;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::slice::Iter;
 
 #[derive(Debug, Serialize, PartialEq, Clone)]

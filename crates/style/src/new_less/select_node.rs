@@ -1,16 +1,16 @@
-use std::collections::HashSet;
 use crate::new_less::fileinfo::{FileRef, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::media::MediaQuery;
 use crate::new_less::node::{NodeRef, NodeWeakRef};
 use crate::new_less::option::OptionExtend;
 use crate::new_less::select::{NewSelector, SelectParadigm};
-use crate::new_less::var::HandleResult;
-use serde::Serialize;
-use std::ops::Deref;
-use serde_json::{Map, Value};
 use crate::new_less::token::lib::TokenInterface;
 use crate::new_less::token::select::TokenCombinaChar;
+use crate::new_less::var::HandleResult;
+use serde::Serialize;
+use serde_json::{Map, Value};
+use std::collections::HashSet;
+use std::ops::Deref;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", content = "value")]
@@ -45,7 +45,12 @@ impl SelectorNode {
       }
     }
     // 处理 media
-    match MediaQuery::new(charlist.clone(), start_loc.clone(), map.clone(), parent.clone()) {
+    match MediaQuery::new(
+      charlist.clone(),
+      start_loc.clone(),
+      map.clone(),
+      parent.clone(),
+    ) {
       HandleResult::Success(obj) => {
         return Ok(SelectorNode::Media(obj));
       }
@@ -62,7 +67,11 @@ impl SelectorNode {
   ///
   /// 反序列化
   ///
-  pub fn deserializer(map: &Map<String, Value>, parent: NodeWeakRef, fileinfo: FileWeakRef) -> Result<Self, String> {
+  pub fn deserializer(
+    map: &Map<String, Value>,
+    parent: NodeWeakRef,
+    fileinfo: FileWeakRef,
+  ) -> Result<Self, String> {
     // 处理 select
     if parent.is_none() {
       return Err("SelectorNode -> parent must not be None!".to_string());
@@ -71,11 +80,15 @@ impl SelectorNode {
     if value_type == r#""Select""# {
       // 处理引用
       let value_map = map.get("value").unwrap().as_object().unwrap();
-      return Ok(SelectorNode::Select(NewSelector::deserializer(value_map, parent, fileinfo)?));
+      return Ok(SelectorNode::Select(NewSelector::deserializer(
+        value_map, parent, fileinfo,
+      )?));
     } else if value_type == r#""Media""# {
       // 处理变量
       let value_map = map.get("value").unwrap().as_object().unwrap();
-      return Ok(SelectorNode::Media(MediaQuery::deserializer(value_map, parent)?));
+      return Ok(SelectorNode::Media(MediaQuery::deserializer(
+        value_map, parent,
+      )?));
     }
     Err("SelectorNode -> noting type is matched".to_string())
   }
@@ -100,7 +113,6 @@ impl SelectorNode {
     }
     (false, None)
   }
-
 
   ///
   /// 获取对应 FileInfo 节点
@@ -138,7 +150,12 @@ impl SelectorNode {
     None
   }
 
-  pub fn convert_class_paradigm(&self, word: String, hash_value: &str, map: &mut HashSet<String>) -> String {
+  pub fn convert_class_paradigm(
+    &self,
+    word: String,
+    hash_value: &str,
+    map: &mut HashSet<String>,
+  ) -> String {
     let class_word = word[1..word.len()].to_string();
     map.insert(class_word);
     format!("{}_{}", word, hash_value)
@@ -147,7 +164,12 @@ impl SelectorNode {
   ///
   /// css_module 的 词缀 转化
   ///
-  pub fn convert_paradigm_to_word(&self, list: &Vec<SelectParadigm>, hash_value: String, map: &mut HashSet<String>) -> Result<Vec<SelectParadigm>, String> {
+  pub fn convert_paradigm_to_word(
+    &self,
+    list: &Vec<SelectParadigm>,
+    hash_value: String,
+    map: &mut HashSet<String>,
+  ) -> Result<Vec<SelectParadigm>, String> {
     let mut new_list = vec![];
     let mut index = 0;
     let mut has_global = false;
@@ -158,15 +180,12 @@ impl SelectorNode {
       } else {
         None
       };
-      let prevpar = if index > 0 {
-        list.get(index - 1)
-      } else {
-        None
-      };
+      let prevpar = if index > 0 { list.get(index - 1) } else { None };
       match par {
         SelectParadigm::SelectWrap(ss) => {
           if ss == ":global" {
-            if nextpar == Some(&SelectParadigm::CominaWrap(TokenCombinaChar::Space)) && !has_global {
+            if nextpar == Some(&SelectParadigm::CominaWrap(TokenCombinaChar::Space)) && !has_global
+            {
               has_global = true;
               index += 1;
             }
@@ -178,9 +197,10 @@ impl SelectorNode {
             } else if &ss[0..1] == "." && has_global {
               // 不转化 class 样式选择器
               new_list.push(par.clone());
-            } else if &ss[0..1] == "(" &&
-              &ss[ss.len() - 1..ss.len()] == ")" &&
-              prevpar == Some(&SelectParadigm::SelectWrap(":global".to_string())) {
+            } else if &ss[0..1] == "("
+              && &ss[ss.len() - 1..ss.len()] == ")"
+              && prevpar == Some(&SelectParadigm::SelectWrap(":global".to_string()))
+            {
               // 第一位'(' 最后一位是')'
               let new_value = ss[1..ss.len() - 1].to_string();
               new_list.push(SelectParadigm::SelectWrap(new_value));
@@ -189,11 +209,12 @@ impl SelectorNode {
             }
           }
         }
-        SelectParadigm::CominaWrap(..) | SelectParadigm::KeyWrap(..) => {
-          new_list.push(par.clone())
-        }
+        SelectParadigm::CominaWrap(..) | SelectParadigm::KeyWrap(..) => new_list.push(par.clone()),
         _ => {
-          return Err(format!("{:#?} \n -> list_paradigm must not include SelectParadigm::VarWrap", list));
+          return Err(format!(
+            "{:#?} \n -> list_paradigm must not include SelectParadigm::VarWrap",
+            list
+          ));
         }
       }
       index += 1;
@@ -204,7 +225,12 @@ impl SelectorNode {
   ///
   /// 计算语义 合并计算
   ///
-  pub fn calc_paradigm(&self, list: Vec<Vec<SelectParadigm>>, css_module_info: (bool, Option<String>), map: &mut HashSet<String>) -> Result<String, String> {
+  pub fn calc_paradigm(
+    &self,
+    list: Vec<Vec<SelectParadigm>>,
+    css_module_info: (bool, Option<String>),
+    map: &mut HashSet<String>,
+  ) -> Result<String, String> {
     let mut select_res = "".to_string();
     let (css_module, hash_value) = css_module_info;
 
@@ -222,14 +248,15 @@ impl SelectorNode {
           SelectParadigm::SelectWrap(ss) => {
             txt += &ss;
           }
-          SelectParadigm::CominaWrap(cc) => {
-            txt += &cc.to_str().to_string()
-          }
+          SelectParadigm::CominaWrap(cc) => txt += &cc.to_str().to_string(),
           SelectParadigm::KeyWrap(key) => {
             txt += &key;
           }
           _ => {
-            return Err(format!("{:#?} \n -> list_paradigm must not include SelectParadigm::VarWrap", list));
+            return Err(format!(
+              "{:#?} \n -> list_paradigm must not include SelectParadigm::VarWrap",
+              list
+            ));
           }
         }
       }
@@ -258,7 +285,10 @@ impl SelectorNode {
     let nearly_media_node = MediaQuery::find_up_media_node(node.clone());
 
     if nearly_select_node.is_none() && nearly_media_node.is_none() {
-      return Err("codegen select_node -> nearly_select_node || nearly_media_node  one of them is not empty!".to_string());
+      return Err(
+        "codegen select_node -> nearly_select_node || nearly_media_node  one of them is not empty!"
+          .to_string(),
+      );
     }
 
     let mut select_res = "".to_string();
