@@ -13,6 +13,7 @@ use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::cell::RefCell;
+use std::collections::HashSet;
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
 use std::rc::Rc;
@@ -226,9 +227,9 @@ impl RuleNode {
     list
   }
 
-  pub fn code_gen(&self, content: &mut String) -> Result<(), String> {
+  pub fn code_gen(&self, content: &mut String, map: &mut HashSet<String>) -> Result<(), String> {
     let rules = self.get_style_rule();
-    let (select_txt, media_txt) = self.selector.as_ref().unwrap().code_gen().unwrap();
+    let (select_txt, media_txt) = self.selector.as_ref().unwrap().code_gen(map).unwrap();
     let mut tab: String = "".to_string();
     let mut index = 0;
     while index < self.get_options().tabspaces {
@@ -301,7 +302,7 @@ impl RuleNode {
     }
 
     for node_ref in self.getrules() {
-      node_ref.deref().borrow().code_gen(content)?;
+      node_ref.deref().borrow().code_gen(content, map)?;
     }
 
     Ok(())

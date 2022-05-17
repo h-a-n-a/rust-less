@@ -6,7 +6,7 @@ use crate::new_less::node::{NodeRef, StyleNode};
 use crate::new_less::parse::Parse;
 use crate::new_less::select_node::SelectorNode;
 use serde::Serialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use crate::new_less::hash::StyleHash;
 
@@ -34,6 +34,7 @@ impl FileNode {
   ///
   pub fn code_gen(&self) -> Result<String, String> {
     let mut res = "".to_string();
+    let mut set = HashSet::new();
     let info = self.info.borrow();
     let mut need_add_cache = false;
     if !info.import_files.is_empty() {
@@ -62,7 +63,7 @@ impl FileNode {
       self_code_gen_res = code.to_string();
     } else {
       for item in self.getrules() {
-        item.borrow().code_gen(&mut self_code_gen_res)?;
+        item.borrow().code_gen(&mut self_code_gen_res, &mut set)?;
       }
       need_add_cache = true;
     }
@@ -73,6 +74,9 @@ impl FileNode {
     if need_add_cache {
       context.add_render_cache(info.disk_location.as_str(), self_code_gen_res.as_str());
     }
+    drop(context);
+    drop(info);
+    self.info.borrow_mut().class_selector_collect = set;
     Ok(res)
   }
 
@@ -82,6 +86,7 @@ impl FileNode {
   ///
   pub fn code_gen_into_map(&self, map: &mut HashMap<String, String>) -> Result<(), String> {
     let info = self.info.borrow();
+    let mut set = HashSet::new();
     let mut need_add_cache = false;
     if !info.import_files.is_empty() {
       for item in info.import_files.iter() {
@@ -106,7 +111,7 @@ impl FileNode {
       res = code.to_string();
     } else {
       for item in self.getrules() {
-        item.borrow().code_gen(&mut res)?;
+        item.borrow().code_gen(&mut res, &mut set)?;
       }
       need_add_cache = true;
     }
@@ -117,6 +122,9 @@ impl FileNode {
     }
     map.insert(self.info.borrow().disk_location.clone(), res);
     context.add_codegen_record(info.disk_location.as_str());
+    drop(context);
+    drop(info);
+    self.info.borrow_mut().class_selector_collect = set;
     Ok(())
   }
 

@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use crate::new_less::fileinfo::{FileRef, FileWeakRef};
 use crate::new_less::loc::{Loc, LocMap};
 use crate::new_less::media::MediaQuery;
@@ -137,19 +138,16 @@ impl SelectorNode {
     None
   }
 
-  pub fn convert_class_paradigm(&self, word: String, hash_value: &str) -> String {
-    let file = self.get_file();
-    if let Some(fileheap) = file {
-      let class_word = word[1..word.len()].to_string();
-      fileheap.borrow_mut().class_selector_collect.insert(class_word);
-    }
+  pub fn convert_class_paradigm(&self, word: String, hash_value: &str, map: &mut HashSet<String>) -> String {
+    let class_word = word[1..word.len()].to_string();
+    map.insert(class_word);
     format!("{}_{}", word, hash_value)
   }
 
   ///
   /// css_module 的 词缀 转化
   ///
-  pub fn convert_paradigm_to_word(&self, list: &Vec<SelectParadigm>, hash_value: String) -> Result<Vec<SelectParadigm>, String> {
+  pub fn convert_paradigm_to_word(&self, list: &Vec<SelectParadigm>, hash_value: String, map: &mut HashSet<String>) -> Result<Vec<SelectParadigm>, String> {
     let mut new_list = vec![];
     let mut index = 0;
     let mut has_global = false;
@@ -175,7 +173,7 @@ impl SelectorNode {
           } else {
             if &ss[0..1] == "." && !has_global {
               // 转化 class 样式选择器
-              let new_value = self.convert_class_paradigm(ss.to_string(), &hash_value);
+              let new_value = self.convert_class_paradigm(ss.to_string(), &hash_value, map);
               new_list.push(SelectParadigm::SelectWrap(new_value));
             } else if &ss[0..1] == "." && has_global {
               // 不转化 class 样式选择器
@@ -206,7 +204,7 @@ impl SelectorNode {
   ///
   /// 计算语义 合并计算
   ///
-  pub fn calc_paradigm(&self, list: Vec<Vec<SelectParadigm>>, css_module_info: (bool, Option<String>)) -> Result<String, String> {
+  pub fn calc_paradigm(&self, list: Vec<Vec<SelectParadigm>>, css_module_info: (bool, Option<String>), map: &mut HashSet<String>) -> Result<String, String> {
     let mut select_res = "".to_string();
     let (css_module, hash_value) = css_module_info;
 
@@ -214,7 +212,7 @@ impl SelectorNode {
       let mut txt = "".to_string();
 
       let calc_index_list = if css_module {
-        self.convert_paradigm_to_word(index_list, hash_value.as_ref().unwrap().to_string())?
+        self.convert_paradigm_to_word(index_list, hash_value.as_ref().unwrap().to_string(), map)?
       } else {
         index_list.to_owned()
       };
@@ -247,7 +245,7 @@ impl SelectorNode {
   ///
   /// 代码生成方法
   ///
-  pub fn code_gen(&self) -> Result<(String, String), String> {
+  pub fn code_gen(&self, map: &mut HashSet<String>) -> Result<(String, String), String> {
     let mut node = None;
     let css_module_info = self.need_css_modules();
     if let Self::Select(ss) = &self {
@@ -267,7 +265,7 @@ impl SelectorNode {
     if let Some(snode) = nearly_select_node {
       if let SelectorNode::Select(s) = snode.upgrade().unwrap().borrow().selector.as_ref().unwrap()
       {
-        select_res = self.calc_paradigm(s.code_gen()?, css_module_info)?;
+        select_res = self.calc_paradigm(s.code_gen()?, css_module_info, map)?;
       }
     }
 
