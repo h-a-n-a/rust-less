@@ -26,7 +26,7 @@
     "test": "npx ts-node tslib/index.ts --content '{\"content\":\".a{width:10px;}\"}'",
     "test:resolve": "npx ts-node tslib/test.ts",
     "cp": "rm -rf ../style/js-lib/** && cp -rf ./dist ../style/js-lib",
-    "build": "npm run build:napi && npx ts-node tslib/build.ts && npm run cp"
+    "build": "npm run build:napi && rm -rf ./dist && npx ts-node tslib/build.ts && npm run cp"
   },
   "keywords": [],
   "author": "",

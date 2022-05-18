@@ -24770,11 +24770,12 @@ function handle(content, options) {
     ],
     plugins: [new LessAliasesPlugin(options.filename, callback_error)]
   }).then((res) => {
-    console.log(res.css);
-    process.exit(0);
+    process.stdout.write(res.css);
   }).catch((ex) => {
     console.log(ex);
-    process.exit(1);
+    setTimeout(() => {
+      process.exit(1);
+    }, 500);
   });
 }
 main();
