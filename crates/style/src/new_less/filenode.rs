@@ -84,10 +84,11 @@ impl FileNode {
   /// 用来执行多 css 之间的 bundle
   /// 初始化 执行 需要 放入一个 空map 的引用 后续会自动填充到 该参数 上
   ///
-  pub fn code_gen_into_map(&self, map: &mut HashMap<String, String>) -> Result<(), String> {
+  pub fn code_gen_into_map(&self, map: &mut HashMap<String, String>) -> Result<String, String> {
     let info = self.info.borrow();
     let mut set = HashSet::new();
     let mut need_add_cache = false;
+    let mut css_module_content = "".to_string();
     if !info.import_files.is_empty() {
       for item in info.import_files.iter() {
         let has_codegen_record = {
@@ -95,7 +96,8 @@ impl FileNode {
           context.has_codegen_record(&item.info.borrow().disk_location)
         };
         if !has_codegen_record {
-          item.code_gen_into_map(map)?;
+          let css_module_import_content = item.code_gen_into_map(map)?;
+          css_module_content += &css_module_import_content;
         }
       }
     }
@@ -124,8 +126,28 @@ impl FileNode {
     context.add_codegen_record(info.disk_location.as_str());
     drop(context);
     drop(info);
+    // 拼接css_module 的内容
     self.info.borrow_mut().class_selector_collect = set;
-    Ok(())
+    css_module_content += &self.output_js_with_cssmodule();
+    Ok(css_module_content)
+  }
+
+  ///
+  /// 拼接css_module 的 js 导出内容
+  ///
+  pub fn output_js_with_cssmodule(&self) -> String {
+    let mut res = "".to_string();
+    for item in &self.info.borrow().class_selector_collect {
+      let key = if item.contains('-') {
+        format!(r#"["{}"]"#, item)
+      } else {
+        item.to_string()
+      };
+      let value = format!(".{}_{}", key, self.info.borrow().hash_perfix);
+      res += format!(r#"{}: "{}","#, item, value).as_str();
+      res += " \n";
+    }
+    res
   }
 
   ///
@@ -248,19 +270,20 @@ impl FileNode {
   pub fn create_disklocation_into_hashmap(
     filepath: String,
     context: ParseContext,
-  ) -> Result<HashMap<String, String>, String> {
+  ) -> Result<(HashMap<String, String>, String), String> {
     let obj = Self::create_disklocation_parse(filepath, context.clone())?;
     let mut map = HashMap::new();
-    match obj.code_gen_into_map(&mut map) {
-      Ok(_) => {}
-      Err(msg) => {
-        println!("{}", msg);
-      }
-    };
+    let mut css_module_content = obj.code_gen_into_map(&mut map)?;
+    css_module_content = format!(r#"
+    const style = {}
+      {}
+    {};
+    export default style;
+    "#,"{",css_module_content,"}");
     let mut sync_context = context.lock().unwrap();
     sync_context.clear_parse_cache();
     sync_context.clear_codegen_record();
-    Ok(map)
+    Ok((map, css_module_content))
   }
 
   ///
