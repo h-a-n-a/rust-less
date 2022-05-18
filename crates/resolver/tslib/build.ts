@@ -15,7 +15,7 @@ build({
         '.node': 'binary'
     },
     external:[
-      "../binding"
+      "pnpapi"
     ]
 }).catch((ex) => {
     console.log(ex);

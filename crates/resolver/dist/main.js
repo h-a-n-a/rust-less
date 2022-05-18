@@ -132,11 +132,11 @@ var require_tslib = __commonJS({
       };
       __awaiter = function(thisArg, _arguments, P, generator) {
         function adopt(value) {
-          return value instanceof P ? value : new P(function(resolve2) {
-            resolve2(value);
+          return value instanceof P ? value : new P(function(resolve) {
+            resolve(value);
           });
         }
-        return new (P || (P = Promise))(function(resolve2, reject) {
+        return new (P || (P = Promise))(function(resolve, reject) {
           function fulfilled(value) {
             try {
               step(generator.next(value));
@@ -152,7 +152,7 @@ var require_tslib = __commonJS({
             }
           }
           function step(result) {
-            result.done ? resolve2(result.value) : adopt(result.value).then(fulfilled, rejected);
+            result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
           }
           step((generator = generator.apply(thisArg, _arguments || [])).next());
         });
@@ -373,14 +373,14 @@ var require_tslib = __commonJS({
         }, i);
         function verb(n) {
           i[n] = o[n] && function(v) {
-            return new Promise(function(resolve2, reject) {
-              v = o[n](v), settle(resolve2, reject, v.done, v.value);
+            return new Promise(function(resolve, reject) {
+              v = o[n](v), settle(resolve, reject, v.done, v.value);
             });
           };
         }
-        function settle(resolve2, reject, d, v) {
+        function settle(resolve, reject, d, v) {
           Promise.resolve(v).then(function(v2) {
-            resolve2({ value: v2, done: d });
+            resolve({ value: v2, done: d });
           }, reject);
         }
       };
@@ -473,7 +473,7 @@ var require_types = __commonJS({
 var require_mime = __commonJS({
   "../../node_modules/mime/mime.js"(exports, module2) {
     var path2 = require("path");
-    var fs = require("fs");
+    var fs2 = require("fs");
     function Mime() {
       this.types = /* @__PURE__ */ Object.create(null);
       this.extensions = /* @__PURE__ */ Object.create(null);
@@ -494,7 +494,7 @@ var require_mime = __commonJS({
     };
     Mime.prototype.load = function(file) {
       this._loading = file;
-      var map = {}, content = fs.readFileSync(file, "ascii"), lines = content.split(/[\r\n]+/);
+      var map = {}, content = fs2.readFileSync(file, "ascii"), lines = content.split(/[\r\n]+/);
       lines.forEach(function(line) {
         var fields = line.replace(/\s*#.*|^\s*|\s*$/g, "").split(/\s+/);
         map[fields.shift()] = fields;
@@ -2270,56 +2270,56 @@ var require_polyfills = __commonJS({
     }
     var chdir;
     module2.exports = patch;
-    function patch(fs) {
+    function patch(fs2) {
       if (constants.hasOwnProperty("O_SYMLINK") && process.version.match(/^v0\.6\.[0-2]|^v0\.5\./)) {
-        patchLchmod(fs);
+        patchLchmod(fs2);
       }
-      if (!fs.lutimes) {
-        patchLutimes(fs);
+      if (!fs2.lutimes) {
+        patchLutimes(fs2);
       }
-      fs.chown = chownFix(fs.chown);
-      fs.fchown = chownFix(fs.fchown);
-      fs.lchown = chownFix(fs.lchown);
-      fs.chmod = chmodFix(fs.chmod);
-      fs.fchmod = chmodFix(fs.fchmod);
-      fs.lchmod = chmodFix(fs.lchmod);
-      fs.chownSync = chownFixSync(fs.chownSync);
-      fs.fchownSync = chownFixSync(fs.fchownSync);
-      fs.lchownSync = chownFixSync(fs.lchownSync);
-      fs.chmodSync = chmodFixSync(fs.chmodSync);
-      fs.fchmodSync = chmodFixSync(fs.fchmodSync);
-      fs.lchmodSync = chmodFixSync(fs.lchmodSync);
-      fs.stat = statFix(fs.stat);
-      fs.fstat = statFix(fs.fstat);
-      fs.lstat = statFix(fs.lstat);
-      fs.statSync = statFixSync(fs.statSync);
-      fs.fstatSync = statFixSync(fs.fstatSync);
-      fs.lstatSync = statFixSync(fs.lstatSync);
-      if (fs.chmod && !fs.lchmod) {
-        fs.lchmod = function(path2, mode, cb) {
+      fs2.chown = chownFix(fs2.chown);
+      fs2.fchown = chownFix(fs2.fchown);
+      fs2.lchown = chownFix(fs2.lchown);
+      fs2.chmod = chmodFix(fs2.chmod);
+      fs2.fchmod = chmodFix(fs2.fchmod);
+      fs2.lchmod = chmodFix(fs2.lchmod);
+      fs2.chownSync = chownFixSync(fs2.chownSync);
+      fs2.fchownSync = chownFixSync(fs2.fchownSync);
+      fs2.lchownSync = chownFixSync(fs2.lchownSync);
+      fs2.chmodSync = chmodFixSync(fs2.chmodSync);
+      fs2.fchmodSync = chmodFixSync(fs2.fchmodSync);
+      fs2.lchmodSync = chmodFixSync(fs2.lchmodSync);
+      fs2.stat = statFix(fs2.stat);
+      fs2.fstat = statFix(fs2.fstat);
+      fs2.lstat = statFix(fs2.lstat);
+      fs2.statSync = statFixSync(fs2.statSync);
+      fs2.fstatSync = statFixSync(fs2.fstatSync);
+      fs2.lstatSync = statFixSync(fs2.lstatSync);
+      if (fs2.chmod && !fs2.lchmod) {
+        fs2.lchmod = function(path2, mode, cb) {
           if (cb)
             process.nextTick(cb);
         };
-        fs.lchmodSync = function() {
+        fs2.lchmodSync = function() {
         };
       }
-      if (fs.chown && !fs.lchown) {
-        fs.lchown = function(path2, uid, gid, cb) {
+      if (fs2.chown && !fs2.lchown) {
+        fs2.lchown = function(path2, uid, gid, cb) {
           if (cb)
             process.nextTick(cb);
         };
-        fs.lchownSync = function() {
+        fs2.lchownSync = function() {
         };
       }
       if (platform === "win32") {
-        fs.rename = typeof fs.rename !== "function" ? fs.rename : function(fs$rename) {
+        fs2.rename = typeof fs2.rename !== "function" ? fs2.rename : function(fs$rename) {
           function rename(from, to, cb) {
             var start = Date.now();
             var backoff = 0;
             fs$rename(from, to, function CB(er) {
               if (er && (er.code === "EACCES" || er.code === "EPERM") && Date.now() - start < 6e4) {
                 setTimeout(function() {
-                  fs.stat(to, function(stater, st) {
+                  fs2.stat(to, function(stater, st) {
                     if (stater && stater.code === "ENOENT")
                       fs$rename(from, to, CB);
                     else
@@ -2337,9 +2337,9 @@ var require_polyfills = __commonJS({
           if (Object.setPrototypeOf)
             Object.setPrototypeOf(rename, fs$rename);
           return rename;
-        }(fs.rename);
+        }(fs2.rename);
       }
-      fs.read = typeof fs.read !== "function" ? fs.read : function(fs$read) {
+      fs2.read = typeof fs2.read !== "function" ? fs2.read : function(fs$read) {
         function read(fd, buffer, offset, length, position, callback_) {
           var callback;
           if (callback_ && typeof callback_ === "function") {
@@ -2347,23 +2347,23 @@ var require_polyfills = __commonJS({
             callback = function(er, _, __) {
               if (er && er.code === "EAGAIN" && eagCounter < 10) {
                 eagCounter++;
-                return fs$read.call(fs, fd, buffer, offset, length, position, callback);
+                return fs$read.call(fs2, fd, buffer, offset, length, position, callback);
               }
               callback_.apply(this, arguments);
             };
           }
-          return fs$read.call(fs, fd, buffer, offset, length, position, callback);
+          return fs$read.call(fs2, fd, buffer, offset, length, position, callback);
         }
         if (Object.setPrototypeOf)
           Object.setPrototypeOf(read, fs$read);
         return read;
-      }(fs.read);
-      fs.readSync = typeof fs.readSync !== "function" ? fs.readSync : function(fs$readSync) {
+      }(fs2.read);
+      fs2.readSync = typeof fs2.readSync !== "function" ? fs2.readSync : function(fs$readSync) {
         return function(fd, buffer, offset, length, position) {
           var eagCounter = 0;
           while (true) {
             try {
-              return fs$readSync.call(fs, fd, buffer, offset, length, position);
+              return fs$readSync.call(fs2, fd, buffer, offset, length, position);
             } catch (er) {
               if (er.code === "EAGAIN" && eagCounter < 10) {
                 eagCounter++;
@@ -2373,85 +2373,85 @@ var require_polyfills = __commonJS({
             }
           }
         };
-      }(fs.readSync);
-      function patchLchmod(fs2) {
-        fs2.lchmod = function(path2, mode, callback) {
-          fs2.open(path2, constants.O_WRONLY | constants.O_SYMLINK, mode, function(err, fd) {
+      }(fs2.readSync);
+      function patchLchmod(fs3) {
+        fs3.lchmod = function(path2, mode, callback) {
+          fs3.open(path2, constants.O_WRONLY | constants.O_SYMLINK, mode, function(err, fd) {
             if (err) {
               if (callback)
                 callback(err);
               return;
             }
-            fs2.fchmod(fd, mode, function(err2) {
-              fs2.close(fd, function(err22) {
+            fs3.fchmod(fd, mode, function(err2) {
+              fs3.close(fd, function(err22) {
                 if (callback)
                   callback(err2 || err22);
               });
             });
           });
         };
-        fs2.lchmodSync = function(path2, mode) {
-          var fd = fs2.openSync(path2, constants.O_WRONLY | constants.O_SYMLINK, mode);
+        fs3.lchmodSync = function(path2, mode) {
+          var fd = fs3.openSync(path2, constants.O_WRONLY | constants.O_SYMLINK, mode);
           var threw = true;
           var ret;
           try {
-            ret = fs2.fchmodSync(fd, mode);
+            ret = fs3.fchmodSync(fd, mode);
             threw = false;
           } finally {
             if (threw) {
               try {
-                fs2.closeSync(fd);
+                fs3.closeSync(fd);
               } catch (er) {
               }
             } else {
-              fs2.closeSync(fd);
+              fs3.closeSync(fd);
             }
           }
           return ret;
         };
       }
-      function patchLutimes(fs2) {
-        if (constants.hasOwnProperty("O_SYMLINK") && fs2.futimes) {
-          fs2.lutimes = function(path2, at, mt, cb) {
-            fs2.open(path2, constants.O_SYMLINK, function(er, fd) {
+      function patchLutimes(fs3) {
+        if (constants.hasOwnProperty("O_SYMLINK") && fs3.futimes) {
+          fs3.lutimes = function(path2, at, mt, cb) {
+            fs3.open(path2, constants.O_SYMLINK, function(er, fd) {
               if (er) {
                 if (cb)
                   cb(er);
                 return;
               }
-              fs2.futimes(fd, at, mt, function(er2) {
-                fs2.close(fd, function(er22) {
+              fs3.futimes(fd, at, mt, function(er2) {
+                fs3.close(fd, function(er22) {
                   if (cb)
                     cb(er2 || er22);
                 });
               });
             });
           };
-          fs2.lutimesSync = function(path2, at, mt) {
-            var fd = fs2.openSync(path2, constants.O_SYMLINK);
+          fs3.lutimesSync = function(path2, at, mt) {
+            var fd = fs3.openSync(path2, constants.O_SYMLINK);
             var ret;
             var threw = true;
             try {
-              ret = fs2.futimesSync(fd, at, mt);
+              ret = fs3.futimesSync(fd, at, mt);
               threw = false;
             } finally {
               if (threw) {
                 try {
-                  fs2.closeSync(fd);
+                  fs3.closeSync(fd);
                 } catch (er) {
                 }
               } else {
-                fs2.closeSync(fd);
+                fs3.closeSync(fd);
               }
             }
             return ret;
           };
-        } else if (fs2.futimes) {
-          fs2.lutimes = function(_a, _b, _c, cb) {
+        } else if (fs3.futimes) {
+          fs3.lutimes = function(_a, _b, _c, cb) {
             if (cb)
               process.nextTick(cb);
           };
-          fs2.lutimesSync = function() {
+          fs3.lutimesSync = function() {
           };
         }
       }
@@ -2459,7 +2459,7 @@ var require_polyfills = __commonJS({
         if (!orig)
           return orig;
         return function(target, mode, cb) {
-          return orig.call(fs, target, mode, function(er) {
+          return orig.call(fs2, target, mode, function(er) {
             if (chownErOk(er))
               er = null;
             if (cb)
@@ -2472,7 +2472,7 @@ var require_polyfills = __commonJS({
           return orig;
         return function(target, mode) {
           try {
-            return orig.call(fs, target, mode);
+            return orig.call(fs2, target, mode);
           } catch (er) {
             if (!chownErOk(er))
               throw er;
@@ -2483,7 +2483,7 @@ var require_polyfills = __commonJS({
         if (!orig)
           return orig;
         return function(target, uid, gid, cb) {
-          return orig.call(fs, target, uid, gid, function(er) {
+          return orig.call(fs2, target, uid, gid, function(er) {
             if (chownErOk(er))
               er = null;
             if (cb)
@@ -2496,7 +2496,7 @@ var require_polyfills = __commonJS({
           return orig;
         return function(target, uid, gid) {
           try {
-            return orig.call(fs, target, uid, gid);
+            return orig.call(fs2, target, uid, gid);
           } catch (er) {
             if (!chownErOk(er))
               throw er;
@@ -2521,14 +2521,14 @@ var require_polyfills = __commonJS({
             if (cb)
               cb.apply(this, arguments);
           }
-          return options ? orig.call(fs, target, options, callback) : orig.call(fs, target, callback);
+          return options ? orig.call(fs2, target, options, callback) : orig.call(fs2, target, callback);
         };
       }
       function statFixSync(orig) {
         if (!orig)
           return orig;
         return function(target, options) {
-          var stats = options ? orig.call(fs, target, options) : orig.call(fs, target);
+          var stats = options ? orig.call(fs2, target, options) : orig.call(fs2, target);
           if (stats) {
             if (stats.uid < 0)
               stats.uid += 4294967296;
@@ -2559,7 +2559,7 @@ var require_legacy_streams = __commonJS({
   "../../node_modules/graceful-fs/legacy-streams.js"(exports, module2) {
     var Stream = require("stream").Stream;
     module2.exports = legacy;
-    function legacy(fs) {
+    function legacy(fs2) {
       return {
         ReadStream,
         WriteStream
@@ -2604,7 +2604,7 @@ var require_legacy_streams = __commonJS({
           });
           return;
         }
-        fs.open(this.path, this.flags, this.mode, function(err, fd) {
+        fs2.open(this.path, this.flags, this.mode, function(err, fd) {
           if (err) {
             self2.emit("error", err);
             self2.readable = false;
@@ -2644,7 +2644,7 @@ var require_legacy_streams = __commonJS({
         this.busy = false;
         this._queue = [];
         if (this.fd === null) {
-          this._open = fs.open;
+          this._open = fs2.open;
           this._queue.push([this._open, this.path, this.flags, this.mode, void 0]);
           this.flush();
         }
@@ -2679,7 +2679,7 @@ var require_clone = __commonJS({
 // ../../node_modules/graceful-fs/graceful-fs.js
 var require_graceful_fs = __commonJS({
   "../../node_modules/graceful-fs/graceful-fs.js"(exports, module2) {
-    var fs = require("fs");
+    var fs2 = require("fs");
     var polyfills = require_polyfills();
     var legacy = require_legacy_streams();
     var clone = require_clone();
@@ -2711,12 +2711,12 @@ var require_graceful_fs = __commonJS({
         m = "GFS4: " + m.split(/\n/).join("\nGFS4: ");
         console.error(m);
       };
-    if (!fs[gracefulQueue]) {
+    if (!fs2[gracefulQueue]) {
       queue = global[gracefulQueue] || [];
-      publishQueue(fs, queue);
-      fs.close = function(fs$close) {
+      publishQueue(fs2, queue);
+      fs2.close = function(fs$close) {
         function close(fd, cb) {
-          return fs$close.call(fs, fd, function(err) {
+          return fs$close.call(fs2, fd, function(err) {
             if (!err) {
               resetQueue();
             }
@@ -2728,40 +2728,40 @@ var require_graceful_fs = __commonJS({
           value: fs$close
         });
         return close;
-      }(fs.close);
-      fs.closeSync = function(fs$closeSync) {
+      }(fs2.close);
+      fs2.closeSync = function(fs$closeSync) {
         function closeSync(fd) {
-          fs$closeSync.apply(fs, arguments);
+          fs$closeSync.apply(fs2, arguments);
           resetQueue();
         }
         Object.defineProperty(closeSync, previousSymbol, {
           value: fs$closeSync
         });
         return closeSync;
-      }(fs.closeSync);
+      }(fs2.closeSync);
       if (/\bgfs4\b/i.test(process.env.NODE_DEBUG || "")) {
         process.on("exit", function() {
-          debug(fs[gracefulQueue]);
-          require("assert").equal(fs[gracefulQueue].length, 0);
+          debug(fs2[gracefulQueue]);
+          require("assert").equal(fs2[gracefulQueue].length, 0);
         });
       }
     }
     var queue;
     if (!global[gracefulQueue]) {
-      publishQueue(global, fs[gracefulQueue]);
+      publishQueue(global, fs2[gracefulQueue]);
     }
-    module2.exports = patch(clone(fs));
-    if (process.env.TEST_GRACEFUL_FS_GLOBAL_PATCH && !fs.__patched) {
-      module2.exports = patch(fs);
-      fs.__patched = true;
+    module2.exports = patch(clone(fs2));
+    if (process.env.TEST_GRACEFUL_FS_GLOBAL_PATCH && !fs2.__patched) {
+      module2.exports = patch(fs2);
+      fs2.__patched = true;
     }
-    function patch(fs2) {
-      polyfills(fs2);
-      fs2.gracefulify = patch;
-      fs2.createReadStream = createReadStream;
-      fs2.createWriteStream = createWriteStream;
-      var fs$readFile = fs2.readFile;
-      fs2.readFile = readFile;
+    function patch(fs3) {
+      polyfills(fs3);
+      fs3.gracefulify = patch;
+      fs3.createReadStream = createReadStream;
+      fs3.createWriteStream = createWriteStream;
+      var fs$readFile = fs3.readFile;
+      fs3.readFile = readFile;
       function readFile(path2, options, cb) {
         if (typeof options === "function")
           cb = options, options = null;
@@ -2777,8 +2777,8 @@ var require_graceful_fs = __commonJS({
           });
         }
       }
-      var fs$writeFile = fs2.writeFile;
-      fs2.writeFile = writeFile;
+      var fs$writeFile = fs3.writeFile;
+      fs3.writeFile = writeFile;
       function writeFile(path2, data, options, cb) {
         if (typeof options === "function")
           cb = options, options = null;
@@ -2794,9 +2794,9 @@ var require_graceful_fs = __commonJS({
           });
         }
       }
-      var fs$appendFile = fs2.appendFile;
+      var fs$appendFile = fs3.appendFile;
       if (fs$appendFile)
-        fs2.appendFile = appendFile;
+        fs3.appendFile = appendFile;
       function appendFile(path2, data, options, cb) {
         if (typeof options === "function")
           cb = options, options = null;
@@ -2812,9 +2812,9 @@ var require_graceful_fs = __commonJS({
           });
         }
       }
-      var fs$copyFile = fs2.copyFile;
+      var fs$copyFile = fs3.copyFile;
       if (fs$copyFile)
-        fs2.copyFile = copyFile;
+        fs3.copyFile = copyFile;
       function copyFile(src, dest, flags, cb) {
         if (typeof flags === "function") {
           cb = flags;
@@ -2832,8 +2832,8 @@ var require_graceful_fs = __commonJS({
           });
         }
       }
-      var fs$readdir = fs2.readdir;
-      fs2.readdir = readdir;
+      var fs$readdir = fs3.readdir;
+      fs3.readdir = readdir;
       var noReaddirOptionVersions = /^v[0-5]\./;
       function readdir(path2, options, cb) {
         if (typeof options === "function")
@@ -2864,21 +2864,21 @@ var require_graceful_fs = __commonJS({
         }
       }
       if (process.version.substr(0, 4) === "v0.8") {
-        var legStreams = legacy(fs2);
+        var legStreams = legacy(fs3);
         ReadStream = legStreams.ReadStream;
         WriteStream = legStreams.WriteStream;
       }
-      var fs$ReadStream = fs2.ReadStream;
+      var fs$ReadStream = fs3.ReadStream;
       if (fs$ReadStream) {
         ReadStream.prototype = Object.create(fs$ReadStream.prototype);
         ReadStream.prototype.open = ReadStream$open;
       }
-      var fs$WriteStream = fs2.WriteStream;
+      var fs$WriteStream = fs3.WriteStream;
       if (fs$WriteStream) {
         WriteStream.prototype = Object.create(fs$WriteStream.prototype);
         WriteStream.prototype.open = WriteStream$open;
       }
-      Object.defineProperty(fs2, "ReadStream", {
+      Object.defineProperty(fs3, "ReadStream", {
         get: function() {
           return ReadStream;
         },
@@ -2888,7 +2888,7 @@ var require_graceful_fs = __commonJS({
         enumerable: true,
         configurable: true
       });
-      Object.defineProperty(fs2, "WriteStream", {
+      Object.defineProperty(fs3, "WriteStream", {
         get: function() {
           return WriteStream;
         },
@@ -2899,7 +2899,7 @@ var require_graceful_fs = __commonJS({
         configurable: true
       });
       var FileReadStream = ReadStream;
-      Object.defineProperty(fs2, "FileReadStream", {
+      Object.defineProperty(fs3, "FileReadStream", {
         get: function() {
           return FileReadStream;
         },
@@ -2910,7 +2910,7 @@ var require_graceful_fs = __commonJS({
         configurable: true
       });
       var FileWriteStream = WriteStream;
-      Object.defineProperty(fs2, "FileWriteStream", {
+      Object.defineProperty(fs3, "FileWriteStream", {
         get: function() {
           return FileWriteStream;
         },
@@ -2959,13 +2959,13 @@ var require_graceful_fs = __commonJS({
         });
       }
       function createReadStream(path2, options) {
-        return new fs2.ReadStream(path2, options);
+        return new fs3.ReadStream(path2, options);
       }
       function createWriteStream(path2, options) {
-        return new fs2.WriteStream(path2, options);
+        return new fs3.WriteStream(path2, options);
       }
-      var fs$open = fs2.open;
-      fs2.open = open;
+      var fs$open = fs3.open;
+      fs3.open = open;
       function open(path2, flags, mode, cb) {
         if (typeof mode === "function")
           cb = mode, mode = null;
@@ -2981,20 +2981,20 @@ var require_graceful_fs = __commonJS({
           });
         }
       }
-      return fs2;
+      return fs3;
     }
     function enqueue(elem) {
       debug("ENQUEUE", elem[0].name, elem[1]);
-      fs[gracefulQueue].push(elem);
+      fs2[gracefulQueue].push(elem);
       retry();
     }
     var retryTimer;
     function resetQueue() {
       var now = Date.now();
-      for (var i = 0; i < fs[gracefulQueue].length; ++i) {
-        if (fs[gracefulQueue][i].length > 2) {
-          fs[gracefulQueue][i][3] = now;
-          fs[gracefulQueue][i][4] = now;
+      for (var i = 0; i < fs2[gracefulQueue].length; ++i) {
+        if (fs2[gracefulQueue][i].length > 2) {
+          fs2[gracefulQueue][i][3] = now;
+          fs2[gracefulQueue][i][4] = now;
         }
       }
       retry();
@@ -3002,9 +3002,9 @@ var require_graceful_fs = __commonJS({
     function retry() {
       clearTimeout(retryTimer);
       retryTimer = void 0;
-      if (fs[gracefulQueue].length === 0)
+      if (fs2[gracefulQueue].length === 0)
         return;
-      var elem = fs[gracefulQueue].shift();
+      var elem = fs2[gracefulQueue].shift();
       var fn = elem[0];
       var args = elem[1];
       var err = elem[2];
@@ -3026,7 +3026,7 @@ var require_graceful_fs = __commonJS({
           debug("RETRY", fn.name, args);
           fn.apply(null, args.concat([startTime]));
         } else {
-          fs[gracefulQueue].push(elem);
+          fs2[gracefulQueue].push(elem);
         }
       }
       if (retryTimer === void 0) {
@@ -3041,13 +3041,13 @@ var require_fs = __commonJS({
   "../../node_modules/less/lib/less-node/fs.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    var fs;
+    var fs2;
     try {
-      fs = require_graceful_fs();
+      fs2 = require_graceful_fs();
     } catch (e) {
-      fs = require("fs");
+      fs2 = require("fs");
     }
-    exports.default = fs;
+    exports.default = fs2;
   }
 });
 
@@ -9056,7 +9056,7 @@ var require_package = __commonJS({
 // ../../node_modules/needle/lib/needle.js
 var require_needle = __commonJS({
   "../../node_modules/needle/lib/needle.js"(exports, module2) {
-    var fs = require("fs");
+    var fs2 = require("fs");
     var http = require("http");
     var https = require("https");
     var url = require("url");
@@ -9161,7 +9161,7 @@ var require_needle = __commonJS({
         return cb(given_length);
       if (stream2.end !== void 0 && stream2.end !== Infinity && stream2.start !== void 0)
         return cb(stream2.end + 1 - (stream2.start || 0));
-      fs.stat(stream2.path, function(err, stat) {
+      fs2.stat(stream2.path, function(err, stat) {
         cb(stat ? stat.size - (stream2.start || 0) : null);
       });
     }
@@ -9479,7 +9479,7 @@ var require_needle = __commonJS({
             request.destroy();
         });
         if (config.output && resp.statusCode == 200) {
-          var file = fs.createWriteStream(config.output);
+          var file = fs2.createWriteStream(config.output);
           file.on("error", had_error);
           out.on("end", function() {
             if (file.writable)
@@ -9598,9 +9598,9 @@ var require_needle = __commonJS({
           verb = args.shift();
         if (verb.match(/get|head/i) && args.length == 2)
           args.splice(1, 0, null);
-        return new Promise(function(resolve2, reject) {
+        return new Promise(function(resolve, reject) {
           module2.exports.request(verb, args[0], args[1], args[2], function(err, resp) {
-            return err ? reject(err) : resolve2(resp);
+            return err ? reject(err) : resolve(resp);
           });
         });
       };
@@ -19627,12 +19627,12 @@ var require_parse = __commonJS({
         }
         if (!callback) {
           var self_1 = this;
-          return new Promise(function(resolve2, reject) {
+          return new Promise(function(resolve, reject) {
             parse.call(self_1, input, options, function(err, output) {
               if (err) {
                 reject(err);
               } else {
-                resolve2(output);
+                resolve(output);
               }
             });
           });
@@ -19706,12 +19706,12 @@ var require_render = __commonJS({
         }
         if (!callback) {
           var self_1 = this;
-          return new Promise(function(resolve2, reject) {
+          return new Promise(function(resolve, reject) {
             render.call(self_1, input, options, function(err, output) {
               if (err) {
                 reject(err);
               } else {
-                resolve2(output);
+                resolve(output);
               }
             });
           });
@@ -20209,7 +20209,7 @@ var require_detector = __commonJS({
 var require_lib2 = __commonJS({
   "../../node_modules/image-size/lib/index.js"(exports, module2) {
     "use strict";
-    var fs = require("fs");
+    var fs2 = require("fs");
     var path2 = require("path");
     var detector = require_detector();
     var handlers = {};
@@ -20230,33 +20230,33 @@ var require_lib2 = __commonJS({
       throw new TypeError("unsupported file type: " + type + " (file: " + filepath + ")");
     }
     function asyncFileToBuffer(filepath, callback) {
-      fs.open(filepath, "r", function(err, descriptor) {
+      fs2.open(filepath, "r", function(err, descriptor) {
         if (err) {
           return callback(err);
         }
-        var size = fs.fstatSync(descriptor).size;
+        var size = fs2.fstatSync(descriptor).size;
         if (size <= 0) {
           return callback(new Error("File size is not greater than 0 \u2014\u2014 " + filepath));
         }
         var bufferSize = Math.min(size, MaxBufferSize);
         var buffer = new Buffer(bufferSize);
-        fs.read(descriptor, buffer, 0, bufferSize, 0, function(err2) {
+        fs2.read(descriptor, buffer, 0, bufferSize, 0, function(err2) {
           if (err2) {
             return callback(err2);
           }
-          fs.close(descriptor, function(err3) {
+          fs2.close(descriptor, function(err3) {
             callback(err3, buffer);
           });
         });
       });
     }
     function syncFileToBuffer(filepath) {
-      var descriptor = fs.openSync(filepath, "r");
-      var size = fs.fstatSync(descriptor).size;
+      var descriptor = fs2.openSync(filepath, "r");
+      var size = fs2.fstatSync(descriptor).size;
       var bufferSize = Math.min(size, MaxBufferSize);
       var buffer = new Buffer(bufferSize);
-      fs.readSync(descriptor, buffer, 0, bufferSize, 0);
-      fs.closeSync(descriptor);
+      fs2.readSync(descriptor, buffer, 0, bufferSize, 0);
+      fs2.closeSync(descriptor);
       return buffer;
     }
     module2.exports = function(input, callback) {
@@ -20376,6 +20376,4256 @@ var require_less2 = __commonJS({
   }
 });
 
+// ../../node_modules/enhanced-resolve/lib/CachedInputFileSystem.js
+var require_CachedInputFileSystem = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/CachedInputFileSystem.js"(exports, module2) {
+    "use strict";
+    var nextTick = require("process").nextTick;
+    var dirname = (path2) => {
+      let idx = path2.length - 1;
+      while (idx >= 0) {
+        const c = path2.charCodeAt(idx);
+        if (c === 47 || c === 92)
+          break;
+        idx--;
+      }
+      if (idx < 0)
+        return "";
+      return path2.slice(0, idx);
+    };
+    var runCallbacks = (callbacks, err, result) => {
+      if (callbacks.length === 1) {
+        callbacks[0](err, result);
+        callbacks.length = 0;
+        return;
+      }
+      let error;
+      for (const callback of callbacks) {
+        try {
+          callback(err, result);
+        } catch (e) {
+          if (!error)
+            error = e;
+        }
+      }
+      callbacks.length = 0;
+      if (error)
+        throw error;
+    };
+    var OperationMergerBackend = class {
+      constructor(provider, syncProvider, providerContext) {
+        this._provider = provider;
+        this._syncProvider = syncProvider;
+        this._providerContext = providerContext;
+        this._activeAsyncOperations = /* @__PURE__ */ new Map();
+        this.provide = this._provider ? (path2, options, callback) => {
+          if (typeof options === "function") {
+            callback = options;
+            options = void 0;
+          }
+          if (options) {
+            return this._provider.call(this._providerContext, path2, options, callback);
+          }
+          if (typeof path2 !== "string") {
+            callback(new TypeError("path must be a string"));
+            return;
+          }
+          let callbacks = this._activeAsyncOperations.get(path2);
+          if (callbacks) {
+            callbacks.push(callback);
+            return;
+          }
+          this._activeAsyncOperations.set(path2, callbacks = [callback]);
+          provider(path2, (err, result) => {
+            this._activeAsyncOperations.delete(path2);
+            runCallbacks(callbacks, err, result);
+          });
+        } : null;
+        this.provideSync = this._syncProvider ? (path2, options) => {
+          return this._syncProvider.call(this._providerContext, path2, options);
+        } : null;
+      }
+      purge() {
+      }
+      purgeParent() {
+      }
+    };
+    var STORAGE_MODE_IDLE = 0;
+    var STORAGE_MODE_SYNC = 1;
+    var STORAGE_MODE_ASYNC = 2;
+    var CacheBackend = class {
+      constructor(duration, provider, syncProvider, providerContext) {
+        this._duration = duration;
+        this._provider = provider;
+        this._syncProvider = syncProvider;
+        this._providerContext = providerContext;
+        this._activeAsyncOperations = /* @__PURE__ */ new Map();
+        this._data = /* @__PURE__ */ new Map();
+        this._levels = [];
+        for (let i = 0; i < 10; i++)
+          this._levels.push(/* @__PURE__ */ new Set());
+        for (let i = 5e3; i < duration; i += 500)
+          this._levels.push(/* @__PURE__ */ new Set());
+        this._currentLevel = 0;
+        this._tickInterval = Math.floor(duration / this._levels.length);
+        this._mode = STORAGE_MODE_IDLE;
+        this._timeout = void 0;
+        this._nextDecay = void 0;
+        this.provide = provider ? this.provide.bind(this) : null;
+        this.provideSync = syncProvider ? this.provideSync.bind(this) : null;
+      }
+      provide(path2, options, callback) {
+        if (typeof options === "function") {
+          callback = options;
+          options = void 0;
+        }
+        if (typeof path2 !== "string") {
+          callback(new TypeError("path must be a string"));
+          return;
+        }
+        if (options) {
+          return this._provider.call(this._providerContext, path2, options, callback);
+        }
+        if (this._mode === STORAGE_MODE_SYNC) {
+          this._enterAsyncMode();
+        }
+        let cacheEntry = this._data.get(path2);
+        if (cacheEntry !== void 0) {
+          if (cacheEntry.err)
+            return nextTick(callback, cacheEntry.err);
+          return nextTick(callback, null, cacheEntry.result);
+        }
+        let callbacks = this._activeAsyncOperations.get(path2);
+        if (callbacks !== void 0) {
+          callbacks.push(callback);
+          return;
+        }
+        this._activeAsyncOperations.set(path2, callbacks = [callback]);
+        this._provider.call(this._providerContext, path2, (err, result) => {
+          this._activeAsyncOperations.delete(path2);
+          this._storeResult(path2, err, result);
+          this._enterAsyncMode();
+          runCallbacks(callbacks, err, result);
+        });
+      }
+      provideSync(path2, options) {
+        if (typeof path2 !== "string") {
+          throw new TypeError("path must be a string");
+        }
+        if (options) {
+          return this._syncProvider.call(this._providerContext, path2, options);
+        }
+        if (this._mode === STORAGE_MODE_SYNC) {
+          this._runDecays();
+        }
+        let cacheEntry = this._data.get(path2);
+        if (cacheEntry !== void 0) {
+          if (cacheEntry.err)
+            throw cacheEntry.err;
+          return cacheEntry.result;
+        }
+        const callbacks = this._activeAsyncOperations.get(path2);
+        this._activeAsyncOperations.delete(path2);
+        let result;
+        try {
+          result = this._syncProvider.call(this._providerContext, path2);
+        } catch (err) {
+          this._storeResult(path2, err, void 0);
+          this._enterSyncModeWhenIdle();
+          if (callbacks)
+            runCallbacks(callbacks, err, void 0);
+          throw err;
+        }
+        this._storeResult(path2, void 0, result);
+        this._enterSyncModeWhenIdle();
+        if (callbacks)
+          runCallbacks(callbacks, void 0, result);
+        return result;
+      }
+      purge(what) {
+        if (!what) {
+          if (this._mode !== STORAGE_MODE_IDLE) {
+            this._data.clear();
+            for (const level of this._levels) {
+              level.clear();
+            }
+            this._enterIdleMode();
+          }
+        } else if (typeof what === "string") {
+          for (let [key, data] of this._data) {
+            if (key.startsWith(what)) {
+              this._data.delete(key);
+              data.level.delete(key);
+            }
+          }
+          if (this._data.size === 0) {
+            this._enterIdleMode();
+          }
+        } else {
+          for (let [key, data] of this._data) {
+            for (const item of what) {
+              if (key.startsWith(item)) {
+                this._data.delete(key);
+                data.level.delete(key);
+                break;
+              }
+            }
+          }
+          if (this._data.size === 0) {
+            this._enterIdleMode();
+          }
+        }
+      }
+      purgeParent(what) {
+        if (!what) {
+          this.purge();
+        } else if (typeof what === "string") {
+          this.purge(dirname(what));
+        } else {
+          const set = /* @__PURE__ */ new Set();
+          for (const item of what) {
+            set.add(dirname(item));
+          }
+          this.purge(set);
+        }
+      }
+      _storeResult(path2, err, result) {
+        if (this._data.has(path2))
+          return;
+        const level = this._levels[this._currentLevel];
+        this._data.set(path2, { err, result, level });
+        level.add(path2);
+      }
+      _decayLevel() {
+        const nextLevel = (this._currentLevel + 1) % this._levels.length;
+        const decay = this._levels[nextLevel];
+        this._currentLevel = nextLevel;
+        for (let item of decay) {
+          this._data.delete(item);
+        }
+        decay.clear();
+        if (this._data.size === 0) {
+          this._enterIdleMode();
+        } else {
+          this._nextDecay += this._tickInterval;
+        }
+      }
+      _runDecays() {
+        while (this._nextDecay <= Date.now() && this._mode !== STORAGE_MODE_IDLE) {
+          this._decayLevel();
+        }
+      }
+      _enterAsyncMode() {
+        let timeout = 0;
+        switch (this._mode) {
+          case STORAGE_MODE_ASYNC:
+            return;
+          case STORAGE_MODE_IDLE:
+            this._nextDecay = Date.now() + this._tickInterval;
+            timeout = this._tickInterval;
+            break;
+          case STORAGE_MODE_SYNC:
+            this._runDecays();
+            if (this._mode === STORAGE_MODE_IDLE)
+              return;
+            timeout = Math.max(0, this._nextDecay - Date.now());
+            break;
+        }
+        this._mode = STORAGE_MODE_ASYNC;
+        const ref = setTimeout(() => {
+          this._mode = STORAGE_MODE_SYNC;
+          this._runDecays();
+        }, timeout);
+        if (ref.unref)
+          ref.unref();
+        this._timeout = ref;
+      }
+      _enterSyncModeWhenIdle() {
+        if (this._mode === STORAGE_MODE_IDLE) {
+          this._mode = STORAGE_MODE_SYNC;
+          this._nextDecay = Date.now() + this._tickInterval;
+        }
+      }
+      _enterIdleMode() {
+        this._mode = STORAGE_MODE_IDLE;
+        this._nextDecay = void 0;
+        if (this._timeout)
+          clearTimeout(this._timeout);
+      }
+    };
+    var createBackend = (duration, provider, syncProvider, providerContext) => {
+      if (duration > 0) {
+        return new CacheBackend(duration, provider, syncProvider, providerContext);
+      }
+      return new OperationMergerBackend(provider, syncProvider, providerContext);
+    };
+    module2.exports = class CachedInputFileSystem {
+      constructor(fileSystem, duration) {
+        this.fileSystem = fileSystem;
+        this._lstatBackend = createBackend(duration, this.fileSystem.lstat, this.fileSystem.lstatSync, this.fileSystem);
+        const lstat = this._lstatBackend.provide;
+        this.lstat = lstat;
+        const lstatSync = this._lstatBackend.provideSync;
+        this.lstatSync = lstatSync;
+        this._statBackend = createBackend(duration, this.fileSystem.stat, this.fileSystem.statSync, this.fileSystem);
+        const stat = this._statBackend.provide;
+        this.stat = stat;
+        const statSync = this._statBackend.provideSync;
+        this.statSync = statSync;
+        this._readdirBackend = createBackend(duration, this.fileSystem.readdir, this.fileSystem.readdirSync, this.fileSystem);
+        const readdir = this._readdirBackend.provide;
+        this.readdir = readdir;
+        const readdirSync = this._readdirBackend.provideSync;
+        this.readdirSync = readdirSync;
+        this._readFileBackend = createBackend(duration, this.fileSystem.readFile, this.fileSystem.readFileSync, this.fileSystem);
+        const readFile = this._readFileBackend.provide;
+        this.readFile = readFile;
+        const readFileSync = this._readFileBackend.provideSync;
+        this.readFileSync = readFileSync;
+        this._readJsonBackend = createBackend(duration, this.fileSystem.readJson || this.readFile && ((path2, callback) => {
+          this.readFile(path2, (err, buffer) => {
+            if (err)
+              return callback(err);
+            if (!buffer || buffer.length === 0)
+              return callback(new Error("No file content"));
+            let data;
+            try {
+              data = JSON.parse(buffer.toString("utf-8"));
+            } catch (e) {
+              return callback(e);
+            }
+            callback(null, data);
+          });
+        }), this.fileSystem.readJsonSync || this.readFileSync && ((path2) => {
+          const buffer = this.readFileSync(path2);
+          const data = JSON.parse(buffer.toString("utf-8"));
+          return data;
+        }), this.fileSystem);
+        const readJson = this._readJsonBackend.provide;
+        this.readJson = readJson;
+        const readJsonSync = this._readJsonBackend.provideSync;
+        this.readJsonSync = readJsonSync;
+        this._readlinkBackend = createBackend(duration, this.fileSystem.readlink, this.fileSystem.readlinkSync, this.fileSystem);
+        const readlink = this._readlinkBackend.provide;
+        this.readlink = readlink;
+        const readlinkSync = this._readlinkBackend.provideSync;
+        this.readlinkSync = readlinkSync;
+      }
+      purge(what) {
+        this._statBackend.purge(what);
+        this._lstatBackend.purge(what);
+        this._readdirBackend.purgeParent(what);
+        this._readFileBackend.purge(what);
+        this._readlinkBackend.purge(what);
+        this._readJsonBackend.purge(what);
+      }
+    };
+  }
+});
+
+// ../../node_modules/tapable/lib/Hook.js
+var require_Hook = __commonJS({
+  "../../node_modules/tapable/lib/Hook.js"(exports, module2) {
+    "use strict";
+    var util = require("util");
+    var deprecateContext = util.deprecate(() => {
+    }, "Hook.context is deprecated and will be removed");
+    var CALL_DELEGATE = function(...args) {
+      this.call = this._createCall("sync");
+      return this.call(...args);
+    };
+    var CALL_ASYNC_DELEGATE = function(...args) {
+      this.callAsync = this._createCall("async");
+      return this.callAsync(...args);
+    };
+    var PROMISE_DELEGATE = function(...args) {
+      this.promise = this._createCall("promise");
+      return this.promise(...args);
+    };
+    var Hook = class {
+      constructor(args = [], name = void 0) {
+        this._args = args;
+        this.name = name;
+        this.taps = [];
+        this.interceptors = [];
+        this._call = CALL_DELEGATE;
+        this.call = CALL_DELEGATE;
+        this._callAsync = CALL_ASYNC_DELEGATE;
+        this.callAsync = CALL_ASYNC_DELEGATE;
+        this._promise = PROMISE_DELEGATE;
+        this.promise = PROMISE_DELEGATE;
+        this._x = void 0;
+        this.compile = this.compile;
+        this.tap = this.tap;
+        this.tapAsync = this.tapAsync;
+        this.tapPromise = this.tapPromise;
+      }
+      compile(options) {
+        throw new Error("Abstract: should be overridden");
+      }
+      _createCall(type) {
+        return this.compile({
+          taps: this.taps,
+          interceptors: this.interceptors,
+          args: this._args,
+          type
+        });
+      }
+      _tap(type, options, fn) {
+        if (typeof options === "string") {
+          options = {
+            name: options.trim()
+          };
+        } else if (typeof options !== "object" || options === null) {
+          throw new Error("Invalid tap options");
+        }
+        if (typeof options.name !== "string" || options.name === "") {
+          throw new Error("Missing name for tap");
+        }
+        if (typeof options.context !== "undefined") {
+          deprecateContext();
+        }
+        options = Object.assign({ type, fn }, options);
+        options = this._runRegisterInterceptors(options);
+        this._insert(options);
+      }
+      tap(options, fn) {
+        this._tap("sync", options, fn);
+      }
+      tapAsync(options, fn) {
+        this._tap("async", options, fn);
+      }
+      tapPromise(options, fn) {
+        this._tap("promise", options, fn);
+      }
+      _runRegisterInterceptors(options) {
+        for (const interceptor of this.interceptors) {
+          if (interceptor.register) {
+            const newOptions = interceptor.register(options);
+            if (newOptions !== void 0) {
+              options = newOptions;
+            }
+          }
+        }
+        return options;
+      }
+      withOptions(options) {
+        const mergeOptions = (opt) => Object.assign({}, options, typeof opt === "string" ? { name: opt } : opt);
+        return {
+          name: this.name,
+          tap: (opt, fn) => this.tap(mergeOptions(opt), fn),
+          tapAsync: (opt, fn) => this.tapAsync(mergeOptions(opt), fn),
+          tapPromise: (opt, fn) => this.tapPromise(mergeOptions(opt), fn),
+          intercept: (interceptor) => this.intercept(interceptor),
+          isUsed: () => this.isUsed(),
+          withOptions: (opt) => this.withOptions(mergeOptions(opt))
+        };
+      }
+      isUsed() {
+        return this.taps.length > 0 || this.interceptors.length > 0;
+      }
+      intercept(interceptor) {
+        this._resetCompilation();
+        this.interceptors.push(Object.assign({}, interceptor));
+        if (interceptor.register) {
+          for (let i = 0; i < this.taps.length; i++) {
+            this.taps[i] = interceptor.register(this.taps[i]);
+          }
+        }
+      }
+      _resetCompilation() {
+        this.call = this._call;
+        this.callAsync = this._callAsync;
+        this.promise = this._promise;
+      }
+      _insert(item) {
+        this._resetCompilation();
+        let before;
+        if (typeof item.before === "string") {
+          before = /* @__PURE__ */ new Set([item.before]);
+        } else if (Array.isArray(item.before)) {
+          before = new Set(item.before);
+        }
+        let stage = 0;
+        if (typeof item.stage === "number") {
+          stage = item.stage;
+        }
+        let i = this.taps.length;
+        while (i > 0) {
+          i--;
+          const x = this.taps[i];
+          this.taps[i + 1] = x;
+          const xStage = x.stage || 0;
+          if (before) {
+            if (before.has(x.name)) {
+              before.delete(x.name);
+              continue;
+            }
+            if (before.size > 0) {
+              continue;
+            }
+          }
+          if (xStage > stage) {
+            continue;
+          }
+          i++;
+          break;
+        }
+        this.taps[i] = item;
+      }
+    };
+    Object.setPrototypeOf(Hook.prototype, null);
+    module2.exports = Hook;
+  }
+});
+
+// ../../node_modules/tapable/lib/HookCodeFactory.js
+var require_HookCodeFactory = __commonJS({
+  "../../node_modules/tapable/lib/HookCodeFactory.js"(exports, module2) {
+    "use strict";
+    var HookCodeFactory = class {
+      constructor(config) {
+        this.config = config;
+        this.options = void 0;
+        this._args = void 0;
+      }
+      create(options) {
+        this.init(options);
+        let fn;
+        switch (this.options.type) {
+          case "sync":
+            fn = new Function(this.args(), '"use strict";\n' + this.header() + this.contentWithInterceptors({
+              onError: (err) => `throw ${err};
+`,
+              onResult: (result) => `return ${result};
+`,
+              resultReturns: true,
+              onDone: () => "",
+              rethrowIfPossible: true
+            }));
+            break;
+          case "async":
+            fn = new Function(this.args({
+              after: "_callback"
+            }), '"use strict";\n' + this.header() + this.contentWithInterceptors({
+              onError: (err) => `_callback(${err});
+`,
+              onResult: (result) => `_callback(null, ${result});
+`,
+              onDone: () => "_callback();\n"
+            }));
+            break;
+          case "promise":
+            let errorHelperUsed = false;
+            const content = this.contentWithInterceptors({
+              onError: (err) => {
+                errorHelperUsed = true;
+                return `_error(${err});
+`;
+              },
+              onResult: (result) => `_resolve(${result});
+`,
+              onDone: () => "_resolve();\n"
+            });
+            let code = "";
+            code += '"use strict";\n';
+            code += this.header();
+            code += "return new Promise((function(_resolve, _reject) {\n";
+            if (errorHelperUsed) {
+              code += "var _sync = true;\n";
+              code += "function _error(_err) {\n";
+              code += "if(_sync)\n";
+              code += "_resolve(Promise.resolve().then((function() { throw _err; })));\n";
+              code += "else\n";
+              code += "_reject(_err);\n";
+              code += "};\n";
+            }
+            code += content;
+            if (errorHelperUsed) {
+              code += "_sync = false;\n";
+            }
+            code += "}));\n";
+            fn = new Function(this.args(), code);
+            break;
+        }
+        this.deinit();
+        return fn;
+      }
+      setup(instance, options) {
+        instance._x = options.taps.map((t) => t.fn);
+      }
+      init(options) {
+        this.options = options;
+        this._args = options.args.slice();
+      }
+      deinit() {
+        this.options = void 0;
+        this._args = void 0;
+      }
+      contentWithInterceptors(options) {
+        if (this.options.interceptors.length > 0) {
+          const onError = options.onError;
+          const onResult = options.onResult;
+          const onDone = options.onDone;
+          let code = "";
+          for (let i = 0; i < this.options.interceptors.length; i++) {
+            const interceptor = this.options.interceptors[i];
+            if (interceptor.call) {
+              code += `${this.getInterceptor(i)}.call(${this.args({
+                before: interceptor.context ? "_context" : void 0
+              })});
+`;
+            }
+          }
+          code += this.content(Object.assign(options, {
+            onError: onError && ((err) => {
+              let code2 = "";
+              for (let i = 0; i < this.options.interceptors.length; i++) {
+                const interceptor = this.options.interceptors[i];
+                if (interceptor.error) {
+                  code2 += `${this.getInterceptor(i)}.error(${err});
+`;
+                }
+              }
+              code2 += onError(err);
+              return code2;
+            }),
+            onResult: onResult && ((result) => {
+              let code2 = "";
+              for (let i = 0; i < this.options.interceptors.length; i++) {
+                const interceptor = this.options.interceptors[i];
+                if (interceptor.result) {
+                  code2 += `${this.getInterceptor(i)}.result(${result});
+`;
+                }
+              }
+              code2 += onResult(result);
+              return code2;
+            }),
+            onDone: onDone && (() => {
+              let code2 = "";
+              for (let i = 0; i < this.options.interceptors.length; i++) {
+                const interceptor = this.options.interceptors[i];
+                if (interceptor.done) {
+                  code2 += `${this.getInterceptor(i)}.done();
+`;
+                }
+              }
+              code2 += onDone();
+              return code2;
+            })
+          }));
+          return code;
+        } else {
+          return this.content(options);
+        }
+      }
+      header() {
+        let code = "";
+        if (this.needContext()) {
+          code += "var _context = {};\n";
+        } else {
+          code += "var _context;\n";
+        }
+        code += "var _x = this._x;\n";
+        if (this.options.interceptors.length > 0) {
+          code += "var _taps = this.taps;\n";
+          code += "var _interceptors = this.interceptors;\n";
+        }
+        return code;
+      }
+      needContext() {
+        for (const tap of this.options.taps)
+          if (tap.context)
+            return true;
+        return false;
+      }
+      callTap(tapIndex, { onError, onResult, onDone, rethrowIfPossible }) {
+        let code = "";
+        let hasTapCached = false;
+        for (let i = 0; i < this.options.interceptors.length; i++) {
+          const interceptor = this.options.interceptors[i];
+          if (interceptor.tap) {
+            if (!hasTapCached) {
+              code += `var _tap${tapIndex} = ${this.getTap(tapIndex)};
+`;
+              hasTapCached = true;
+            }
+            code += `${this.getInterceptor(i)}.tap(${interceptor.context ? "_context, " : ""}_tap${tapIndex});
+`;
+          }
+        }
+        code += `var _fn${tapIndex} = ${this.getTapFn(tapIndex)};
+`;
+        const tap = this.options.taps[tapIndex];
+        switch (tap.type) {
+          case "sync":
+            if (!rethrowIfPossible) {
+              code += `var _hasError${tapIndex} = false;
+`;
+              code += "try {\n";
+            }
+            if (onResult) {
+              code += `var _result${tapIndex} = _fn${tapIndex}(${this.args({
+                before: tap.context ? "_context" : void 0
+              })});
+`;
+            } else {
+              code += `_fn${tapIndex}(${this.args({
+                before: tap.context ? "_context" : void 0
+              })});
+`;
+            }
+            if (!rethrowIfPossible) {
+              code += "} catch(_err) {\n";
+              code += `_hasError${tapIndex} = true;
+`;
+              code += onError("_err");
+              code += "}\n";
+              code += `if(!_hasError${tapIndex}) {
+`;
+            }
+            if (onResult) {
+              code += onResult(`_result${tapIndex}`);
+            }
+            if (onDone) {
+              code += onDone();
+            }
+            if (!rethrowIfPossible) {
+              code += "}\n";
+            }
+            break;
+          case "async":
+            let cbCode = "";
+            if (onResult)
+              cbCode += `(function(_err${tapIndex}, _result${tapIndex}) {
+`;
+            else
+              cbCode += `(function(_err${tapIndex}) {
+`;
+            cbCode += `if(_err${tapIndex}) {
+`;
+            cbCode += onError(`_err${tapIndex}`);
+            cbCode += "} else {\n";
+            if (onResult) {
+              cbCode += onResult(`_result${tapIndex}`);
+            }
+            if (onDone) {
+              cbCode += onDone();
+            }
+            cbCode += "}\n";
+            cbCode += "})";
+            code += `_fn${tapIndex}(${this.args({
+              before: tap.context ? "_context" : void 0,
+              after: cbCode
+            })});
+`;
+            break;
+          case "promise":
+            code += `var _hasResult${tapIndex} = false;
+`;
+            code += `var _promise${tapIndex} = _fn${tapIndex}(${this.args({
+              before: tap.context ? "_context" : void 0
+            })});
+`;
+            code += `if (!_promise${tapIndex} || !_promise${tapIndex}.then)
+`;
+            code += `  throw new Error('Tap function (tapPromise) did not return promise (returned ' + _promise${tapIndex} + ')');
+`;
+            code += `_promise${tapIndex}.then((function(_result${tapIndex}) {
+`;
+            code += `_hasResult${tapIndex} = true;
+`;
+            if (onResult) {
+              code += onResult(`_result${tapIndex}`);
+            }
+            if (onDone) {
+              code += onDone();
+            }
+            code += `}), function(_err${tapIndex}) {
+`;
+            code += `if(_hasResult${tapIndex}) throw _err${tapIndex};
+`;
+            code += onError(`_err${tapIndex}`);
+            code += "});\n";
+            break;
+        }
+        return code;
+      }
+      callTapsSeries({
+        onError,
+        onResult,
+        resultReturns,
+        onDone,
+        doneReturns,
+        rethrowIfPossible
+      }) {
+        if (this.options.taps.length === 0)
+          return onDone();
+        const firstAsync = this.options.taps.findIndex((t) => t.type !== "sync");
+        const somethingReturns = resultReturns || doneReturns;
+        let code = "";
+        let current = onDone;
+        let unrollCounter = 0;
+        for (let j = this.options.taps.length - 1; j >= 0; j--) {
+          const i = j;
+          const unroll = current !== onDone && (this.options.taps[i].type !== "sync" || unrollCounter++ > 20);
+          if (unroll) {
+            unrollCounter = 0;
+            code += `function _next${i}() {
+`;
+            code += current();
+            code += `}
+`;
+            current = () => `${somethingReturns ? "return " : ""}_next${i}();
+`;
+          }
+          const done = current;
+          const doneBreak = (skipDone) => {
+            if (skipDone)
+              return "";
+            return onDone();
+          };
+          const content = this.callTap(i, {
+            onError: (error) => onError(i, error, done, doneBreak),
+            onResult: onResult && ((result) => {
+              return onResult(i, result, done, doneBreak);
+            }),
+            onDone: !onResult && done,
+            rethrowIfPossible: rethrowIfPossible && (firstAsync < 0 || i < firstAsync)
+          });
+          current = () => content;
+        }
+        code += current();
+        return code;
+      }
+      callTapsLooping({ onError, onDone, rethrowIfPossible }) {
+        if (this.options.taps.length === 0)
+          return onDone();
+        const syncOnly = this.options.taps.every((t) => t.type === "sync");
+        let code = "";
+        if (!syncOnly) {
+          code += "var _looper = (function() {\n";
+          code += "var _loopAsync = false;\n";
+        }
+        code += "var _loop;\n";
+        code += "do {\n";
+        code += "_loop = false;\n";
+        for (let i = 0; i < this.options.interceptors.length; i++) {
+          const interceptor = this.options.interceptors[i];
+          if (interceptor.loop) {
+            code += `${this.getInterceptor(i)}.loop(${this.args({
+              before: interceptor.context ? "_context" : void 0
+            })});
+`;
+          }
+        }
+        code += this.callTapsSeries({
+          onError,
+          onResult: (i, result, next, doneBreak) => {
+            let code2 = "";
+            code2 += `if(${result} !== undefined) {
+`;
+            code2 += "_loop = true;\n";
+            if (!syncOnly)
+              code2 += "if(_loopAsync) _looper();\n";
+            code2 += doneBreak(true);
+            code2 += `} else {
+`;
+            code2 += next();
+            code2 += `}
+`;
+            return code2;
+          },
+          onDone: onDone && (() => {
+            let code2 = "";
+            code2 += "if(!_loop) {\n";
+            code2 += onDone();
+            code2 += "}\n";
+            return code2;
+          }),
+          rethrowIfPossible: rethrowIfPossible && syncOnly
+        });
+        code += "} while(_loop);\n";
+        if (!syncOnly) {
+          code += "_loopAsync = true;\n";
+          code += "});\n";
+          code += "_looper();\n";
+        }
+        return code;
+      }
+      callTapsParallel({
+        onError,
+        onResult,
+        onDone,
+        rethrowIfPossible,
+        onTap = (i, run) => run()
+      }) {
+        if (this.options.taps.length <= 1) {
+          return this.callTapsSeries({
+            onError,
+            onResult,
+            onDone,
+            rethrowIfPossible
+          });
+        }
+        let code = "";
+        code += "do {\n";
+        code += `var _counter = ${this.options.taps.length};
+`;
+        if (onDone) {
+          code += "var _done = (function() {\n";
+          code += onDone();
+          code += "});\n";
+        }
+        for (let i = 0; i < this.options.taps.length; i++) {
+          const done = () => {
+            if (onDone)
+              return "if(--_counter === 0) _done();\n";
+            else
+              return "--_counter;";
+          };
+          const doneBreak = (skipDone) => {
+            if (skipDone || !onDone)
+              return "_counter = 0;\n";
+            else
+              return "_counter = 0;\n_done();\n";
+          };
+          code += "if(_counter <= 0) break;\n";
+          code += onTap(i, () => this.callTap(i, {
+            onError: (error) => {
+              let code2 = "";
+              code2 += "if(_counter > 0) {\n";
+              code2 += onError(i, error, done, doneBreak);
+              code2 += "}\n";
+              return code2;
+            },
+            onResult: onResult && ((result) => {
+              let code2 = "";
+              code2 += "if(_counter > 0) {\n";
+              code2 += onResult(i, result, done, doneBreak);
+              code2 += "}\n";
+              return code2;
+            }),
+            onDone: !onResult && (() => {
+              return done();
+            }),
+            rethrowIfPossible
+          }), done, doneBreak);
+        }
+        code += "} while(false);\n";
+        return code;
+      }
+      args({ before, after } = {}) {
+        let allArgs = this._args;
+        if (before)
+          allArgs = [before].concat(allArgs);
+        if (after)
+          allArgs = allArgs.concat(after);
+        if (allArgs.length === 0) {
+          return "";
+        } else {
+          return allArgs.join(", ");
+        }
+      }
+      getTapFn(idx) {
+        return `_x[${idx}]`;
+      }
+      getTap(idx) {
+        return `_taps[${idx}]`;
+      }
+      getInterceptor(idx) {
+        return `_interceptors[${idx}]`;
+      }
+    };
+    module2.exports = HookCodeFactory;
+  }
+});
+
+// ../../node_modules/tapable/lib/SyncHook.js
+var require_SyncHook = __commonJS({
+  "../../node_modules/tapable/lib/SyncHook.js"(exports, module2) {
+    "use strict";
+    var Hook = require_Hook();
+    var HookCodeFactory = require_HookCodeFactory();
+    var SyncHookCodeFactory = class extends HookCodeFactory {
+      content({ onError, onDone, rethrowIfPossible }) {
+        return this.callTapsSeries({
+          onError: (i, err) => onError(err),
+          onDone,
+          rethrowIfPossible
+        });
+      }
+    };
+    var factory = new SyncHookCodeFactory();
+    var TAP_ASYNC = () => {
+      throw new Error("tapAsync is not supported on a SyncHook");
+    };
+    var TAP_PROMISE = () => {
+      throw new Error("tapPromise is not supported on a SyncHook");
+    };
+    var COMPILE = function(options) {
+      factory.setup(this, options);
+      return factory.create(options);
+    };
+    function SyncHook(args = [], name = void 0) {
+      const hook = new Hook(args, name);
+      hook.constructor = SyncHook;
+      hook.tapAsync = TAP_ASYNC;
+      hook.tapPromise = TAP_PROMISE;
+      hook.compile = COMPILE;
+      return hook;
+    }
+    SyncHook.prototype = null;
+    module2.exports = SyncHook;
+  }
+});
+
+// ../../node_modules/tapable/lib/SyncBailHook.js
+var require_SyncBailHook = __commonJS({
+  "../../node_modules/tapable/lib/SyncBailHook.js"(exports, module2) {
+    "use strict";
+    var Hook = require_Hook();
+    var HookCodeFactory = require_HookCodeFactory();
+    var SyncBailHookCodeFactory = class extends HookCodeFactory {
+      content({ onError, onResult, resultReturns, onDone, rethrowIfPossible }) {
+        return this.callTapsSeries({
+          onError: (i, err) => onError(err),
+          onResult: (i, result, next) => `if(${result} !== undefined) {
+${onResult(result)};
+} else {
+${next()}}
+`,
+          resultReturns,
+          onDone,
+          rethrowIfPossible
+        });
+      }
+    };
+    var factory = new SyncBailHookCodeFactory();
+    var TAP_ASYNC = () => {
+      throw new Error("tapAsync is not supported on a SyncBailHook");
+    };
+    var TAP_PROMISE = () => {
+      throw new Error("tapPromise is not supported on a SyncBailHook");
+    };
+    var COMPILE = function(options) {
+      factory.setup(this, options);
+      return factory.create(options);
+    };
+    function SyncBailHook(args = [], name = void 0) {
+      const hook = new Hook(args, name);
+      hook.constructor = SyncBailHook;
+      hook.tapAsync = TAP_ASYNC;
+      hook.tapPromise = TAP_PROMISE;
+      hook.compile = COMPILE;
+      return hook;
+    }
+    SyncBailHook.prototype = null;
+    module2.exports = SyncBailHook;
+  }
+});
+
+// ../../node_modules/tapable/lib/SyncWaterfallHook.js
+var require_SyncWaterfallHook = __commonJS({
+  "../../node_modules/tapable/lib/SyncWaterfallHook.js"(exports, module2) {
+    "use strict";
+    var Hook = require_Hook();
+    var HookCodeFactory = require_HookCodeFactory();
+    var SyncWaterfallHookCodeFactory = class extends HookCodeFactory {
+      content({ onError, onResult, resultReturns, rethrowIfPossible }) {
+        return this.callTapsSeries({
+          onError: (i, err) => onError(err),
+          onResult: (i, result, next) => {
+            let code = "";
+            code += `if(${result} !== undefined) {
+`;
+            code += `${this._args[0]} = ${result};
+`;
+            code += `}
+`;
+            code += next();
+            return code;
+          },
+          onDone: () => onResult(this._args[0]),
+          doneReturns: resultReturns,
+          rethrowIfPossible
+        });
+      }
+    };
+    var factory = new SyncWaterfallHookCodeFactory();
+    var TAP_ASYNC = () => {
+      throw new Error("tapAsync is not supported on a SyncWaterfallHook");
+    };
+    var TAP_PROMISE = () => {
+      throw new Error("tapPromise is not supported on a SyncWaterfallHook");
+    };
+    var COMPILE = function(options) {
+      factory.setup(this, options);
+      return factory.create(options);
+    };
+    function SyncWaterfallHook(args = [], name = void 0) {
+      if (args.length < 1)
+        throw new Error("Waterfall hooks must have at least one argument");
+      const hook = new Hook(args, name);
+      hook.constructor = SyncWaterfallHook;
+      hook.tapAsync = TAP_ASYNC;
+      hook.tapPromise = TAP_PROMISE;
+      hook.compile = COMPILE;
+      return hook;
+    }
+    SyncWaterfallHook.prototype = null;
+    module2.exports = SyncWaterfallHook;
+  }
+});
+
+// ../../node_modules/tapable/lib/SyncLoopHook.js
+var require_SyncLoopHook = __commonJS({
+  "../../node_modules/tapable/lib/SyncLoopHook.js"(exports, module2) {
+    "use strict";
+    var Hook = require_Hook();
+    var HookCodeFactory = require_HookCodeFactory();
+    var SyncLoopHookCodeFactory = class extends HookCodeFactory {
+      content({ onError, onDone, rethrowIfPossible }) {
+        return this.callTapsLooping({
+          onError: (i, err) => onError(err),
+          onDone,
+          rethrowIfPossible
+        });
+      }
+    };
+    var factory = new SyncLoopHookCodeFactory();
+    var TAP_ASYNC = () => {
+      throw new Error("tapAsync is not supported on a SyncLoopHook");
+    };
+    var TAP_PROMISE = () => {
+      throw new Error("tapPromise is not supported on a SyncLoopHook");
+    };
+    var COMPILE = function(options) {
+      factory.setup(this, options);
+      return factory.create(options);
+    };
+    function SyncLoopHook(args = [], name = void 0) {
+      const hook = new Hook(args, name);
+      hook.constructor = SyncLoopHook;
+      hook.tapAsync = TAP_ASYNC;
+      hook.tapPromise = TAP_PROMISE;
+      hook.compile = COMPILE;
+      return hook;
+    }
+    SyncLoopHook.prototype = null;
+    module2.exports = SyncLoopHook;
+  }
+});
+
+// ../../node_modules/tapable/lib/AsyncParallelHook.js
+var require_AsyncParallelHook = __commonJS({
+  "../../node_modules/tapable/lib/AsyncParallelHook.js"(exports, module2) {
+    "use strict";
+    var Hook = require_Hook();
+    var HookCodeFactory = require_HookCodeFactory();
+    var AsyncParallelHookCodeFactory = class extends HookCodeFactory {
+      content({ onError, onDone }) {
+        return this.callTapsParallel({
+          onError: (i, err, done, doneBreak) => onError(err) + doneBreak(true),
+          onDone
+        });
+      }
+    };
+    var factory = new AsyncParallelHookCodeFactory();
+    var COMPILE = function(options) {
+      factory.setup(this, options);
+      return factory.create(options);
+    };
+    function AsyncParallelHook(args = [], name = void 0) {
+      const hook = new Hook(args, name);
+      hook.constructor = AsyncParallelHook;
+      hook.compile = COMPILE;
+      hook._call = void 0;
+      hook.call = void 0;
+      return hook;
+    }
+    AsyncParallelHook.prototype = null;
+    module2.exports = AsyncParallelHook;
+  }
+});
+
+// ../../node_modules/tapable/lib/AsyncParallelBailHook.js
+var require_AsyncParallelBailHook = __commonJS({
+  "../../node_modules/tapable/lib/AsyncParallelBailHook.js"(exports, module2) {
+    "use strict";
+    var Hook = require_Hook();
+    var HookCodeFactory = require_HookCodeFactory();
+    var AsyncParallelBailHookCodeFactory = class extends HookCodeFactory {
+      content({ onError, onResult, onDone }) {
+        let code = "";
+        code += `var _results = new Array(${this.options.taps.length});
+`;
+        code += "var _checkDone = function() {\n";
+        code += "for(var i = 0; i < _results.length; i++) {\n";
+        code += "var item = _results[i];\n";
+        code += "if(item === undefined) return false;\n";
+        code += "if(item.result !== undefined) {\n";
+        code += onResult("item.result");
+        code += "return true;\n";
+        code += "}\n";
+        code += "if(item.error) {\n";
+        code += onError("item.error");
+        code += "return true;\n";
+        code += "}\n";
+        code += "}\n";
+        code += "return false;\n";
+        code += "}\n";
+        code += this.callTapsParallel({
+          onError: (i, err, done, doneBreak) => {
+            let code2 = "";
+            code2 += `if(${i} < _results.length && ((_results.length = ${i + 1}), (_results[${i}] = { error: ${err} }), _checkDone())) {
+`;
+            code2 += doneBreak(true);
+            code2 += "} else {\n";
+            code2 += done();
+            code2 += "}\n";
+            return code2;
+          },
+          onResult: (i, result, done, doneBreak) => {
+            let code2 = "";
+            code2 += `if(${i} < _results.length && (${result} !== undefined && (_results.length = ${i + 1}), (_results[${i}] = { result: ${result} }), _checkDone())) {
+`;
+            code2 += doneBreak(true);
+            code2 += "} else {\n";
+            code2 += done();
+            code2 += "}\n";
+            return code2;
+          },
+          onTap: (i, run, done, doneBreak) => {
+            let code2 = "";
+            if (i > 0) {
+              code2 += `if(${i} >= _results.length) {
+`;
+              code2 += done();
+              code2 += "} else {\n";
+            }
+            code2 += run();
+            if (i > 0)
+              code2 += "}\n";
+            return code2;
+          },
+          onDone
+        });
+        return code;
+      }
+    };
+    var factory = new AsyncParallelBailHookCodeFactory();
+    var COMPILE = function(options) {
+      factory.setup(this, options);
+      return factory.create(options);
+    };
+    function AsyncParallelBailHook(args = [], name = void 0) {
+      const hook = new Hook(args, name);
+      hook.constructor = AsyncParallelBailHook;
+      hook.compile = COMPILE;
+      hook._call = void 0;
+      hook.call = void 0;
+      return hook;
+    }
+    AsyncParallelBailHook.prototype = null;
+    module2.exports = AsyncParallelBailHook;
+  }
+});
+
+// ../../node_modules/tapable/lib/AsyncSeriesHook.js
+var require_AsyncSeriesHook = __commonJS({
+  "../../node_modules/tapable/lib/AsyncSeriesHook.js"(exports, module2) {
+    "use strict";
+    var Hook = require_Hook();
+    var HookCodeFactory = require_HookCodeFactory();
+    var AsyncSeriesHookCodeFactory = class extends HookCodeFactory {
+      content({ onError, onDone }) {
+        return this.callTapsSeries({
+          onError: (i, err, next, doneBreak) => onError(err) + doneBreak(true),
+          onDone
+        });
+      }
+    };
+    var factory = new AsyncSeriesHookCodeFactory();
+    var COMPILE = function(options) {
+      factory.setup(this, options);
+      return factory.create(options);
+    };
+    function AsyncSeriesHook(args = [], name = void 0) {
+      const hook = new Hook(args, name);
+      hook.constructor = AsyncSeriesHook;
+      hook.compile = COMPILE;
+      hook._call = void 0;
+      hook.call = void 0;
+      return hook;
+    }
+    AsyncSeriesHook.prototype = null;
+    module2.exports = AsyncSeriesHook;
+  }
+});
+
+// ../../node_modules/tapable/lib/AsyncSeriesBailHook.js
+var require_AsyncSeriesBailHook = __commonJS({
+  "../../node_modules/tapable/lib/AsyncSeriesBailHook.js"(exports, module2) {
+    "use strict";
+    var Hook = require_Hook();
+    var HookCodeFactory = require_HookCodeFactory();
+    var AsyncSeriesBailHookCodeFactory = class extends HookCodeFactory {
+      content({ onError, onResult, resultReturns, onDone }) {
+        return this.callTapsSeries({
+          onError: (i, err, next, doneBreak) => onError(err) + doneBreak(true),
+          onResult: (i, result, next) => `if(${result} !== undefined) {
+${onResult(result)}
+} else {
+${next()}}
+`,
+          resultReturns,
+          onDone
+        });
+      }
+    };
+    var factory = new AsyncSeriesBailHookCodeFactory();
+    var COMPILE = function(options) {
+      factory.setup(this, options);
+      return factory.create(options);
+    };
+    function AsyncSeriesBailHook(args = [], name = void 0) {
+      const hook = new Hook(args, name);
+      hook.constructor = AsyncSeriesBailHook;
+      hook.compile = COMPILE;
+      hook._call = void 0;
+      hook.call = void 0;
+      return hook;
+    }
+    AsyncSeriesBailHook.prototype = null;
+    module2.exports = AsyncSeriesBailHook;
+  }
+});
+
+// ../../node_modules/tapable/lib/AsyncSeriesLoopHook.js
+var require_AsyncSeriesLoopHook = __commonJS({
+  "../../node_modules/tapable/lib/AsyncSeriesLoopHook.js"(exports, module2) {
+    "use strict";
+    var Hook = require_Hook();
+    var HookCodeFactory = require_HookCodeFactory();
+    var AsyncSeriesLoopHookCodeFactory = class extends HookCodeFactory {
+      content({ onError, onDone }) {
+        return this.callTapsLooping({
+          onError: (i, err, next, doneBreak) => onError(err) + doneBreak(true),
+          onDone
+        });
+      }
+    };
+    var factory = new AsyncSeriesLoopHookCodeFactory();
+    var COMPILE = function(options) {
+      factory.setup(this, options);
+      return factory.create(options);
+    };
+    function AsyncSeriesLoopHook(args = [], name = void 0) {
+      const hook = new Hook(args, name);
+      hook.constructor = AsyncSeriesLoopHook;
+      hook.compile = COMPILE;
+      hook._call = void 0;
+      hook.call = void 0;
+      return hook;
+    }
+    AsyncSeriesLoopHook.prototype = null;
+    module2.exports = AsyncSeriesLoopHook;
+  }
+});
+
+// ../../node_modules/tapable/lib/AsyncSeriesWaterfallHook.js
+var require_AsyncSeriesWaterfallHook = __commonJS({
+  "../../node_modules/tapable/lib/AsyncSeriesWaterfallHook.js"(exports, module2) {
+    "use strict";
+    var Hook = require_Hook();
+    var HookCodeFactory = require_HookCodeFactory();
+    var AsyncSeriesWaterfallHookCodeFactory = class extends HookCodeFactory {
+      content({ onError, onResult, onDone }) {
+        return this.callTapsSeries({
+          onError: (i, err, next, doneBreak) => onError(err) + doneBreak(true),
+          onResult: (i, result, next) => {
+            let code = "";
+            code += `if(${result} !== undefined) {
+`;
+            code += `${this._args[0]} = ${result};
+`;
+            code += `}
+`;
+            code += next();
+            return code;
+          },
+          onDone: () => onResult(this._args[0])
+        });
+      }
+    };
+    var factory = new AsyncSeriesWaterfallHookCodeFactory();
+    var COMPILE = function(options) {
+      factory.setup(this, options);
+      return factory.create(options);
+    };
+    function AsyncSeriesWaterfallHook(args = [], name = void 0) {
+      if (args.length < 1)
+        throw new Error("Waterfall hooks must have at least one argument");
+      const hook = new Hook(args, name);
+      hook.constructor = AsyncSeriesWaterfallHook;
+      hook.compile = COMPILE;
+      hook._call = void 0;
+      hook.call = void 0;
+      return hook;
+    }
+    AsyncSeriesWaterfallHook.prototype = null;
+    module2.exports = AsyncSeriesWaterfallHook;
+  }
+});
+
+// ../../node_modules/tapable/lib/HookMap.js
+var require_HookMap = __commonJS({
+  "../../node_modules/tapable/lib/HookMap.js"(exports, module2) {
+    "use strict";
+    var util = require("util");
+    var defaultFactory = (key, hook) => hook;
+    var HookMap = class {
+      constructor(factory, name = void 0) {
+        this._map = /* @__PURE__ */ new Map();
+        this.name = name;
+        this._factory = factory;
+        this._interceptors = [];
+      }
+      get(key) {
+        return this._map.get(key);
+      }
+      for(key) {
+        const hook = this.get(key);
+        if (hook !== void 0) {
+          return hook;
+        }
+        let newHook = this._factory(key);
+        const interceptors = this._interceptors;
+        for (let i = 0; i < interceptors.length; i++) {
+          newHook = interceptors[i].factory(key, newHook);
+        }
+        this._map.set(key, newHook);
+        return newHook;
+      }
+      intercept(interceptor) {
+        this._interceptors.push(Object.assign({
+          factory: defaultFactory
+        }, interceptor));
+      }
+    };
+    HookMap.prototype.tap = util.deprecate(function(key, options, fn) {
+      return this.for(key).tap(options, fn);
+    }, "HookMap#tap(key,\u2026) is deprecated. Use HookMap#for(key).tap(\u2026) instead.");
+    HookMap.prototype.tapAsync = util.deprecate(function(key, options, fn) {
+      return this.for(key).tapAsync(options, fn);
+    }, "HookMap#tapAsync(key,\u2026) is deprecated. Use HookMap#for(key).tapAsync(\u2026) instead.");
+    HookMap.prototype.tapPromise = util.deprecate(function(key, options, fn) {
+      return this.for(key).tapPromise(options, fn);
+    }, "HookMap#tapPromise(key,\u2026) is deprecated. Use HookMap#for(key).tapPromise(\u2026) instead.");
+    module2.exports = HookMap;
+  }
+});
+
+// ../../node_modules/tapable/lib/MultiHook.js
+var require_MultiHook = __commonJS({
+  "../../node_modules/tapable/lib/MultiHook.js"(exports, module2) {
+    "use strict";
+    var Hook = require_Hook();
+    var MultiHook = class {
+      constructor(hooks, name = void 0) {
+        this.hooks = hooks;
+        this.name = name;
+      }
+      tap(options, fn) {
+        for (const hook of this.hooks) {
+          hook.tap(options, fn);
+        }
+      }
+      tapAsync(options, fn) {
+        for (const hook of this.hooks) {
+          hook.tapAsync(options, fn);
+        }
+      }
+      tapPromise(options, fn) {
+        for (const hook of this.hooks) {
+          hook.tapPromise(options, fn);
+        }
+      }
+      isUsed() {
+        for (const hook of this.hooks) {
+          if (hook.isUsed())
+            return true;
+        }
+        return false;
+      }
+      intercept(interceptor) {
+        for (const hook of this.hooks) {
+          hook.intercept(interceptor);
+        }
+      }
+      withOptions(options) {
+        return new MultiHook(this.hooks.map((h) => h.withOptions(options)), this.name);
+      }
+    };
+    module2.exports = MultiHook;
+  }
+});
+
+// ../../node_modules/tapable/lib/index.js
+var require_lib3 = __commonJS({
+  "../../node_modules/tapable/lib/index.js"(exports) {
+    "use strict";
+    exports.__esModule = true;
+    exports.SyncHook = require_SyncHook();
+    exports.SyncBailHook = require_SyncBailHook();
+    exports.SyncWaterfallHook = require_SyncWaterfallHook();
+    exports.SyncLoopHook = require_SyncLoopHook();
+    exports.AsyncParallelHook = require_AsyncParallelHook();
+    exports.AsyncParallelBailHook = require_AsyncParallelBailHook();
+    exports.AsyncSeriesHook = require_AsyncSeriesHook();
+    exports.AsyncSeriesBailHook = require_AsyncSeriesBailHook();
+    exports.AsyncSeriesLoopHook = require_AsyncSeriesLoopHook();
+    exports.AsyncSeriesWaterfallHook = require_AsyncSeriesWaterfallHook();
+    exports.HookMap = require_HookMap();
+    exports.MultiHook = require_MultiHook();
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/createInnerContext.js
+var require_createInnerContext = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/createInnerContext.js"(exports, module2) {
+    "use strict";
+    module2.exports = function createInnerContext(options, message, messageOptional) {
+      let messageReported = false;
+      let innerLog = void 0;
+      if (options.log) {
+        if (message) {
+          innerLog = (msg) => {
+            if (!messageReported) {
+              options.log(message);
+              messageReported = true;
+            }
+            options.log("  " + msg);
+          };
+        } else {
+          innerLog = options.log;
+        }
+      }
+      const childContext = {
+        log: innerLog,
+        yield: options.yield,
+        fileDependencies: options.fileDependencies,
+        contextDependencies: options.contextDependencies,
+        missingDependencies: options.missingDependencies,
+        stack: options.stack
+      };
+      return childContext;
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/util/identifier.js
+var require_identifier = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/util/identifier.js"(exports, module2) {
+    "use strict";
+    var PATH_QUERY_FRAGMENT_REGEXP = /^(#?(?:\0.|[^?#\0])*)(\?(?:\0.|[^#\0])*)?(#.*)?$/;
+    function parseIdentifier(identifier) {
+      const match = PATH_QUERY_FRAGMENT_REGEXP.exec(identifier);
+      if (!match)
+        return null;
+      return [
+        match[1].replace(/\0(.)/g, "$1"),
+        match[2] ? match[2].replace(/\0(.)/g, "$1") : "",
+        match[3] || ""
+      ];
+    }
+    module2.exports.parseIdentifier = parseIdentifier;
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/util/path.js
+var require_path = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/util/path.js"(exports) {
+    "use strict";
+    var path2 = require("path");
+    var CHAR_HASH = "#".charCodeAt(0);
+    var CHAR_SLASH = "/".charCodeAt(0);
+    var CHAR_BACKSLASH = "\\".charCodeAt(0);
+    var CHAR_A = "A".charCodeAt(0);
+    var CHAR_Z = "Z".charCodeAt(0);
+    var CHAR_LOWER_A = "a".charCodeAt(0);
+    var CHAR_LOWER_Z = "z".charCodeAt(0);
+    var CHAR_DOT = ".".charCodeAt(0);
+    var CHAR_COLON = ":".charCodeAt(0);
+    var posixNormalize = path2.posix.normalize;
+    var winNormalize = path2.win32.normalize;
+    var PathType = Object.freeze({
+      Empty: 0,
+      Normal: 1,
+      Relative: 2,
+      AbsoluteWin: 3,
+      AbsolutePosix: 4,
+      Internal: 5
+    });
+    exports.PathType = PathType;
+    var getType = (p) => {
+      switch (p.length) {
+        case 0:
+          return PathType.Empty;
+        case 1: {
+          const c02 = p.charCodeAt(0);
+          switch (c02) {
+            case CHAR_DOT:
+              return PathType.Relative;
+            case CHAR_SLASH:
+              return PathType.AbsolutePosix;
+            case CHAR_HASH:
+              return PathType.Internal;
+          }
+          return PathType.Normal;
+        }
+        case 2: {
+          const c02 = p.charCodeAt(0);
+          switch (c02) {
+            case CHAR_DOT: {
+              const c13 = p.charCodeAt(1);
+              switch (c13) {
+                case CHAR_DOT:
+                case CHAR_SLASH:
+                  return PathType.Relative;
+              }
+              return PathType.Normal;
+            }
+            case CHAR_SLASH:
+              return PathType.AbsolutePosix;
+            case CHAR_HASH:
+              return PathType.Internal;
+          }
+          const c12 = p.charCodeAt(1);
+          if (c12 === CHAR_COLON) {
+            if (c02 >= CHAR_A && c02 <= CHAR_Z || c02 >= CHAR_LOWER_A && c02 <= CHAR_LOWER_Z) {
+              return PathType.AbsoluteWin;
+            }
+          }
+          return PathType.Normal;
+        }
+      }
+      const c0 = p.charCodeAt(0);
+      switch (c0) {
+        case CHAR_DOT: {
+          const c12 = p.charCodeAt(1);
+          switch (c12) {
+            case CHAR_SLASH:
+              return PathType.Relative;
+            case CHAR_DOT: {
+              const c2 = p.charCodeAt(2);
+              if (c2 === CHAR_SLASH)
+                return PathType.Relative;
+              return PathType.Normal;
+            }
+          }
+          return PathType.Normal;
+        }
+        case CHAR_SLASH:
+          return PathType.AbsolutePosix;
+        case CHAR_HASH:
+          return PathType.Internal;
+      }
+      const c1 = p.charCodeAt(1);
+      if (c1 === CHAR_COLON) {
+        const c2 = p.charCodeAt(2);
+        if ((c2 === CHAR_BACKSLASH || c2 === CHAR_SLASH) && (c0 >= CHAR_A && c0 <= CHAR_Z || c0 >= CHAR_LOWER_A && c0 <= CHAR_LOWER_Z)) {
+          return PathType.AbsoluteWin;
+        }
+      }
+      return PathType.Normal;
+    };
+    exports.getType = getType;
+    var normalize = (p) => {
+      switch (getType(p)) {
+        case PathType.Empty:
+          return p;
+        case PathType.AbsoluteWin:
+          return winNormalize(p);
+        case PathType.Relative: {
+          const r = posixNormalize(p);
+          return getType(r) === PathType.Relative ? r : `./${r}`;
+        }
+      }
+      return posixNormalize(p);
+    };
+    exports.normalize = normalize;
+    var join = (rootPath, request) => {
+      if (!request)
+        return normalize(rootPath);
+      const requestType = getType(request);
+      switch (requestType) {
+        case PathType.AbsolutePosix:
+          return posixNormalize(request);
+        case PathType.AbsoluteWin:
+          return winNormalize(request);
+      }
+      switch (getType(rootPath)) {
+        case PathType.Normal:
+        case PathType.Relative:
+        case PathType.AbsolutePosix:
+          return posixNormalize(`${rootPath}/${request}`);
+        case PathType.AbsoluteWin:
+          return winNormalize(`${rootPath}\\${request}`);
+      }
+      switch (requestType) {
+        case PathType.Empty:
+          return rootPath;
+        case PathType.Relative: {
+          const r = posixNormalize(rootPath);
+          return getType(r) === PathType.Relative ? r : `./${r}`;
+        }
+      }
+      return posixNormalize(rootPath);
+    };
+    exports.join = join;
+    var joinCache = /* @__PURE__ */ new Map();
+    var cachedJoin = (rootPath, request) => {
+      let cacheEntry;
+      let cache = joinCache.get(rootPath);
+      if (cache === void 0) {
+        joinCache.set(rootPath, cache = /* @__PURE__ */ new Map());
+      } else {
+        cacheEntry = cache.get(request);
+        if (cacheEntry !== void 0)
+          return cacheEntry;
+      }
+      cacheEntry = join(rootPath, request);
+      cache.set(request, cacheEntry);
+      return cacheEntry;
+    };
+    exports.cachedJoin = cachedJoin;
+    var checkExportsFieldTarget = (relativePath) => {
+      let lastNonSlashIndex = 2;
+      let slashIndex = relativePath.indexOf("/", 2);
+      let cd = 0;
+      while (slashIndex !== -1) {
+        const folder = relativePath.slice(lastNonSlashIndex, slashIndex);
+        switch (folder) {
+          case "..": {
+            cd--;
+            if (cd < 0)
+              return new Error(`Trying to access out of package scope. Requesting ${relativePath}`);
+            break;
+          }
+          default:
+            cd++;
+            break;
+        }
+        lastNonSlashIndex = slashIndex + 1;
+        slashIndex = relativePath.indexOf("/", lastNonSlashIndex);
+      }
+    };
+    exports.checkExportsFieldTarget = checkExportsFieldTarget;
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/Resolver.js
+var require_Resolver = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/Resolver.js"(exports, module2) {
+    "use strict";
+    var { AsyncSeriesBailHook, AsyncSeriesHook, SyncHook } = require_lib3();
+    var createInnerContext = require_createInnerContext();
+    var { parseIdentifier } = require_identifier();
+    var {
+      normalize,
+      cachedJoin: join,
+      getType,
+      PathType
+    } = require_path();
+    function toCamelCase(str) {
+      return str.replace(/-([a-z])/g, (str2) => str2.substr(1).toUpperCase());
+    }
+    var Resolver = class {
+      static createStackEntry(hook, request) {
+        return hook.name + ": (" + request.path + ") " + (request.request || "") + (request.query || "") + (request.fragment || "") + (request.directory ? " directory" : "") + (request.module ? " module" : "");
+      }
+      constructor(fileSystem, options) {
+        this.fileSystem = fileSystem;
+        this.options = options;
+        this.hooks = {
+          resolveStep: new SyncHook(["hook", "request"], "resolveStep"),
+          noResolve: new SyncHook(["request", "error"], "noResolve"),
+          resolve: new AsyncSeriesBailHook(["request", "resolveContext"], "resolve"),
+          result: new AsyncSeriesHook(["result", "resolveContext"], "result")
+        };
+      }
+      ensureHook(name) {
+        if (typeof name !== "string") {
+          return name;
+        }
+        name = toCamelCase(name);
+        if (/^before/.test(name)) {
+          return this.ensureHook(name[6].toLowerCase() + name.substr(7)).withOptions({
+            stage: -10
+          });
+        }
+        if (/^after/.test(name)) {
+          return this.ensureHook(name[5].toLowerCase() + name.substr(6)).withOptions({
+            stage: 10
+          });
+        }
+        const hook = this.hooks[name];
+        if (!hook) {
+          return this.hooks[name] = new AsyncSeriesBailHook(["request", "resolveContext"], name);
+        }
+        return hook;
+      }
+      getHook(name) {
+        if (typeof name !== "string") {
+          return name;
+        }
+        name = toCamelCase(name);
+        if (/^before/.test(name)) {
+          return this.getHook(name[6].toLowerCase() + name.substr(7)).withOptions({
+            stage: -10
+          });
+        }
+        if (/^after/.test(name)) {
+          return this.getHook(name[5].toLowerCase() + name.substr(6)).withOptions({
+            stage: 10
+          });
+        }
+        const hook = this.hooks[name];
+        if (!hook) {
+          throw new Error(`Hook ${name} doesn't exist`);
+        }
+        return hook;
+      }
+      resolveSync(context, path2, request) {
+        let err = void 0;
+        let result = void 0;
+        let sync = false;
+        this.resolve(context, path2, request, {}, (e, r) => {
+          err = e;
+          result = r;
+          sync = true;
+        });
+        if (!sync) {
+          throw new Error("Cannot 'resolveSync' because the fileSystem is not sync. Use 'resolve'!");
+        }
+        if (err)
+          throw err;
+        if (result === void 0)
+          throw new Error("No result");
+        return result;
+      }
+      resolve(context, path2, request, resolveContext, callback) {
+        if (!context || typeof context !== "object")
+          return callback(new Error("context argument is not an object"));
+        if (typeof path2 !== "string")
+          return callback(new Error("path argument is not a string"));
+        if (typeof request !== "string")
+          return callback(new Error("path argument is not a string"));
+        if (!resolveContext)
+          return callback(new Error("resolveContext argument is not set"));
+        const obj = {
+          context,
+          path: path2,
+          request
+        };
+        let yield_;
+        let yieldCalled = false;
+        let finishYield;
+        if (typeof resolveContext.yield === "function") {
+          const old = resolveContext.yield;
+          yield_ = (obj2) => {
+            old(obj2);
+            yieldCalled = true;
+          };
+          finishYield = (result) => {
+            if (result)
+              yield_(result);
+            callback(null);
+          };
+        }
+        const message = `resolve '${request}' in '${path2}'`;
+        const finishResolved = (result) => {
+          return callback(null, result.path === false ? false : `${result.path.replace(/#/g, "\0#")}${result.query ? result.query.replace(/#/g, "\0#") : ""}${result.fragment || ""}`, result);
+        };
+        const finishWithoutResolve = (log) => {
+          const error = new Error("Can't " + message);
+          error.details = log.join("\n");
+          this.hooks.noResolve.call(obj, error);
+          return callback(error);
+        };
+        if (resolveContext.log) {
+          const parentLog = resolveContext.log;
+          const log = [];
+          return this.doResolve(this.hooks.resolve, obj, message, {
+            log: (msg) => {
+              parentLog(msg);
+              log.push(msg);
+            },
+            yield: yield_,
+            fileDependencies: resolveContext.fileDependencies,
+            contextDependencies: resolveContext.contextDependencies,
+            missingDependencies: resolveContext.missingDependencies,
+            stack: resolveContext.stack
+          }, (err, result) => {
+            if (err)
+              return callback(err);
+            if (yieldCalled || result && yield_)
+              return finishYield(result);
+            if (result)
+              return finishResolved(result);
+            return finishWithoutResolve(log);
+          });
+        } else {
+          return this.doResolve(this.hooks.resolve, obj, message, {
+            log: void 0,
+            yield: yield_,
+            fileDependencies: resolveContext.fileDependencies,
+            contextDependencies: resolveContext.contextDependencies,
+            missingDependencies: resolveContext.missingDependencies,
+            stack: resolveContext.stack
+          }, (err, result) => {
+            if (err)
+              return callback(err);
+            if (yieldCalled || result && yield_)
+              return finishYield(result);
+            if (result)
+              return finishResolved(result);
+            const log = [];
+            return this.doResolve(this.hooks.resolve, obj, message, {
+              log: (msg) => log.push(msg),
+              yield: yield_,
+              stack: resolveContext.stack
+            }, (err2, result2) => {
+              if (err2)
+                return callback(err2);
+              if (yieldCalled || result2 && yield_)
+                return finishYield(result2);
+              return finishWithoutResolve(log);
+            });
+          });
+        }
+      }
+      doResolve(hook, request, message, resolveContext, callback) {
+        const stackEntry = Resolver.createStackEntry(hook, request);
+        let newStack;
+        if (resolveContext.stack) {
+          newStack = new Set(resolveContext.stack);
+          if (resolveContext.stack.has(stackEntry)) {
+            const recursionError = new Error("Recursion in resolving\nStack:\n  " + Array.from(newStack).join("\n  "));
+            recursionError.recursion = true;
+            if (resolveContext.log)
+              resolveContext.log("abort resolving because of recursion");
+            return callback(recursionError);
+          }
+          newStack.add(stackEntry);
+        } else {
+          newStack = /* @__PURE__ */ new Set([stackEntry]);
+        }
+        this.hooks.resolveStep.call(hook, request);
+        if (hook.isUsed()) {
+          const innerContext = createInnerContext({
+            log: resolveContext.log,
+            yield: resolveContext.yield,
+            fileDependencies: resolveContext.fileDependencies,
+            contextDependencies: resolveContext.contextDependencies,
+            missingDependencies: resolveContext.missingDependencies,
+            stack: newStack
+          }, message);
+          return hook.callAsync(request, innerContext, (err, result) => {
+            if (err)
+              return callback(err);
+            if (result)
+              return callback(null, result);
+            callback();
+          });
+        } else {
+          callback();
+        }
+      }
+      parse(identifier) {
+        const part = {
+          request: "",
+          query: "",
+          fragment: "",
+          module: false,
+          directory: false,
+          file: false,
+          internal: false
+        };
+        const parsedIdentifier = parseIdentifier(identifier);
+        if (!parsedIdentifier)
+          return part;
+        [part.request, part.query, part.fragment] = parsedIdentifier;
+        if (part.request.length > 0) {
+          part.internal = this.isPrivate(identifier);
+          part.module = this.isModule(part.request);
+          part.directory = this.isDirectory(part.request);
+          if (part.directory) {
+            part.request = part.request.substr(0, part.request.length - 1);
+          }
+        }
+        return part;
+      }
+      isModule(path2) {
+        return getType(path2) === PathType.Normal;
+      }
+      isPrivate(path2) {
+        return getType(path2) === PathType.Internal;
+      }
+      isDirectory(path2) {
+        return path2.endsWith("/");
+      }
+      join(path2, request) {
+        return join(path2, request);
+      }
+      normalize(path2) {
+        return normalize(path2);
+      }
+    };
+    module2.exports = Resolver;
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/SyncAsyncFileSystemDecorator.js
+var require_SyncAsyncFileSystemDecorator = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/SyncAsyncFileSystemDecorator.js"(exports, module2) {
+    "use strict";
+    function SyncAsyncFileSystemDecorator(fs2) {
+      this.fs = fs2;
+      this.lstat = void 0;
+      this.lstatSync = void 0;
+      const lstatSync = fs2.lstatSync;
+      if (lstatSync) {
+        this.lstat = (arg, options, callback) => {
+          let result;
+          try {
+            result = lstatSync.call(fs2, arg);
+          } catch (e) {
+            return (callback || options)(e);
+          }
+          (callback || options)(null, result);
+        };
+        this.lstatSync = (arg, options) => lstatSync.call(fs2, arg, options);
+      }
+      this.stat = (arg, options, callback) => {
+        let result;
+        try {
+          result = callback ? fs2.statSync(arg, options) : fs2.statSync(arg);
+        } catch (e) {
+          return (callback || options)(e);
+        }
+        (callback || options)(null, result);
+      };
+      this.statSync = (arg, options) => fs2.statSync(arg, options);
+      this.readdir = (arg, options, callback) => {
+        let result;
+        try {
+          result = fs2.readdirSync(arg);
+        } catch (e) {
+          return (callback || options)(e);
+        }
+        (callback || options)(null, result);
+      };
+      this.readdirSync = (arg, options) => fs2.readdirSync(arg, options);
+      this.readFile = (arg, options, callback) => {
+        let result;
+        try {
+          result = fs2.readFileSync(arg);
+        } catch (e) {
+          return (callback || options)(e);
+        }
+        (callback || options)(null, result);
+      };
+      this.readFileSync = (arg, options) => fs2.readFileSync(arg, options);
+      this.readlink = (arg, options, callback) => {
+        let result;
+        try {
+          result = fs2.readlinkSync(arg);
+        } catch (e) {
+          return (callback || options)(e);
+        }
+        (callback || options)(null, result);
+      };
+      this.readlinkSync = (arg, options) => fs2.readlinkSync(arg, options);
+      this.readJson = void 0;
+      this.readJsonSync = void 0;
+      const readJsonSync = fs2.readJsonSync;
+      if (readJsonSync) {
+        this.readJson = (arg, options, callback) => {
+          let result;
+          try {
+            result = readJsonSync.call(fs2, arg);
+          } catch (e) {
+            return (callback || options)(e);
+          }
+          (callback || options)(null, result);
+        };
+        this.readJsonSync = (arg, options) => readJsonSync.call(fs2, arg, options);
+      }
+    }
+    module2.exports = SyncAsyncFileSystemDecorator;
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/forEachBail.js
+var require_forEachBail = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/forEachBail.js"(exports, module2) {
+    "use strict";
+    module2.exports = function forEachBail(array, iterator, callback) {
+      if (array.length === 0)
+        return callback();
+      let i = 0;
+      const next = () => {
+        let loop = void 0;
+        iterator(array[i++], (err, result) => {
+          if (err || result !== void 0 || i >= array.length) {
+            return callback(err, result);
+          }
+          if (loop === false)
+            while (next())
+              ;
+          loop = true;
+        });
+        if (!loop)
+          loop = false;
+        return loop;
+      };
+      while (next())
+        ;
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/DescriptionFileUtils.js
+var require_DescriptionFileUtils = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/DescriptionFileUtils.js"(exports) {
+    "use strict";
+    var forEachBail = require_forEachBail();
+    function loadDescriptionFile(resolver, directory, filenames, oldInfo, resolveContext, callback) {
+      (function findDescriptionFile() {
+        if (oldInfo && oldInfo.directory === directory) {
+          return callback(null, oldInfo);
+        }
+        forEachBail(filenames, (filename, callback2) => {
+          const descriptionFilePath = resolver.join(directory, filename);
+          if (resolver.fileSystem.readJson) {
+            resolver.fileSystem.readJson(descriptionFilePath, (err, content) => {
+              if (err) {
+                if (typeof err.code !== "undefined") {
+                  if (resolveContext.missingDependencies) {
+                    resolveContext.missingDependencies.add(descriptionFilePath);
+                  }
+                  return callback2();
+                }
+                if (resolveContext.fileDependencies) {
+                  resolveContext.fileDependencies.add(descriptionFilePath);
+                }
+                return onJson(err);
+              }
+              if (resolveContext.fileDependencies) {
+                resolveContext.fileDependencies.add(descriptionFilePath);
+              }
+              onJson(null, content);
+            });
+          } else {
+            resolver.fileSystem.readFile(descriptionFilePath, (err, content) => {
+              if (err) {
+                if (resolveContext.missingDependencies) {
+                  resolveContext.missingDependencies.add(descriptionFilePath);
+                }
+                return callback2();
+              }
+              if (resolveContext.fileDependencies) {
+                resolveContext.fileDependencies.add(descriptionFilePath);
+              }
+              let json;
+              if (content) {
+                try {
+                  json = JSON.parse(content.toString());
+                } catch (e) {
+                  return onJson(e);
+                }
+              } else {
+                return onJson(new Error("No content in file"));
+              }
+              onJson(null, json);
+            });
+          }
+          function onJson(err, content) {
+            if (err) {
+              if (resolveContext.log)
+                resolveContext.log(descriptionFilePath + " (directory description file): " + err);
+              else
+                err.message = descriptionFilePath + " (directory description file): " + err;
+              return callback2(err);
+            }
+            callback2(null, {
+              content,
+              directory,
+              path: descriptionFilePath
+            });
+          }
+        }, (err, result) => {
+          if (err)
+            return callback(err);
+          if (result) {
+            return callback(null, result);
+          } else {
+            const dir = cdUp(directory);
+            if (!dir) {
+              return callback();
+            } else {
+              directory = dir;
+              return findDescriptionFile();
+            }
+          }
+        });
+      })();
+    }
+    function getField(content, field) {
+      if (!content)
+        return void 0;
+      if (Array.isArray(field)) {
+        let current = content;
+        for (let j = 0; j < field.length; j++) {
+          if (current === null || typeof current !== "object") {
+            current = null;
+            break;
+          }
+          current = current[field[j]];
+        }
+        return current;
+      } else {
+        return content[field];
+      }
+    }
+    function cdUp(directory) {
+      if (directory === "/")
+        return null;
+      const i = directory.lastIndexOf("/"), j = directory.lastIndexOf("\\");
+      const p = i < 0 ? j : j < 0 ? i : i < j ? j : i;
+      if (p < 0)
+        return null;
+      return directory.substr(0, p || 1);
+    }
+    exports.loadDescriptionFile = loadDescriptionFile;
+    exports.getField = getField;
+    exports.cdUp = cdUp;
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/getInnerRequest.js
+var require_getInnerRequest = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/getInnerRequest.js"(exports, module2) {
+    "use strict";
+    module2.exports = function getInnerRequest(resolver, request) {
+      if (typeof request.__innerRequest === "string" && request.__innerRequest_request === request.request && request.__innerRequest_relativePath === request.relativePath)
+        return request.__innerRequest;
+      let innerRequest;
+      if (request.request) {
+        innerRequest = request.request;
+        if (/^\.\.?(?:\/|$)/.test(innerRequest) && request.relativePath) {
+          innerRequest = resolver.join(request.relativePath, innerRequest);
+        }
+      } else {
+        innerRequest = request.relativePath;
+      }
+      request.__innerRequest_request = request.request;
+      request.__innerRequest_relativePath = request.relativePath;
+      return request.__innerRequest = innerRequest;
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/AliasFieldPlugin.js
+var require_AliasFieldPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/AliasFieldPlugin.js"(exports, module2) {
+    "use strict";
+    var DescriptionFileUtils = require_DescriptionFileUtils();
+    var getInnerRequest = require_getInnerRequest();
+    module2.exports = class AliasFieldPlugin {
+      constructor(source, field, target) {
+        this.source = source;
+        this.field = field;
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        resolver.getHook(this.source).tapAsync("AliasFieldPlugin", (request, resolveContext, callback) => {
+          if (!request.descriptionFileData)
+            return callback();
+          const innerRequest = getInnerRequest(resolver, request);
+          if (!innerRequest)
+            return callback();
+          const fieldData = DescriptionFileUtils.getField(request.descriptionFileData, this.field);
+          if (fieldData === null || typeof fieldData !== "object") {
+            if (resolveContext.log)
+              resolveContext.log("Field '" + this.field + "' doesn't contain a valid alias configuration");
+            return callback();
+          }
+          const data = Object.prototype.hasOwnProperty.call(fieldData, innerRequest) ? fieldData[innerRequest] : innerRequest.startsWith("./") ? fieldData[innerRequest.slice(2)] : void 0;
+          if (data === innerRequest)
+            return callback();
+          if (data === void 0)
+            return callback();
+          if (data === false) {
+            const ignoreObj = {
+              ...request,
+              path: false
+            };
+            if (typeof resolveContext.yield === "function") {
+              resolveContext.yield(ignoreObj);
+              return callback(null, null);
+            }
+            return callback(null, ignoreObj);
+          }
+          const obj = {
+            ...request,
+            path: request.descriptionFileRoot,
+            request: data,
+            fullySpecified: false
+          };
+          resolver.doResolve(target, obj, "aliased from description file " + request.descriptionFilePath + " with mapping '" + innerRequest + "' to '" + data + "'", resolveContext, (err, result) => {
+            if (err)
+              return callback(err);
+            if (result === void 0)
+              return callback(null, null);
+            callback(null, result);
+          });
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/AliasPlugin.js
+var require_AliasPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/AliasPlugin.js"(exports, module2) {
+    "use strict";
+    var forEachBail = require_forEachBail();
+    var { PathType, getType } = require_path();
+    module2.exports = class AliasPlugin {
+      constructor(source, options, target) {
+        this.source = source;
+        this.options = Array.isArray(options) ? options : [options];
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        const getAbsolutePathWithSlashEnding = (maybeAbsolutePath) => {
+          const type = getType(maybeAbsolutePath);
+          if (type === PathType.AbsolutePosix || type === PathType.AbsoluteWin) {
+            return resolver.join(maybeAbsolutePath, "_").slice(0, -1);
+          }
+          return null;
+        };
+        const isSubPath = (path2, maybeSubPath) => {
+          const absolutePath = getAbsolutePathWithSlashEnding(maybeSubPath);
+          if (!absolutePath)
+            return false;
+          return path2.startsWith(absolutePath);
+        };
+        resolver.getHook(this.source).tapAsync("AliasPlugin", (request, resolveContext, callback) => {
+          const innerRequest = request.request || request.path;
+          if (!innerRequest)
+            return callback();
+          forEachBail(this.options, (item, callback2) => {
+            let shouldStop = false;
+            if (innerRequest === item.name || !item.onlyModule && (request.request ? innerRequest.startsWith(`${item.name}/`) : isSubPath(innerRequest, item.name))) {
+              const remainingRequest = innerRequest.substr(item.name.length);
+              const resolveWithAlias = (alias, callback3) => {
+                if (alias === false) {
+                  const ignoreObj = {
+                    ...request,
+                    path: false
+                  };
+                  if (typeof resolveContext.yield === "function") {
+                    resolveContext.yield(ignoreObj);
+                    return callback3(null, null);
+                  }
+                  return callback3(null, ignoreObj);
+                }
+                if (innerRequest !== alias && !innerRequest.startsWith(alias + "/")) {
+                  shouldStop = true;
+                  const newRequestStr = alias + remainingRequest;
+                  const obj = {
+                    ...request,
+                    request: newRequestStr,
+                    fullySpecified: false
+                  };
+                  return resolver.doResolve(target, obj, "aliased with mapping '" + item.name + "': '" + alias + "' to '" + newRequestStr + "'", resolveContext, (err, result) => {
+                    if (err)
+                      return callback3(err);
+                    if (result)
+                      return callback3(null, result);
+                    return callback3();
+                  });
+                }
+                return callback3();
+              };
+              const stoppingCallback = (err, result) => {
+                if (err)
+                  return callback2(err);
+                if (result)
+                  return callback2(null, result);
+                if (shouldStop)
+                  return callback2(null, null);
+                return callback2();
+              };
+              if (Array.isArray(item.alias)) {
+                return forEachBail(item.alias, resolveWithAlias, stoppingCallback);
+              } else {
+                return resolveWithAlias(item.alias, stoppingCallback);
+              }
+            }
+            return callback2();
+          }, callback);
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/AppendPlugin.js
+var require_AppendPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/AppendPlugin.js"(exports, module2) {
+    "use strict";
+    module2.exports = class AppendPlugin {
+      constructor(source, appending, target) {
+        this.source = source;
+        this.appending = appending;
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        resolver.getHook(this.source).tapAsync("AppendPlugin", (request, resolveContext, callback) => {
+          const obj = {
+            ...request,
+            path: request.path + this.appending,
+            relativePath: request.relativePath && request.relativePath + this.appending
+          };
+          resolver.doResolve(target, obj, this.appending, resolveContext, callback);
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/ConditionalPlugin.js
+var require_ConditionalPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/ConditionalPlugin.js"(exports, module2) {
+    "use strict";
+    module2.exports = class ConditionalPlugin {
+      constructor(source, test, message, allowAlternatives, target) {
+        this.source = source;
+        this.test = test;
+        this.message = message;
+        this.allowAlternatives = allowAlternatives;
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        const { test, message, allowAlternatives } = this;
+        const keys = Object.keys(test);
+        resolver.getHook(this.source).tapAsync("ConditionalPlugin", (request, resolveContext, callback) => {
+          for (const prop of keys) {
+            if (request[prop] !== test[prop])
+              return callback();
+          }
+          resolver.doResolve(target, request, message, resolveContext, allowAlternatives ? callback : (err, result) => {
+            if (err)
+              return callback(err);
+            if (result === void 0)
+              return callback(null, null);
+            callback(null, result);
+          });
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/DescriptionFilePlugin.js
+var require_DescriptionFilePlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/DescriptionFilePlugin.js"(exports, module2) {
+    "use strict";
+    var DescriptionFileUtils = require_DescriptionFileUtils();
+    module2.exports = class DescriptionFilePlugin {
+      constructor(source, filenames, pathIsFile, target) {
+        this.source = source;
+        this.filenames = filenames;
+        this.pathIsFile = pathIsFile;
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        resolver.getHook(this.source).tapAsync("DescriptionFilePlugin", (request, resolveContext, callback) => {
+          const path2 = request.path;
+          if (!path2)
+            return callback();
+          const directory = this.pathIsFile ? DescriptionFileUtils.cdUp(path2) : path2;
+          if (!directory)
+            return callback();
+          DescriptionFileUtils.loadDescriptionFile(resolver, directory, this.filenames, request.descriptionFilePath ? {
+            path: request.descriptionFilePath,
+            content: request.descriptionFileData,
+            directory: request.descriptionFileRoot
+          } : void 0, resolveContext, (err, result) => {
+            if (err)
+              return callback(err);
+            if (!result) {
+              if (resolveContext.log)
+                resolveContext.log(`No description file found in ${directory} or above`);
+              return callback();
+            }
+            const relativePath = "." + path2.substr(result.directory.length).replace(/\\/g, "/");
+            const obj = {
+              ...request,
+              descriptionFilePath: result.path,
+              descriptionFileData: result.content,
+              descriptionFileRoot: result.directory,
+              relativePath
+            };
+            resolver.doResolve(target, obj, "using description file: " + result.path + " (relative path: " + relativePath + ")", resolveContext, (err2, result2) => {
+              if (err2)
+                return callback(err2);
+              if (result2 === void 0)
+                return callback(null, null);
+              callback(null, result2);
+            });
+          });
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/DirectoryExistsPlugin.js
+var require_DirectoryExistsPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/DirectoryExistsPlugin.js"(exports, module2) {
+    "use strict";
+    module2.exports = class DirectoryExistsPlugin {
+      constructor(source, target) {
+        this.source = source;
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        resolver.getHook(this.source).tapAsync("DirectoryExistsPlugin", (request, resolveContext, callback) => {
+          const fs2 = resolver.fileSystem;
+          const directory = request.path;
+          if (!directory)
+            return callback();
+          fs2.stat(directory, (err, stat) => {
+            if (err || !stat) {
+              if (resolveContext.missingDependencies)
+                resolveContext.missingDependencies.add(directory);
+              if (resolveContext.log)
+                resolveContext.log(directory + " doesn't exist");
+              return callback();
+            }
+            if (!stat.isDirectory()) {
+              if (resolveContext.missingDependencies)
+                resolveContext.missingDependencies.add(directory);
+              if (resolveContext.log)
+                resolveContext.log(directory + " is not a directory");
+              return callback();
+            }
+            if (resolveContext.fileDependencies)
+              resolveContext.fileDependencies.add(directory);
+            resolver.doResolve(target, request, `existing directory ${directory}`, resolveContext, callback);
+          });
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/util/entrypoints.js
+var require_entrypoints = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/util/entrypoints.js"(exports, module2) {
+    "use strict";
+    var slashCode = "/".charCodeAt(0);
+    var dotCode = ".".charCodeAt(0);
+    var hashCode = "#".charCodeAt(0);
+    module2.exports.processExportsField = function processExportsField(exportsField) {
+      return createFieldProcessor(buildExportsFieldPathTree(exportsField), assertExportsFieldRequest, assertExportTarget);
+    };
+    module2.exports.processImportsField = function processImportsField(importsField) {
+      return createFieldProcessor(buildImportsFieldPathTree(importsField), assertImportsFieldRequest, assertImportTarget);
+    };
+    function createFieldProcessor(treeRoot, assertRequest, assertTarget) {
+      return function fieldProcessor(request, conditionNames) {
+        request = assertRequest(request);
+        const match = findMatch(request, treeRoot);
+        if (match === null)
+          return [];
+        const [mapping, remainRequestIndex] = match;
+        let direct = null;
+        if (isConditionalMapping(mapping)) {
+          direct = conditionalMapping(mapping, conditionNames);
+          if (direct === null)
+            return [];
+        } else {
+          direct = mapping;
+        }
+        const remainingRequest = remainRequestIndex === request.length + 1 ? void 0 : remainRequestIndex < 0 ? request.slice(-remainRequestIndex - 1) : request.slice(remainRequestIndex);
+        return directMapping(remainingRequest, remainRequestIndex < 0, direct, conditionNames, assertTarget);
+      };
+    }
+    function assertExportsFieldRequest(request) {
+      if (request.charCodeAt(0) !== dotCode) {
+        throw new Error('Request should be relative path and start with "."');
+      }
+      if (request.length === 1)
+        return "";
+      if (request.charCodeAt(1) !== slashCode) {
+        throw new Error('Request should be relative path and start with "./"');
+      }
+      if (request.charCodeAt(request.length - 1) === slashCode) {
+        throw new Error("Only requesting file allowed");
+      }
+      return request.slice(2);
+    }
+    function assertImportsFieldRequest(request) {
+      if (request.charCodeAt(0) !== hashCode) {
+        throw new Error('Request should start with "#"');
+      }
+      if (request.length === 1) {
+        throw new Error("Request should have at least 2 characters");
+      }
+      if (request.charCodeAt(1) === slashCode) {
+        throw new Error('Request should not start with "#/"');
+      }
+      if (request.charCodeAt(request.length - 1) === slashCode) {
+        throw new Error("Only requesting file allowed");
+      }
+      return request.slice(1);
+    }
+    function assertExportTarget(exp, expectFolder) {
+      if (exp.charCodeAt(0) === slashCode || exp.charCodeAt(0) === dotCode && exp.charCodeAt(1) !== slashCode) {
+        throw new Error(`Export should be relative path and start with "./", got ${JSON.stringify(exp)}.`);
+      }
+      const isFolder = exp.charCodeAt(exp.length - 1) === slashCode;
+      if (isFolder !== expectFolder) {
+        throw new Error(expectFolder ? `Expecting folder to folder mapping. ${JSON.stringify(exp)} should end with "/"` : `Expecting file to file mapping. ${JSON.stringify(exp)} should not end with "/"`);
+      }
+    }
+    function assertImportTarget(imp, expectFolder) {
+      const isFolder = imp.charCodeAt(imp.length - 1) === slashCode;
+      if (isFolder !== expectFolder) {
+        throw new Error(expectFolder ? `Expecting folder to folder mapping. ${JSON.stringify(imp)} should end with "/"` : `Expecting file to file mapping. ${JSON.stringify(imp)} should not end with "/"`);
+      }
+    }
+    function findMatch(request, treeRoot) {
+      if (request.length === 0) {
+        const value2 = treeRoot.files.get("");
+        return value2 ? [value2, 1] : null;
+      }
+      if (treeRoot.children === null && treeRoot.folder === null && treeRoot.wildcards === null) {
+        const value2 = treeRoot.files.get(request);
+        return value2 ? [value2, request.length + 1] : null;
+      }
+      let node = treeRoot;
+      let lastNonSlashIndex = 0;
+      let slashIndex = request.indexOf("/", 0);
+      let lastFolderMatch = null;
+      const applyFolderMapping = () => {
+        const folderMapping = node.folder;
+        if (folderMapping) {
+          if (lastFolderMatch) {
+            lastFolderMatch[0] = folderMapping;
+            lastFolderMatch[1] = -lastNonSlashIndex - 1;
+          } else {
+            lastFolderMatch = [folderMapping, -lastNonSlashIndex - 1];
+          }
+        }
+      };
+      const applyWildcardMappings = (wildcardMappings, remainingRequest2) => {
+        if (wildcardMappings) {
+          for (const [key, target] of wildcardMappings) {
+            if (remainingRequest2.startsWith(key)) {
+              if (!lastFolderMatch) {
+                lastFolderMatch = [target, lastNonSlashIndex + key.length];
+              } else if (lastFolderMatch[1] < lastNonSlashIndex + key.length) {
+                lastFolderMatch[0] = target;
+                lastFolderMatch[1] = lastNonSlashIndex + key.length;
+              }
+            }
+          }
+        }
+      };
+      while (slashIndex !== -1) {
+        applyFolderMapping();
+        const wildcardMappings = node.wildcards;
+        if (!wildcardMappings && node.children === null)
+          return lastFolderMatch;
+        const folder = request.slice(lastNonSlashIndex, slashIndex);
+        applyWildcardMappings(wildcardMappings, folder);
+        if (node.children === null)
+          return lastFolderMatch;
+        const newNode = node.children.get(folder);
+        if (!newNode) {
+          return lastFolderMatch;
+        }
+        node = newNode;
+        lastNonSlashIndex = slashIndex + 1;
+        slashIndex = request.indexOf("/", lastNonSlashIndex);
+      }
+      const remainingRequest = lastNonSlashIndex > 0 ? request.slice(lastNonSlashIndex) : request;
+      const value = node.files.get(remainingRequest);
+      if (value) {
+        return [value, request.length + 1];
+      }
+      applyFolderMapping();
+      applyWildcardMappings(node.wildcards, remainingRequest);
+      return lastFolderMatch;
+    }
+    function isConditionalMapping(mapping) {
+      return mapping !== null && typeof mapping === "object" && !Array.isArray(mapping);
+    }
+    function directMapping(remainingRequest, subpathMapping, mappingTarget, conditionNames, assert) {
+      if (mappingTarget === null)
+        return [];
+      if (typeof mappingTarget === "string") {
+        return [
+          targetMapping(remainingRequest, subpathMapping, mappingTarget, assert)
+        ];
+      }
+      const targets = [];
+      for (const exp of mappingTarget) {
+        if (typeof exp === "string") {
+          targets.push(targetMapping(remainingRequest, subpathMapping, exp, assert));
+          continue;
+        }
+        const mapping = conditionalMapping(exp, conditionNames);
+        if (!mapping)
+          continue;
+        const innerExports = directMapping(remainingRequest, subpathMapping, mapping, conditionNames, assert);
+        for (const innerExport of innerExports) {
+          targets.push(innerExport);
+        }
+      }
+      return targets;
+    }
+    function targetMapping(remainingRequest, subpathMapping, mappingTarget, assert) {
+      if (remainingRequest === void 0) {
+        assert(mappingTarget, false);
+        return mappingTarget;
+      }
+      if (subpathMapping) {
+        assert(mappingTarget, true);
+        return mappingTarget + remainingRequest;
+      }
+      assert(mappingTarget, false);
+      return mappingTarget.replace(/\*/g, remainingRequest.replace(/\$/g, "$$"));
+    }
+    function conditionalMapping(conditionalMapping_, conditionNames) {
+      let lookup = [[conditionalMapping_, Object.keys(conditionalMapping_), 0]];
+      loop:
+        while (lookup.length > 0) {
+          const [mapping, conditions, j] = lookup[lookup.length - 1];
+          const last = conditions.length - 1;
+          for (let i = j; i < conditions.length; i++) {
+            const condition = conditions[i];
+            if (i !== last) {
+              if (condition === "default") {
+                throw new Error("Default condition should be last one");
+              }
+            } else if (condition === "default") {
+              const innerMapping = mapping[condition];
+              if (isConditionalMapping(innerMapping)) {
+                const conditionalMapping2 = innerMapping;
+                lookup[lookup.length - 1][2] = i + 1;
+                lookup.push([conditionalMapping2, Object.keys(conditionalMapping2), 0]);
+                continue loop;
+              }
+              return innerMapping;
+            }
+            if (conditionNames.has(condition)) {
+              const innerMapping = mapping[condition];
+              if (isConditionalMapping(innerMapping)) {
+                const conditionalMapping2 = innerMapping;
+                lookup[lookup.length - 1][2] = i + 1;
+                lookup.push([conditionalMapping2, Object.keys(conditionalMapping2), 0]);
+                continue loop;
+              }
+              return innerMapping;
+            }
+          }
+          lookup.pop();
+        }
+      return null;
+    }
+    function createNode() {
+      return {
+        children: null,
+        folder: null,
+        wildcards: null,
+        files: /* @__PURE__ */ new Map()
+      };
+    }
+    function walkPath(root, path2, target) {
+      if (path2.length === 0) {
+        root.folder = target;
+        return;
+      }
+      let node = root;
+      let lastNonSlashIndex = 0;
+      let slashIndex = path2.indexOf("/", 0);
+      while (slashIndex !== -1) {
+        const folder = path2.slice(lastNonSlashIndex, slashIndex);
+        let newNode;
+        if (node.children === null) {
+          newNode = createNode();
+          node.children = /* @__PURE__ */ new Map();
+          node.children.set(folder, newNode);
+        } else {
+          newNode = node.children.get(folder);
+          if (!newNode) {
+            newNode = createNode();
+            node.children.set(folder, newNode);
+          }
+        }
+        node = newNode;
+        lastNonSlashIndex = slashIndex + 1;
+        slashIndex = path2.indexOf("/", lastNonSlashIndex);
+      }
+      if (lastNonSlashIndex >= path2.length) {
+        node.folder = target;
+      } else {
+        const file = lastNonSlashIndex > 0 ? path2.slice(lastNonSlashIndex) : path2;
+        if (file.endsWith("*")) {
+          if (node.wildcards === null)
+            node.wildcards = /* @__PURE__ */ new Map();
+          node.wildcards.set(file.slice(0, -1), target);
+        } else {
+          node.files.set(file, target);
+        }
+      }
+    }
+    function buildExportsFieldPathTree(field) {
+      const root = createNode();
+      if (typeof field === "string") {
+        root.files.set("", field);
+        return root;
+      } else if (Array.isArray(field)) {
+        root.files.set("", field.slice());
+        return root;
+      }
+      const keys = Object.keys(field);
+      for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        if (key.charCodeAt(0) !== dotCode) {
+          if (i === 0) {
+            while (i < keys.length) {
+              const charCode = keys[i].charCodeAt(0);
+              if (charCode === dotCode || charCode === slashCode) {
+                throw new Error(`Exports field key should be relative path and start with "." (key: ${JSON.stringify(key)})`);
+              }
+              i++;
+            }
+            root.files.set("", field);
+            return root;
+          }
+          throw new Error(`Exports field key should be relative path and start with "." (key: ${JSON.stringify(key)})`);
+        }
+        if (key.length === 1) {
+          root.files.set("", field[key]);
+          continue;
+        }
+        if (key.charCodeAt(1) !== slashCode) {
+          throw new Error(`Exports field key should be relative path and start with "./" (key: ${JSON.stringify(key)})`);
+        }
+        walkPath(root, key.slice(2), field[key]);
+      }
+      return root;
+    }
+    function buildImportsFieldPathTree(field) {
+      const root = createNode();
+      const keys = Object.keys(field);
+      for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        if (key.charCodeAt(0) !== hashCode) {
+          throw new Error(`Imports field key should start with "#" (key: ${JSON.stringify(key)})`);
+        }
+        if (key.length === 1) {
+          throw new Error(`Imports field key should have at least 2 characters (key: ${JSON.stringify(key)})`);
+        }
+        if (key.charCodeAt(1) === slashCode) {
+          throw new Error(`Imports field key should not start with "#/" (key: ${JSON.stringify(key)})`);
+        }
+        walkPath(root, key.slice(1), field[key]);
+      }
+      return root;
+    }
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/ExportsFieldPlugin.js
+var require_ExportsFieldPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/ExportsFieldPlugin.js"(exports, module2) {
+    "use strict";
+    var path2 = require("path");
+    var DescriptionFileUtils = require_DescriptionFileUtils();
+    var forEachBail = require_forEachBail();
+    var { processExportsField } = require_entrypoints();
+    var { parseIdentifier } = require_identifier();
+    var { checkExportsFieldTarget } = require_path();
+    module2.exports = class ExportsFieldPlugin {
+      constructor(source, conditionNames, fieldNamePath, target) {
+        this.source = source;
+        this.target = target;
+        this.conditionNames = conditionNames;
+        this.fieldName = fieldNamePath;
+        this.fieldProcessorCache = /* @__PURE__ */ new WeakMap();
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        resolver.getHook(this.source).tapAsync("ExportsFieldPlugin", (request, resolveContext, callback) => {
+          if (!request.descriptionFilePath)
+            return callback();
+          if (request.relativePath !== "." || request.request === void 0)
+            return callback();
+          const remainingRequest = request.query || request.fragment ? (request.request === "." ? "./" : request.request) + request.query + request.fragment : request.request;
+          const exportsField = DescriptionFileUtils.getField(request.descriptionFileData, this.fieldName);
+          if (!exportsField)
+            return callback();
+          if (request.directory) {
+            return callback(new Error(`Resolving to directories is not possible with the exports field (request was ${remainingRequest}/)`));
+          }
+          let paths;
+          try {
+            let fieldProcessor = this.fieldProcessorCache.get(request.descriptionFileData);
+            if (fieldProcessor === void 0) {
+              fieldProcessor = processExportsField(exportsField);
+              this.fieldProcessorCache.set(request.descriptionFileData, fieldProcessor);
+            }
+            paths = fieldProcessor(remainingRequest, this.conditionNames);
+          } catch (err) {
+            if (resolveContext.log) {
+              resolveContext.log(`Exports field in ${request.descriptionFilePath} can't be processed: ${err}`);
+            }
+            return callback(err);
+          }
+          if (paths.length === 0) {
+            return callback(new Error(`Package path ${remainingRequest} is not exported from package ${request.descriptionFileRoot} (see exports field in ${request.descriptionFilePath})`));
+          }
+          forEachBail(paths, (p, callback2) => {
+            const parsedIdentifier = parseIdentifier(p);
+            if (!parsedIdentifier)
+              return callback2();
+            const [relativePath, query, fragment] = parsedIdentifier;
+            const error = checkExportsFieldTarget(relativePath);
+            if (error) {
+              return callback2(error);
+            }
+            const obj = {
+              ...request,
+              request: void 0,
+              path: path2.join(request.descriptionFileRoot, relativePath),
+              relativePath,
+              query,
+              fragment
+            };
+            resolver.doResolve(target, obj, "using exports field: " + p, resolveContext, callback2);
+          }, (err, result) => callback(err, result || null));
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/FileExistsPlugin.js
+var require_FileExistsPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/FileExistsPlugin.js"(exports, module2) {
+    "use strict";
+    module2.exports = class FileExistsPlugin {
+      constructor(source, target) {
+        this.source = source;
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        const fs2 = resolver.fileSystem;
+        resolver.getHook(this.source).tapAsync("FileExistsPlugin", (request, resolveContext, callback) => {
+          const file = request.path;
+          if (!file)
+            return callback();
+          fs2.stat(file, (err, stat) => {
+            if (err || !stat) {
+              if (resolveContext.missingDependencies)
+                resolveContext.missingDependencies.add(file);
+              if (resolveContext.log)
+                resolveContext.log(file + " doesn't exist");
+              return callback();
+            }
+            if (!stat.isFile()) {
+              if (resolveContext.missingDependencies)
+                resolveContext.missingDependencies.add(file);
+              if (resolveContext.log)
+                resolveContext.log(file + " is not a file");
+              return callback();
+            }
+            if (resolveContext.fileDependencies)
+              resolveContext.fileDependencies.add(file);
+            resolver.doResolve(target, request, "existing file: " + file, resolveContext, callback);
+          });
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/ImportsFieldPlugin.js
+var require_ImportsFieldPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/ImportsFieldPlugin.js"(exports, module2) {
+    "use strict";
+    var path2 = require("path");
+    var DescriptionFileUtils = require_DescriptionFileUtils();
+    var forEachBail = require_forEachBail();
+    var { processImportsField } = require_entrypoints();
+    var { parseIdentifier } = require_identifier();
+    var dotCode = ".".charCodeAt(0);
+    module2.exports = class ImportsFieldPlugin {
+      constructor(source, conditionNames, fieldNamePath, targetFile, targetPackage) {
+        this.source = source;
+        this.targetFile = targetFile;
+        this.targetPackage = targetPackage;
+        this.conditionNames = conditionNames;
+        this.fieldName = fieldNamePath;
+        this.fieldProcessorCache = /* @__PURE__ */ new WeakMap();
+      }
+      apply(resolver) {
+        const targetFile = resolver.ensureHook(this.targetFile);
+        const targetPackage = resolver.ensureHook(this.targetPackage);
+        resolver.getHook(this.source).tapAsync("ImportsFieldPlugin", (request, resolveContext, callback) => {
+          if (!request.descriptionFilePath || request.request === void 0) {
+            return callback();
+          }
+          const remainingRequest = request.request + request.query + request.fragment;
+          const importsField = DescriptionFileUtils.getField(request.descriptionFileData, this.fieldName);
+          if (!importsField)
+            return callback();
+          if (request.directory) {
+            return callback(new Error(`Resolving to directories is not possible with the imports field (request was ${remainingRequest}/)`));
+          }
+          let paths;
+          try {
+            let fieldProcessor = this.fieldProcessorCache.get(request.descriptionFileData);
+            if (fieldProcessor === void 0) {
+              fieldProcessor = processImportsField(importsField);
+              this.fieldProcessorCache.set(request.descriptionFileData, fieldProcessor);
+            }
+            paths = fieldProcessor(remainingRequest, this.conditionNames);
+          } catch (err) {
+            if (resolveContext.log) {
+              resolveContext.log(`Imports field in ${request.descriptionFilePath} can't be processed: ${err}`);
+            }
+            return callback(err);
+          }
+          if (paths.length === 0) {
+            return callback(new Error(`Package import ${remainingRequest} is not imported from package ${request.descriptionFileRoot} (see imports field in ${request.descriptionFilePath})`));
+          }
+          forEachBail(paths, (p, callback2) => {
+            const parsedIdentifier = parseIdentifier(p);
+            if (!parsedIdentifier)
+              return callback2();
+            const [path_, query, fragment] = parsedIdentifier;
+            switch (path_.charCodeAt(0)) {
+              case dotCode: {
+                const obj = {
+                  ...request,
+                  request: void 0,
+                  path: path2.join(request.descriptionFileRoot, path_),
+                  relativePath: path_,
+                  query,
+                  fragment
+                };
+                resolver.doResolve(targetFile, obj, "using imports field: " + p, resolveContext, callback2);
+                break;
+              }
+              default: {
+                const obj = {
+                  ...request,
+                  request: path_,
+                  relativePath: path_,
+                  fullySpecified: true,
+                  query,
+                  fragment
+                };
+                resolver.doResolve(targetPackage, obj, "using imports field: " + p, resolveContext, callback2);
+              }
+            }
+          }, (err, result) => callback(err, result || null));
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/JoinRequestPartPlugin.js
+var require_JoinRequestPartPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/JoinRequestPartPlugin.js"(exports, module2) {
+    "use strict";
+    var namespaceStartCharCode = "@".charCodeAt(0);
+    module2.exports = class JoinRequestPartPlugin {
+      constructor(source, target) {
+        this.source = source;
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        resolver.getHook(this.source).tapAsync("JoinRequestPartPlugin", (request, resolveContext, callback) => {
+          const req = request.request || "";
+          let i = req.indexOf("/", 3);
+          if (i >= 0 && req.charCodeAt(2) === namespaceStartCharCode) {
+            i = req.indexOf("/", i + 1);
+          }
+          let moduleName, remainingRequest, fullySpecified;
+          if (i < 0) {
+            moduleName = req;
+            remainingRequest = ".";
+            fullySpecified = false;
+          } else {
+            moduleName = req.slice(0, i);
+            remainingRequest = "." + req.slice(i);
+            fullySpecified = request.fullySpecified;
+          }
+          const obj = {
+            ...request,
+            path: resolver.join(request.path, moduleName),
+            relativePath: request.relativePath && resolver.join(request.relativePath, moduleName),
+            request: remainingRequest,
+            fullySpecified
+          };
+          resolver.doResolve(target, obj, null, resolveContext, callback);
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/JoinRequestPlugin.js
+var require_JoinRequestPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/JoinRequestPlugin.js"(exports, module2) {
+    "use strict";
+    module2.exports = class JoinRequestPlugin {
+      constructor(source, target) {
+        this.source = source;
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        resolver.getHook(this.source).tapAsync("JoinRequestPlugin", (request, resolveContext, callback) => {
+          const obj = {
+            ...request,
+            path: resolver.join(request.path, request.request),
+            relativePath: request.relativePath && resolver.join(request.relativePath, request.request),
+            request: void 0
+          };
+          resolver.doResolve(target, obj, null, resolveContext, callback);
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/MainFieldPlugin.js
+var require_MainFieldPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/MainFieldPlugin.js"(exports, module2) {
+    "use strict";
+    var path2 = require("path");
+    var DescriptionFileUtils = require_DescriptionFileUtils();
+    var alreadyTriedMainField = Symbol("alreadyTriedMainField");
+    module2.exports = class MainFieldPlugin {
+      constructor(source, options, target) {
+        this.source = source;
+        this.options = options;
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        resolver.getHook(this.source).tapAsync("MainFieldPlugin", (request, resolveContext, callback) => {
+          if (request.path !== request.descriptionFileRoot || request[alreadyTriedMainField] === request.descriptionFilePath || !request.descriptionFilePath)
+            return callback();
+          const filename = path2.basename(request.descriptionFilePath);
+          let mainModule = DescriptionFileUtils.getField(request.descriptionFileData, this.options.name);
+          if (!mainModule || typeof mainModule !== "string" || mainModule === "." || mainModule === "./") {
+            return callback();
+          }
+          if (this.options.forceRelative && !/^\.\.?\//.test(mainModule))
+            mainModule = "./" + mainModule;
+          const obj = {
+            ...request,
+            request: mainModule,
+            module: false,
+            directory: mainModule.endsWith("/"),
+            [alreadyTriedMainField]: request.descriptionFilePath
+          };
+          return resolver.doResolve(target, obj, "use " + mainModule + " from " + this.options.name + " in " + filename, resolveContext, callback);
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/getPaths.js
+var require_getPaths = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/getPaths.js"(exports, module2) {
+    "use strict";
+    module2.exports = function getPaths(path2) {
+      if (path2 === "/")
+        return { paths: ["/"], segments: [""] };
+      const parts = path2.split(/(.*?[\\/]+)/);
+      const paths = [path2];
+      const segments = [parts[parts.length - 1]];
+      let part = parts[parts.length - 1];
+      path2 = path2.substr(0, path2.length - part.length - 1);
+      for (let i = parts.length - 2; i > 2; i -= 2) {
+        paths.push(path2);
+        part = parts[i];
+        path2 = path2.substr(0, path2.length - part.length) || "/";
+        segments.push(part.substr(0, part.length - 1));
+      }
+      part = parts[1];
+      segments.push(part);
+      paths.push(part);
+      return {
+        paths,
+        segments
+      };
+    };
+    module2.exports.basename = function basename(path2) {
+      const i = path2.lastIndexOf("/"), j = path2.lastIndexOf("\\");
+      const p = i < 0 ? j : j < 0 ? i : i < j ? j : i;
+      if (p < 0)
+        return null;
+      const s = path2.substr(p + 1);
+      return s;
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/ModulesInHierarchicalDirectoriesPlugin.js
+var require_ModulesInHierarchicalDirectoriesPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/ModulesInHierarchicalDirectoriesPlugin.js"(exports, module2) {
+    "use strict";
+    var forEachBail = require_forEachBail();
+    var getPaths = require_getPaths();
+    module2.exports = class ModulesInHierarchicalDirectoriesPlugin {
+      constructor(source, directories, target) {
+        this.source = source;
+        this.directories = [].concat(directories);
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        resolver.getHook(this.source).tapAsync("ModulesInHierarchicalDirectoriesPlugin", (request, resolveContext, callback) => {
+          const fs2 = resolver.fileSystem;
+          const addrs = getPaths(request.path).paths.map((p) => {
+            return this.directories.map((d) => resolver.join(p, d));
+          }).reduce((array, p) => {
+            array.push.apply(array, p);
+            return array;
+          }, []);
+          forEachBail(addrs, (addr, callback2) => {
+            fs2.stat(addr, (err, stat) => {
+              if (!err && stat && stat.isDirectory()) {
+                const obj = {
+                  ...request,
+                  path: addr,
+                  request: "./" + request.request,
+                  module: false
+                };
+                const message = "looking for modules in " + addr;
+                return resolver.doResolve(target, obj, message, resolveContext, callback2);
+              }
+              if (resolveContext.log)
+                resolveContext.log(addr + " doesn't exist or is not a directory");
+              if (resolveContext.missingDependencies)
+                resolveContext.missingDependencies.add(addr);
+              return callback2();
+            });
+          }, callback);
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/ModulesInRootPlugin.js
+var require_ModulesInRootPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/ModulesInRootPlugin.js"(exports, module2) {
+    "use strict";
+    module2.exports = class ModulesInRootPlugin {
+      constructor(source, path2, target) {
+        this.source = source;
+        this.path = path2;
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        resolver.getHook(this.source).tapAsync("ModulesInRootPlugin", (request, resolveContext, callback) => {
+          const obj = {
+            ...request,
+            path: this.path,
+            request: "./" + request.request,
+            module: false
+          };
+          resolver.doResolve(target, obj, "looking for modules in " + this.path, resolveContext, callback);
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/NextPlugin.js
+var require_NextPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/NextPlugin.js"(exports, module2) {
+    "use strict";
+    module2.exports = class NextPlugin {
+      constructor(source, target) {
+        this.source = source;
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        resolver.getHook(this.source).tapAsync("NextPlugin", (request, resolveContext, callback) => {
+          resolver.doResolve(target, request, null, resolveContext, callback);
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/ParsePlugin.js
+var require_ParsePlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/ParsePlugin.js"(exports, module2) {
+    "use strict";
+    module2.exports = class ParsePlugin {
+      constructor(source, requestOptions, target) {
+        this.source = source;
+        this.requestOptions = requestOptions;
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        resolver.getHook(this.source).tapAsync("ParsePlugin", (request, resolveContext, callback) => {
+          const parsed = resolver.parse(request.request);
+          const obj = { ...request, ...parsed, ...this.requestOptions };
+          if (request.query && !parsed.query) {
+            obj.query = request.query;
+          }
+          if (request.fragment && !parsed.fragment) {
+            obj.fragment = request.fragment;
+          }
+          if (parsed && resolveContext.log) {
+            if (parsed.module)
+              resolveContext.log("Parsed request is a module");
+            if (parsed.directory)
+              resolveContext.log("Parsed request is a directory");
+          }
+          if (obj.request && !obj.query && obj.fragment) {
+            const directory = obj.fragment.endsWith("/");
+            const alternative = {
+              ...obj,
+              directory,
+              request: obj.request + (obj.directory ? "/" : "") + (directory ? obj.fragment.slice(0, -1) : obj.fragment),
+              fragment: ""
+            };
+            resolver.doResolve(target, alternative, null, resolveContext, (err, result) => {
+              if (err)
+                return callback(err);
+              if (result)
+                return callback(null, result);
+              resolver.doResolve(target, obj, null, resolveContext, callback);
+            });
+            return;
+          }
+          resolver.doResolve(target, obj, null, resolveContext, callback);
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/PnpPlugin.js
+var require_PnpPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/PnpPlugin.js"(exports, module2) {
+    "use strict";
+    module2.exports = class PnpPlugin {
+      constructor(source, pnpApi, target) {
+        this.source = source;
+        this.pnpApi = pnpApi;
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        resolver.getHook(this.source).tapAsync("PnpPlugin", (request, resolveContext, callback) => {
+          const req = request.request;
+          if (!req)
+            return callback();
+          const issuer = `${request.path}/`;
+          const packageMatch = /^(@[^/]+\/)?[^/]+/.exec(req);
+          if (!packageMatch)
+            return callback();
+          const packageName = packageMatch[0];
+          const innerRequest = `.${req.slice(packageName.length)}`;
+          let resolution;
+          let apiResolution;
+          try {
+            resolution = this.pnpApi.resolveToUnqualified(packageName, issuer, {
+              considerBuiltins: false
+            });
+            if (resolveContext.fileDependencies) {
+              apiResolution = this.pnpApi.resolveToUnqualified("pnpapi", issuer, {
+                considerBuiltins: false
+              });
+            }
+          } catch (error) {
+            if (error.code === "MODULE_NOT_FOUND" && error.pnpCode === "UNDECLARED_DEPENDENCY") {
+              if (resolveContext.log) {
+                resolveContext.log(`request is not managed by the pnpapi`);
+                for (const line of error.message.split("\n").filter(Boolean))
+                  resolveContext.log(`  ${line}`);
+              }
+              return callback();
+            }
+            return callback(error);
+          }
+          if (resolution === packageName)
+            return callback();
+          if (apiResolution && resolveContext.fileDependencies) {
+            resolveContext.fileDependencies.add(apiResolution);
+          }
+          const obj = {
+            ...request,
+            path: resolution,
+            request: innerRequest,
+            ignoreSymlinks: true,
+            fullySpecified: request.fullySpecified && innerRequest !== "."
+          };
+          resolver.doResolve(target, obj, `resolved by pnp to ${resolution}`, resolveContext, (err, result) => {
+            if (err)
+              return callback(err);
+            if (result)
+              return callback(null, result);
+            return callback(null, null);
+          });
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/RestrictionsPlugin.js
+var require_RestrictionsPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/RestrictionsPlugin.js"(exports, module2) {
+    "use strict";
+    var slashCode = "/".charCodeAt(0);
+    var backslashCode = "\\".charCodeAt(0);
+    var isInside = (path2, parent) => {
+      if (!path2.startsWith(parent))
+        return false;
+      if (path2.length === parent.length)
+        return true;
+      const charCode = path2.charCodeAt(parent.length);
+      return charCode === slashCode || charCode === backslashCode;
+    };
+    module2.exports = class RestrictionsPlugin {
+      constructor(source, restrictions) {
+        this.source = source;
+        this.restrictions = restrictions;
+      }
+      apply(resolver) {
+        resolver.getHook(this.source).tapAsync("RestrictionsPlugin", (request, resolveContext, callback) => {
+          if (typeof request.path === "string") {
+            const path2 = request.path;
+            for (const rule of this.restrictions) {
+              if (typeof rule === "string") {
+                if (!isInside(path2, rule)) {
+                  if (resolveContext.log) {
+                    resolveContext.log(`${path2} is not inside of the restriction ${rule}`);
+                  }
+                  return callback(null, null);
+                }
+              } else if (!rule.test(path2)) {
+                if (resolveContext.log) {
+                  resolveContext.log(`${path2} doesn't match the restriction ${rule}`);
+                }
+                return callback(null, null);
+              }
+            }
+          }
+          callback();
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/ResultPlugin.js
+var require_ResultPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/ResultPlugin.js"(exports, module2) {
+    "use strict";
+    module2.exports = class ResultPlugin {
+      constructor(source) {
+        this.source = source;
+      }
+      apply(resolver) {
+        this.source.tapAsync("ResultPlugin", (request, resolverContext, callback) => {
+          const obj = { ...request };
+          if (resolverContext.log)
+            resolverContext.log("reporting result " + obj.path);
+          resolver.hooks.result.callAsync(obj, resolverContext, (err) => {
+            if (err)
+              return callback(err);
+            if (typeof resolverContext.yield === "function") {
+              resolverContext.yield(obj);
+              callback(null, null);
+            } else {
+              callback(null, obj);
+            }
+          });
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/RootsPlugin.js
+var require_RootsPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/RootsPlugin.js"(exports, module2) {
+    "use strict";
+    var forEachBail = require_forEachBail();
+    var RootsPlugin = class {
+      constructor(source, roots, target) {
+        this.roots = Array.from(roots);
+        this.source = source;
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        resolver.getHook(this.source).tapAsync("RootsPlugin", (request, resolveContext, callback) => {
+          const req = request.request;
+          if (!req)
+            return callback();
+          if (!req.startsWith("/"))
+            return callback();
+          forEachBail(this.roots, (root, callback2) => {
+            const path2 = resolver.join(root, req.slice(1));
+            const obj = {
+              ...request,
+              path: path2,
+              relativePath: request.relativePath && path2
+            };
+            resolver.doResolve(target, obj, `root path ${root}`, resolveContext, callback2);
+          }, callback);
+        });
+      }
+    };
+    module2.exports = RootsPlugin;
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/SelfReferencePlugin.js
+var require_SelfReferencePlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/SelfReferencePlugin.js"(exports, module2) {
+    "use strict";
+    var DescriptionFileUtils = require_DescriptionFileUtils();
+    var slashCode = "/".charCodeAt(0);
+    module2.exports = class SelfReferencePlugin {
+      constructor(source, fieldNamePath, target) {
+        this.source = source;
+        this.target = target;
+        this.fieldName = fieldNamePath;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        resolver.getHook(this.source).tapAsync("SelfReferencePlugin", (request, resolveContext, callback) => {
+          if (!request.descriptionFilePath)
+            return callback();
+          const req = request.request;
+          if (!req)
+            return callback();
+          const exportsField = DescriptionFileUtils.getField(request.descriptionFileData, this.fieldName);
+          if (!exportsField)
+            return callback();
+          const name = DescriptionFileUtils.getField(request.descriptionFileData, "name");
+          if (typeof name !== "string")
+            return callback();
+          if (req.startsWith(name) && (req.length === name.length || req.charCodeAt(name.length) === slashCode)) {
+            const remainingRequest = `.${req.slice(name.length)}`;
+            const obj = {
+              ...request,
+              request: remainingRequest,
+              path: request.descriptionFileRoot,
+              relativePath: "."
+            };
+            resolver.doResolve(target, obj, "self reference", resolveContext, callback);
+          } else {
+            return callback();
+          }
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/SymlinkPlugin.js
+var require_SymlinkPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/SymlinkPlugin.js"(exports, module2) {
+    "use strict";
+    var forEachBail = require_forEachBail();
+    var getPaths = require_getPaths();
+    var { getType, PathType } = require_path();
+    module2.exports = class SymlinkPlugin {
+      constructor(source, target) {
+        this.source = source;
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        const fs2 = resolver.fileSystem;
+        resolver.getHook(this.source).tapAsync("SymlinkPlugin", (request, resolveContext, callback) => {
+          if (request.ignoreSymlinks)
+            return callback();
+          const pathsResult = getPaths(request.path);
+          const pathSegments = pathsResult.segments;
+          const paths = pathsResult.paths;
+          let containsSymlink = false;
+          let idx = -1;
+          forEachBail(paths, (path2, callback2) => {
+            idx++;
+            if (resolveContext.fileDependencies)
+              resolveContext.fileDependencies.add(path2);
+            fs2.readlink(path2, (err, result) => {
+              if (!err && result) {
+                pathSegments[idx] = result;
+                containsSymlink = true;
+                const resultType = getType(result.toString());
+                if (resultType === PathType.AbsoluteWin || resultType === PathType.AbsolutePosix) {
+                  return callback2(null, idx);
+                }
+              }
+              callback2();
+            });
+          }, (err, idx2) => {
+            if (!containsSymlink)
+              return callback();
+            const resultSegments = typeof idx2 === "number" ? pathSegments.slice(0, idx2 + 1) : pathSegments.slice();
+            const result = resultSegments.reduceRight((a, b) => {
+              return resolver.join(a, b);
+            });
+            const obj = {
+              ...request,
+              path: result
+            };
+            resolver.doResolve(target, obj, "resolved symlink to " + result, resolveContext, callback);
+          });
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/TryNextPlugin.js
+var require_TryNextPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/TryNextPlugin.js"(exports, module2) {
+    "use strict";
+    module2.exports = class TryNextPlugin {
+      constructor(source, message, target) {
+        this.source = source;
+        this.message = message;
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        resolver.getHook(this.source).tapAsync("TryNextPlugin", (request, resolveContext, callback) => {
+          resolver.doResolve(target, request, this.message, resolveContext, callback);
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/UnsafeCachePlugin.js
+var require_UnsafeCachePlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/UnsafeCachePlugin.js"(exports, module2) {
+    "use strict";
+    function getCacheId(type, request, withContext) {
+      return JSON.stringify({
+        type,
+        context: withContext ? request.context : "",
+        path: request.path,
+        query: request.query,
+        fragment: request.fragment,
+        request: request.request
+      });
+    }
+    module2.exports = class UnsafeCachePlugin {
+      constructor(source, filterPredicate, cache, withContext, target) {
+        this.source = source;
+        this.filterPredicate = filterPredicate;
+        this.withContext = withContext;
+        this.cache = cache;
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        resolver.getHook(this.source).tapAsync("UnsafeCachePlugin", (request, resolveContext, callback) => {
+          if (!this.filterPredicate(request))
+            return callback();
+          const isYield = typeof resolveContext.yield === "function";
+          const cacheId = getCacheId(isYield ? "yield" : "default", request, this.withContext);
+          const cacheEntry = this.cache[cacheId];
+          if (cacheEntry) {
+            if (isYield) {
+              const yield_2 = resolveContext.yield;
+              if (Array.isArray(cacheEntry)) {
+                for (const result of cacheEntry)
+                  yield_2(result);
+              } else {
+                yield_2(cacheEntry);
+              }
+              return callback(null, null);
+            }
+            return callback(null, cacheEntry);
+          }
+          let yieldFn;
+          let yield_;
+          const yieldResult = [];
+          if (isYield) {
+            yieldFn = resolveContext.yield;
+            yield_ = (result) => {
+              yieldResult.push(result);
+            };
+          }
+          resolver.doResolve(target, request, null, yield_ ? { ...resolveContext, yield: yield_ } : resolveContext, (err, result) => {
+            if (err)
+              return callback(err);
+            if (isYield) {
+              if (result)
+                yieldResult.push(result);
+              for (const result2 of yieldResult)
+                yieldFn(result2);
+              this.cache[cacheId] = yieldResult;
+              return callback(null, null);
+            }
+            if (result)
+              return callback(null, this.cache[cacheId] = result);
+            callback();
+          });
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/UseFilePlugin.js
+var require_UseFilePlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/UseFilePlugin.js"(exports, module2) {
+    "use strict";
+    module2.exports = class UseFilePlugin {
+      constructor(source, filename, target) {
+        this.source = source;
+        this.filename = filename;
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        resolver.getHook(this.source).tapAsync("UseFilePlugin", (request, resolveContext, callback) => {
+          const filePath = resolver.join(request.path, this.filename);
+          const obj = {
+            ...request,
+            path: filePath,
+            relativePath: request.relativePath && resolver.join(request.relativePath, this.filename)
+          };
+          resolver.doResolve(target, obj, "using path: " + filePath, resolveContext, callback);
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/ResolverFactory.js
+var require_ResolverFactory = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/ResolverFactory.js"(exports) {
+    "use strict";
+    var versions = require("process").versions;
+    var Resolver = require_Resolver();
+    var { getType, PathType } = require_path();
+    var SyncAsyncFileSystemDecorator = require_SyncAsyncFileSystemDecorator();
+    var AliasFieldPlugin = require_AliasFieldPlugin();
+    var AliasPlugin = require_AliasPlugin();
+    var AppendPlugin = require_AppendPlugin();
+    var ConditionalPlugin = require_ConditionalPlugin();
+    var DescriptionFilePlugin = require_DescriptionFilePlugin();
+    var DirectoryExistsPlugin = require_DirectoryExistsPlugin();
+    var ExportsFieldPlugin = require_ExportsFieldPlugin();
+    var FileExistsPlugin = require_FileExistsPlugin();
+    var ImportsFieldPlugin = require_ImportsFieldPlugin();
+    var JoinRequestPartPlugin = require_JoinRequestPartPlugin();
+    var JoinRequestPlugin = require_JoinRequestPlugin();
+    var MainFieldPlugin = require_MainFieldPlugin();
+    var ModulesInHierarchicalDirectoriesPlugin = require_ModulesInHierarchicalDirectoriesPlugin();
+    var ModulesInRootPlugin = require_ModulesInRootPlugin();
+    var NextPlugin = require_NextPlugin();
+    var ParsePlugin = require_ParsePlugin();
+    var PnpPlugin = require_PnpPlugin();
+    var RestrictionsPlugin = require_RestrictionsPlugin();
+    var ResultPlugin = require_ResultPlugin();
+    var RootsPlugin = require_RootsPlugin();
+    var SelfReferencePlugin = require_SelfReferencePlugin();
+    var SymlinkPlugin = require_SymlinkPlugin();
+    var TryNextPlugin = require_TryNextPlugin();
+    var UnsafeCachePlugin = require_UnsafeCachePlugin();
+    var UseFilePlugin = require_UseFilePlugin();
+    function processPnpApiOption(option) {
+      if (option === void 0 && versions.pnp) {
+        return require("pnpapi");
+      }
+      return option || null;
+    }
+    function normalizeAlias(alias) {
+      return typeof alias === "object" && !Array.isArray(alias) && alias !== null ? Object.keys(alias).map((key) => {
+        const obj = { name: key, onlyModule: false, alias: alias[key] };
+        if (/\$$/.test(key)) {
+          obj.onlyModule = true;
+          obj.name = key.substr(0, key.length - 1);
+        }
+        return obj;
+      }) : alias || [];
+    }
+    function createOptions(options) {
+      const mainFieldsSet = new Set(options.mainFields || ["main"]);
+      const mainFields = [];
+      for (const item of mainFieldsSet) {
+        if (typeof item === "string") {
+          mainFields.push({
+            name: [item],
+            forceRelative: true
+          });
+        } else if (Array.isArray(item)) {
+          mainFields.push({
+            name: item,
+            forceRelative: true
+          });
+        } else {
+          mainFields.push({
+            name: Array.isArray(item.name) ? item.name : [item.name],
+            forceRelative: item.forceRelative
+          });
+        }
+      }
+      return {
+        alias: normalizeAlias(options.alias),
+        fallback: normalizeAlias(options.fallback),
+        aliasFields: new Set(options.aliasFields),
+        cachePredicate: options.cachePredicate || function() {
+          return true;
+        },
+        cacheWithContext: typeof options.cacheWithContext !== "undefined" ? options.cacheWithContext : true,
+        exportsFields: new Set(options.exportsFields || ["exports"]),
+        importsFields: new Set(options.importsFields || ["imports"]),
+        conditionNames: new Set(options.conditionNames),
+        descriptionFiles: Array.from(new Set(options.descriptionFiles || ["package.json"])),
+        enforceExtension: options.enforceExtension === void 0 ? options.extensions && options.extensions.includes("") ? true : false : options.enforceExtension,
+        extensions: new Set(options.extensions || [".js", ".json", ".node"]),
+        fileSystem: options.useSyncFileSystemCalls ? new SyncAsyncFileSystemDecorator(options.fileSystem) : options.fileSystem,
+        unsafeCache: options.unsafeCache && typeof options.unsafeCache !== "object" ? {} : options.unsafeCache || false,
+        symlinks: typeof options.symlinks !== "undefined" ? options.symlinks : true,
+        resolver: options.resolver,
+        modules: mergeFilteredToArray(Array.isArray(options.modules) ? options.modules : options.modules ? [options.modules] : ["node_modules"], (item) => {
+          const type = getType(item);
+          return type === PathType.Normal || type === PathType.Relative;
+        }),
+        mainFields,
+        mainFiles: new Set(options.mainFiles || ["index"]),
+        plugins: options.plugins || [],
+        pnpApi: processPnpApiOption(options.pnpApi),
+        roots: new Set(options.roots || void 0),
+        fullySpecified: options.fullySpecified || false,
+        resolveToContext: options.resolveToContext || false,
+        preferRelative: options.preferRelative || false,
+        preferAbsolute: options.preferAbsolute || false,
+        restrictions: new Set(options.restrictions)
+      };
+    }
+    exports.createResolver = function(options) {
+      const normalizedOptions = createOptions(options);
+      const {
+        alias,
+        fallback,
+        aliasFields,
+        cachePredicate,
+        cacheWithContext,
+        conditionNames,
+        descriptionFiles,
+        enforceExtension,
+        exportsFields,
+        importsFields,
+        extensions,
+        fileSystem,
+        fullySpecified,
+        mainFields,
+        mainFiles,
+        modules,
+        plugins: userPlugins,
+        pnpApi,
+        resolveToContext,
+        preferRelative,
+        preferAbsolute,
+        symlinks,
+        unsafeCache,
+        resolver: customResolver,
+        restrictions,
+        roots
+      } = normalizedOptions;
+      const plugins = userPlugins.slice();
+      const resolver = customResolver ? customResolver : new Resolver(fileSystem, normalizedOptions);
+      resolver.ensureHook("resolve");
+      resolver.ensureHook("internalResolve");
+      resolver.ensureHook("newInternalResolve");
+      resolver.ensureHook("parsedResolve");
+      resolver.ensureHook("describedResolve");
+      resolver.ensureHook("internal");
+      resolver.ensureHook("rawModule");
+      resolver.ensureHook("module");
+      resolver.ensureHook("resolveAsModule");
+      resolver.ensureHook("undescribedResolveInPackage");
+      resolver.ensureHook("resolveInPackage");
+      resolver.ensureHook("resolveInExistingDirectory");
+      resolver.ensureHook("relative");
+      resolver.ensureHook("describedRelative");
+      resolver.ensureHook("directory");
+      resolver.ensureHook("undescribedExistingDirectory");
+      resolver.ensureHook("existingDirectory");
+      resolver.ensureHook("undescribedRawFile");
+      resolver.ensureHook("rawFile");
+      resolver.ensureHook("file");
+      resolver.ensureHook("finalFile");
+      resolver.ensureHook("existingFile");
+      resolver.ensureHook("resolved");
+      resolver.hooks.newInteralResolve = resolver.hooks.newInternalResolve;
+      for (const { source, resolveOptions } of [
+        { source: "resolve", resolveOptions: { fullySpecified } },
+        { source: "internal-resolve", resolveOptions: { fullySpecified: false } }
+      ]) {
+        if (unsafeCache) {
+          plugins.push(new UnsafeCachePlugin(source, cachePredicate, unsafeCache, cacheWithContext, `new-${source}`));
+          plugins.push(new ParsePlugin(`new-${source}`, resolveOptions, "parsed-resolve"));
+        } else {
+          plugins.push(new ParsePlugin(source, resolveOptions, "parsed-resolve"));
+        }
+      }
+      plugins.push(new DescriptionFilePlugin("parsed-resolve", descriptionFiles, false, "described-resolve"));
+      plugins.push(new NextPlugin("after-parsed-resolve", "described-resolve"));
+      plugins.push(new NextPlugin("described-resolve", "normal-resolve"));
+      if (fallback.length > 0) {
+        plugins.push(new AliasPlugin("described-resolve", fallback, "internal-resolve"));
+      }
+      if (alias.length > 0)
+        plugins.push(new AliasPlugin("normal-resolve", alias, "internal-resolve"));
+      aliasFields.forEach((item) => {
+        plugins.push(new AliasFieldPlugin("normal-resolve", item, "internal-resolve"));
+      });
+      if (preferRelative) {
+        plugins.push(new JoinRequestPlugin("after-normal-resolve", "relative"));
+      }
+      plugins.push(new ConditionalPlugin("after-normal-resolve", { module: true }, "resolve as module", false, "raw-module"));
+      plugins.push(new ConditionalPlugin("after-normal-resolve", { internal: true }, "resolve as internal import", false, "internal"));
+      if (preferAbsolute) {
+        plugins.push(new JoinRequestPlugin("after-normal-resolve", "relative"));
+      }
+      if (roots.size > 0) {
+        plugins.push(new RootsPlugin("after-normal-resolve", roots, "relative"));
+      }
+      if (!preferRelative && !preferAbsolute) {
+        plugins.push(new JoinRequestPlugin("after-normal-resolve", "relative"));
+      }
+      importsFields.forEach((importsField) => {
+        plugins.push(new ImportsFieldPlugin("internal", conditionNames, importsField, "relative", "internal-resolve"));
+      });
+      exportsFields.forEach((exportsField) => {
+        plugins.push(new SelfReferencePlugin("raw-module", exportsField, "resolve-as-module"));
+      });
+      modules.forEach((item) => {
+        if (Array.isArray(item)) {
+          if (item.includes("node_modules") && pnpApi) {
+            plugins.push(new ModulesInHierarchicalDirectoriesPlugin("raw-module", item.filter((i) => i !== "node_modules"), "module"));
+            plugins.push(new PnpPlugin("raw-module", pnpApi, "undescribed-resolve-in-package"));
+          } else {
+            plugins.push(new ModulesInHierarchicalDirectoriesPlugin("raw-module", item, "module"));
+          }
+        } else {
+          plugins.push(new ModulesInRootPlugin("raw-module", item, "module"));
+        }
+      });
+      plugins.push(new JoinRequestPartPlugin("module", "resolve-as-module"));
+      if (!resolveToContext) {
+        plugins.push(new ConditionalPlugin("resolve-as-module", { directory: false, request: "." }, "single file module", true, "undescribed-raw-file"));
+      }
+      plugins.push(new DirectoryExistsPlugin("resolve-as-module", "undescribed-resolve-in-package"));
+      plugins.push(new DescriptionFilePlugin("undescribed-resolve-in-package", descriptionFiles, false, "resolve-in-package"));
+      plugins.push(new NextPlugin("after-undescribed-resolve-in-package", "resolve-in-package"));
+      exportsFields.forEach((exportsField) => {
+        plugins.push(new ExportsFieldPlugin("resolve-in-package", conditionNames, exportsField, "relative"));
+      });
+      plugins.push(new NextPlugin("resolve-in-package", "resolve-in-existing-directory"));
+      plugins.push(new JoinRequestPlugin("resolve-in-existing-directory", "relative"));
+      plugins.push(new DescriptionFilePlugin("relative", descriptionFiles, true, "described-relative"));
+      plugins.push(new NextPlugin("after-relative", "described-relative"));
+      if (resolveToContext) {
+        plugins.push(new NextPlugin("described-relative", "directory"));
+      } else {
+        plugins.push(new ConditionalPlugin("described-relative", { directory: false }, null, true, "raw-file"));
+        plugins.push(new ConditionalPlugin("described-relative", { fullySpecified: false }, "as directory", true, "directory"));
+      }
+      plugins.push(new DirectoryExistsPlugin("directory", "undescribed-existing-directory"));
+      if (resolveToContext) {
+        plugins.push(new NextPlugin("undescribed-existing-directory", "resolved"));
+      } else {
+        plugins.push(new DescriptionFilePlugin("undescribed-existing-directory", descriptionFiles, false, "existing-directory"));
+        mainFiles.forEach((item) => {
+          plugins.push(new UseFilePlugin("undescribed-existing-directory", item, "undescribed-raw-file"));
+        });
+        mainFields.forEach((item) => {
+          plugins.push(new MainFieldPlugin("existing-directory", item, "resolve-in-existing-directory"));
+        });
+        mainFiles.forEach((item) => {
+          plugins.push(new UseFilePlugin("existing-directory", item, "undescribed-raw-file"));
+        });
+        plugins.push(new DescriptionFilePlugin("undescribed-raw-file", descriptionFiles, true, "raw-file"));
+        plugins.push(new NextPlugin("after-undescribed-raw-file", "raw-file"));
+        plugins.push(new ConditionalPlugin("raw-file", { fullySpecified: true }, null, false, "file"));
+        if (!enforceExtension) {
+          plugins.push(new TryNextPlugin("raw-file", "no extension", "file"));
+        }
+        extensions.forEach((item) => {
+          plugins.push(new AppendPlugin("raw-file", item, "file"));
+        });
+        if (alias.length > 0)
+          plugins.push(new AliasPlugin("file", alias, "internal-resolve"));
+        aliasFields.forEach((item) => {
+          plugins.push(new AliasFieldPlugin("file", item, "internal-resolve"));
+        });
+        plugins.push(new NextPlugin("file", "final-file"));
+        plugins.push(new FileExistsPlugin("final-file", "existing-file"));
+        if (symlinks)
+          plugins.push(new SymlinkPlugin("existing-file", "existing-file"));
+        plugins.push(new NextPlugin("existing-file", "resolved"));
+      }
+      if (restrictions.size > 0) {
+        plugins.push(new RestrictionsPlugin(resolver.hooks.resolved, restrictions));
+      }
+      plugins.push(new ResultPlugin(resolver.hooks.resolved));
+      for (const plugin of plugins) {
+        if (typeof plugin === "function") {
+          plugin.call(resolver, resolver);
+        } else {
+          plugin.apply(resolver);
+        }
+      }
+      return resolver;
+    };
+    function mergeFilteredToArray(array, filter) {
+      const result = [];
+      const set = new Set(array);
+      for (const item of set) {
+        if (filter(item)) {
+          const lastElement = result.length > 0 ? result[result.length - 1] : void 0;
+          if (Array.isArray(lastElement)) {
+            lastElement.push(item);
+          } else {
+            result.push([item]);
+          }
+        } else {
+          result.push(item);
+        }
+      }
+      return result;
+    }
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/CloneBasenamePlugin.js
+var require_CloneBasenamePlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/CloneBasenamePlugin.js"(exports, module2) {
+    "use strict";
+    var basename = require_getPaths().basename;
+    module2.exports = class CloneBasenamePlugin {
+      constructor(source, target) {
+        this.source = source;
+        this.target = target;
+      }
+      apply(resolver) {
+        const target = resolver.ensureHook(this.target);
+        resolver.getHook(this.source).tapAsync("CloneBasenamePlugin", (request, resolveContext, callback) => {
+          const filename = basename(request.path);
+          const filePath = resolver.join(request.path, filename);
+          const obj = {
+            ...request,
+            path: filePath,
+            relativePath: request.relativePath && resolver.join(request.relativePath, filename)
+          };
+          resolver.doResolve(target, obj, "using path: " + filePath, resolveContext, callback);
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/LogInfoPlugin.js
+var require_LogInfoPlugin = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/LogInfoPlugin.js"(exports, module2) {
+    "use strict";
+    module2.exports = class LogInfoPlugin {
+      constructor(source) {
+        this.source = source;
+      }
+      apply(resolver) {
+        const source = this.source;
+        resolver.getHook(this.source).tapAsync("LogInfoPlugin", (request, resolveContext, callback) => {
+          if (!resolveContext.log)
+            return callback();
+          const log = resolveContext.log;
+          const prefix = "[" + source + "] ";
+          if (request.path)
+            log(prefix + "Resolving in directory: " + request.path);
+          if (request.request)
+            log(prefix + "Resolving request: " + request.request);
+          if (request.module)
+            log(prefix + "Request is an module request.");
+          if (request.directory)
+            log(prefix + "Request is a directory request.");
+          if (request.query)
+            log(prefix + "Resolving request query: " + request.query);
+          if (request.fragment)
+            log(prefix + "Resolving request fragment: " + request.fragment);
+          if (request.descriptionFilePath)
+            log(prefix + "Has description data from " + request.descriptionFilePath);
+          if (request.relativePath)
+            log(prefix + "Relative path from description file is: " + request.relativePath);
+          callback();
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/enhanced-resolve/lib/index.js
+var require_lib4 = __commonJS({
+  "../../node_modules/enhanced-resolve/lib/index.js"(exports, module2) {
+    "use strict";
+    var fs2 = require_graceful_fs();
+    var CachedInputFileSystem2 = require_CachedInputFileSystem();
+    var ResolverFactory = require_ResolverFactory();
+    var nodeFileSystem = new CachedInputFileSystem2(fs2, 4e3);
+    var nodeContext = {
+      environments: ["node+es3+es5+process+native"]
+    };
+    var asyncResolver = ResolverFactory.createResolver({
+      conditionNames: ["node"],
+      extensions: [".js", ".json", ".node"],
+      fileSystem: nodeFileSystem
+    });
+    function resolve(context, path2, request, resolveContext, callback) {
+      if (typeof context === "string") {
+        callback = resolveContext;
+        resolveContext = request;
+        request = path2;
+        path2 = context;
+        context = nodeContext;
+      }
+      if (typeof callback !== "function") {
+        callback = resolveContext;
+      }
+      asyncResolver.resolve(context, path2, request, resolveContext, callback);
+    }
+    var syncResolver = ResolverFactory.createResolver({
+      conditionNames: ["node"],
+      extensions: [".js", ".json", ".node"],
+      useSyncFileSystemCalls: true,
+      fileSystem: nodeFileSystem
+    });
+    function resolveSync(context, path2, request) {
+      if (typeof context === "string") {
+        request = path2;
+        path2 = context;
+        context = nodeContext;
+      }
+      return syncResolver.resolveSync(context, path2, request);
+    }
+    function create2(options) {
+      options = {
+        fileSystem: nodeFileSystem,
+        ...options
+      };
+      const resolver = ResolverFactory.createResolver(options);
+      return function(context, path2, request, resolveContext, callback) {
+        if (typeof context === "string") {
+          callback = resolveContext;
+          resolveContext = request;
+          request = path2;
+          path2 = context;
+          context = nodeContext;
+        }
+        if (typeof callback !== "function") {
+          callback = resolveContext;
+        }
+        resolver.resolve(context, path2, request, resolveContext, callback);
+      };
+    }
+    function createSync(options) {
+      options = {
+        useSyncFileSystemCalls: true,
+        fileSystem: nodeFileSystem,
+        ...options
+      };
+      const resolver = ResolverFactory.createResolver(options);
+      return function(context, path2, request) {
+        if (typeof context === "string") {
+          request = path2;
+          path2 = context;
+          context = nodeContext;
+        }
+        return resolver.resolveSync(context, path2, request);
+      };
+    }
+    var mergeExports = (obj, exports2) => {
+      const descriptors = Object.getOwnPropertyDescriptors(exports2);
+      Object.defineProperties(obj, descriptors);
+      return Object.freeze(obj);
+    };
+    module2.exports = mergeExports(resolve, {
+      get sync() {
+        return resolveSync;
+      },
+      create: mergeExports(create2, {
+        get sync() {
+          return createSync;
+        }
+      }),
+      ResolverFactory,
+      CachedInputFileSystem: CachedInputFileSystem2,
+      get CloneBasenamePlugin() {
+        return require_CloneBasenamePlugin();
+      },
+      get LogInfoPlugin() {
+        return require_LogInfoPlugin();
+      },
+      get forEachBail() {
+        return require_forEachBail();
+      }
+    });
+  }
+});
+
 // tslib/index.ts
 var tslib_exports = {};
 __export(tslib_exports, {
@@ -20384,25 +24634,71 @@ __export(tslib_exports, {
 module.exports = __toCommonJS(tslib_exports);
 var import_less = __toESM(require_less2());
 
-// tslib/resolve.ts
-var { resolveFile } = require("../binding");
-function resolve(filepath, import_path2) {
-  let haserr = false;
-  let res;
-  if (import_path2.substring(0, 1) == "/" || import_path2.substring(0, 2) == "./" || import_path2.substring(0, 3) == "../") {
-    res = resolveFile(filepath, import_path2);
-  } else {
+// tslib/js_resolve.ts
+var import_enhanced_resolve = __toESM(require_lib4());
+var import_fs = __toESM(require("fs"));
+var cssExtensions = [".less", ".css", ".sass", ".scss", ".js"];
+var createResolver = (options) => {
+  const resolveCache = /* @__PURE__ */ new Map();
+  const resolveOptions = {
+    aliasFields: options.platform === "browser" ? ["browser"] : [],
+    FileSystem: new import_enhanced_resolve.CachedInputFileSystem(import_fs.default, 4e3),
+    mainFields: options.mainFields ?? ["module", "browser", "main"],
+    mainFiles: options.mainFiles,
+    extensions: options.extensions,
+    preferRelative: options.preferRelative,
+    addMatchAll: false,
+    plugins: [],
+    alias: options.alias
+  };
+  const resolveSync = import_enhanced_resolve.create.sync({
+    ...resolveOptions,
+    conditionNames: ["require", "module", "..."]
+  });
+  const esmResolveSync = import_enhanced_resolve.create.sync({
+    ...resolveOptions,
+    conditionNames: ["import", "module", "..."]
+  });
+  const node_resolve = (id, dir, kind) => {
+    if (resolveCache.get(id + dir + kind)) {
+      return resolveCache.get(id + dir + kind);
+    }
+    let result;
     try {
-      res = resolveFile(filepath, import_path2);
-    } catch (ex) {
-      haserr = true;
+      if (options.resolveType === "js") {
+        if (kind === "import-statement" || kind === "dynamic-import") {
+          result = esmResolveSync({}, dir, id);
+        } else {
+          result = resolveSync({}, dir, id);
+        }
+      } else {
+        try {
+          result = resolveSync({}, dir, id);
+        } catch (err) {
+          result = resolveSync({}, dir, id.replace(/^~/, ""));
+        }
+      }
+      resolveCache.set(id + dir + kind, result);
+      return result;
+    } catch (err) {
+      throw err;
     }
-    if (haserr) {
-      res = resolveFile(filepath, `./${import_path2}`);
-    }
-  }
-  return res;
-}
+  };
+  return node_resolve;
+};
+var css_resolve = (root) => {
+  return createResolver({
+    alias: {},
+    extensions: cssExtensions,
+    mainFields: ["module", "browser", "main"],
+    mainFiles: ["index"],
+    preferRelative: true,
+    resolver: "native-resolve",
+    resolveType: "css",
+    root: "/Users/zhushijie/Desktop/github/rspack/examples/arco-pro"
+  });
+};
+var js_resolve_default = css_resolve;
 
 // tslib/plugin.ts
 var import_path = __toESM(require("path"));
@@ -20418,7 +24714,8 @@ var LessAliasesPlugin = class {
         let resolved = void 0;
         try {
           let base_file = currentDirectory ? currentDirectory : import_path.default.dirname(current_dir);
-          resolved = resolve(base_file, filename);
+          let resolve = js_resolve_default(current_dir);
+          resolved = resolve(filename, base_file);
         } catch (err) {
           callback_error(err);
           return Promise.resolve({

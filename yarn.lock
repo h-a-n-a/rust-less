@@ -92,10 +92,27 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/enhanced-resolve@npm:3.0.7":
+  version: 3.0.7
+  resolution: "@types/enhanced-resolve@npm:3.0.7"
+  dependencies:
+    "@types/node": "*"
+    "@types/tapable": ^0
+  checksum: 1eaefb3e1f6c2eb419e5604ca33ff8405bdad060fed9bfe583248fc51adcc3b42b5d8f7ecb77b3e4a85e1917962bebd4c9be0d4bd7f5a741e577bc70594264ea
+  languageName: node
+  linkType: hard
+
 "@types/less@npm:3.0.3":
   version: 3.0.3
   resolution: "@types/less@npm:3.0.3"
   checksum: 389ce4c843fb88484ffbe4e3b63da0db1cea3e594c57086a5e642431f031f569819b4a210ae4ca109207d2307daa7e48e0e00315892fa7582748e0f434e62881
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:*":
+  version: 17.0.34
+  resolution: "@types/node@npm:17.0.34"
+  checksum: eb9a640ab85b62e8f7b9db1f19b674cc4ff49b94d55085ab6c28c997dbe90356631c4df484fe686082c938bfc6fb02c9e85eb805d1415dfe6de7e31f47a09a70
   languageName: node
   linkType: hard
 
@@ -117,6 +134,13 @@ __metadata:
   version: 0.0.30
   resolution: "@types/strip-json-comments@npm:0.0.30"
   checksum: 829ddd389645073f347c5b1924a8c34b8813af29756576e511c46f40e218193cf93ccbade62661d47fc70f707e98f410331729b8c20edfcb2e807d51df1ad4b7
+  languageName: node
+  linkType: hard
+
+"@types/tapable@npm:^0":
+  version: 0.2.5
+  resolution: "@types/tapable@npm:0.2.5"
+  checksum: 06118abe719ec7a5579c9ea63d36a3dfe78141ec22e23e1e0a950f099871bc1f02ab4e879760d799be9247e891060518a3f7a680f209e7be7115935ad96a2503
   languageName: node
   linkType: hard
 
@@ -425,6 +449,16 @@ __metadata:
   dependencies:
     iconv-lite: ^0.6.2
   checksum: bb98632f8ffa823996e508ce6a58ffcf5856330fde839ae42c9e1f436cc3b5cc651d4aeae72222916545428e54fd0f6aa8862fd8d25bdbcc4589f1e3f3715e7f
+  languageName: node
+  linkType: hard
+
+"enhanced-resolve@npm:5.9.3":
+  version: 5.9.3
+  resolution: "enhanced-resolve@npm:5.9.3"
+  dependencies:
+    graceful-fs: ^4.2.4
+    tapable: ^2.2.0
+  checksum: 64c2dbbdd608d1a4df93b6e60786c603a1faf3b2e66dfd051d62cf4cfaeeb5e800166183685587208d62e9f7afff3f78f3d5978e32cd80125ba0c83b59a79d78
   languageName: node
   linkType: hard
 
@@ -781,7 +815,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"graceful-fs@npm:^4.1.2, graceful-fs@npm:^4.2.6":
+"graceful-fs@npm:^4.1.2, graceful-fs@npm:^4.2.4, graceful-fs@npm:^4.2.6":
   version: 4.2.10
   resolution: "graceful-fs@npm:4.2.10"
   checksum: 3f109d70ae123951905d85032ebeae3c2a5a7a997430df00ea30df0e3a6c60cf6689b109654d6fdacd28810a053348c4d14642da1d075049e6be1ba5216218da
@@ -1586,8 +1620,10 @@ __metadata:
   resolution: "style_resolver@workspace:crates/resolver"
   dependencies:
     "@napi-rs/cli": 2.9.0
+    "@types/enhanced-resolve": 3.0.7
     "@types/less": 3.0.3
     "@types/node": 17.0.32
+    enhanced-resolve: 5.9.3
     esbuild: 0.14.39
     less: 4.1.2
     ts-node: 10.7.0
@@ -1600,6 +1636,13 @@ __metadata:
   version: 1.0.0
   resolution: "supports-preserve-symlinks-flag@npm:1.0.0"
   checksum: 53b1e247e68e05db7b3808b99b892bd36fb096e6fba213a06da7fab22045e97597db425c724f2bbd6c99a3c295e1e73f3e4de78592289f38431049e1277ca0ae
+  languageName: node
+  linkType: hard
+
+"tapable@npm:^2.2.0":
+  version: 2.2.1
+  resolution: "tapable@npm:2.2.1"
+  checksum: 3b7a1b4d86fa940aad46d9e73d1e8739335efd4c48322cb37d073eb6f80f5281889bf0320c6d8ffcfa1a0dd5bfdbd0f9d037e252ef972aca595330538aac4d51
   languageName: node
   linkType: hard
 
