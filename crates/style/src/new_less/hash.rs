@@ -1,4 +1,5 @@
-use iocutil::prelude::{ContentHash, Hasher};
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::path::Path;
 
 pub struct StyleHash;
@@ -8,11 +9,9 @@ impl StyleHash {
   /// 根据文章内容生成 -> content_hash
   ///
   pub fn generate_hash_by_content(content: &str) -> String {
-    let mut reader: &[u8] = content.as_bytes();
-    let mut hasher = Hasher::new();
-    std::io::copy(&mut reader, &mut hasher).unwrap();
-    let c: ContentHash = hasher.digests();
-    c.sha1.to_string()
+    let mut hasher = DefaultHasher::new();
+    content.hash(&mut hasher);
+    hasher.finish().to_string()
   }
 
   ///
