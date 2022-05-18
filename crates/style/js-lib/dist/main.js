@@ -24695,7 +24695,7 @@ var css_resolve = (root) => {
     preferRelative: true,
     resolver: "native-resolve",
     resolveType: "css",
-    root: "/Users/zhushijie/Desktop/github/rspack/examples/arco-pro"
+    root
   });
 };
 var js_resolve_default = css_resolve;

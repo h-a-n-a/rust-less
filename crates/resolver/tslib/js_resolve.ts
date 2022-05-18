@@ -76,7 +76,7 @@ const css_resolve = (root: any) => {
     preferRelative: true,
     resolver: 'native-resolve',
     resolveType: 'css',
-    root: '/Users/zhushijie/Desktop/github/rspack/examples/arco-pro',
+    root,
   } as any);
 };
 
