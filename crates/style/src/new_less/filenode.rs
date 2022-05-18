@@ -143,8 +143,8 @@ impl FileNode {
       } else {
         item.to_string()
       };
-      let value = format!(".{}_{}", key, self.info.borrow().hash_perfix);
-      res += format!(r#"{}: "{}","#, item, value).as_str();
+      let value = format!(".{}_{}", item, self.info.borrow().hash_perfix);
+      res += format!(r#"{}: "{}","#, key, value).as_str();
       res += " \n";
     }
     res
