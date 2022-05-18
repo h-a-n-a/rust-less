@@ -1,6 +1,6 @@
 [package]
 name = "rspack_style"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/zhusjfaker/rust-less.git"
@@ -11,7 +11,6 @@ include = [
     "**/*.rs",
     "js-lib/**/*.js",
     "js-lib/*.js",
-    "js-lib/*.node",
     "js-lib/**/*.js.map",
     "Cargo.toml",
 ]
